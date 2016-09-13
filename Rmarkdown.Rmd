@@ -1,0 +1,96 @@
+---
+title: "RMarkdown"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+---
+
+#1.标题
+## 二级标题
+### 三级标题
+#### 四级标题
+##### 五级标题
+###### 六级标题
+(空白行表示另起一行)
+或者用<br>
+
+---
+
+#2.加粗，斜体
+**加粗**
+*斜体*
+
+---
+
+#3.层次
+####第一小节
+1. 第一小节
+2. 第二小节
+    * 第一小节（推荐每层次缩进四个空格）
+        * 小小节 1
+        * 小小节 2
+    * 第二小节
+    
+“*” 后面要加空格，这是必须的，除了 “*”，还可以使用 + 或者 -。
+
+如果格式出现问题，多加个空行，一般就好了。
+
+无序列表用" * , + , - "
+有序列表在使用数字后面加上句号（还要有空格）
+
+---
+
+#4.链接，图片
+[***中山大学***](http://www.sysu.edu.cn/2012/cn/zsjy/index.htm)
+
+内联方式：This is an [example link](http://www.baidu.com)
+
+引用方式：I love [Goodle][1] more than [Baidu][2]
+
+[1]:https://www.google.com.hk/?gws_rd=ssl
+
+[2]:http://www.baidu.com
+
+---  
+
+#[5.其他][null-link]
+[null-link]: chrome://not-a-link
+
+---
+
+**P.S.** 补充一种高端的链接: [鼠标移过来，**先别单击** ~][hover]
+
+[hover]: http://www.google.com.sg "Google Sg 更快，更好用。好，现在单击吧"
+
+#6.上标，脚注
+
+hello[^hello]
+
+[^hello]: hi
+
+---
+
+#7.数学公式
+
+* 矩阵
+$$      
+    \begin{bmatrix}
+    1 & x & x^2 \\
+    1 & y & y^2 \\
+    1 & z & z^2 \\ 
+    \end{bmatrix}
+$$
+
+*上下标
+^ 表示上标，_ 表示下标。当上下标多于一个字符时，要用{}括起来。同时上下标是可以嵌套使用的。例如:
+
+x^(y^2)
+
+X_i
+
+
+
+

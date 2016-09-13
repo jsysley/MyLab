@@ -1,0 +1,29 @@
+---
+title: "Linear-Regression"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Libraries
+
+MASS package
+
+```{r cars}
+library(MASS)
+```
+
+## Data
+
+ISLR package
+
+```{r}
+library(ISLR)
+```
+
+
+
+
+
