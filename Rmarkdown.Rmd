@@ -65,6 +65,19 @@ knitr::opts_chunk$set(echo = TRUE)
 
 [hover]: http://www.google.com.sg "Google Sg 更快，更好用。好，现在单击吧"
 
+列表的显示只需要在文字前加上 " - " 或 " * " 即可变为无序列表，有序列表则直接在文字前加 1. 2. 3. 符号要和文字之间加上一个字符的空格。
+
+##代码框
+用" `` "
+
+` a=2 `<br>
+
+加Tab自动产生代码框<br>
+
+    This is a blcok
+
+> 这是引用
+
 #6.上标，脚注
 
 hello[^hello]
@@ -91,6 +104,32 @@ x^(y^2)
 
 X_i
 
+##表格
 
+| Tables        | Are           | Cool  |
+| ------------- | ------------- | ----- |
+| col 3 is      | right-aligned | $1600 |
+| col 2 is      | centered      |   $12 |
+| zebra stripes | are neat      |    $1 |
+
+
+---
+
+#8.快捷键
+
+输入Cmd + Option + I（Ctrl + Alt + I ）输入
+```{r}
+
+
+```
+以上参数：<br>
+include = FALSE ：不显示代码和结果，但结果可用于其他代码块<br>
+echo = FALSE ：不显示代码，但结果显示<br>
+message = FALSE ：不显示有代码产生的信息<br>
+warning = FALSE ：d不显示代码产生的warnings<br>
+fig.cap = "..." adds a caption to graphical results.<br>
+
+输入Cmd + Shift + Enter来运行代码块<br>
+输入Cmd + Enter运行句子
 
 
