@@ -7,21 +7,165 @@ output: html_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Libraries
+#信纸笔记
 
-MASS package
+---
 
-```{r cars}
-library(MASS)
-```
-
-## Data
-
-ISLR package
+##Example
 
 ```{r}
-library(ISLR)
+#输入数据
+x <- c(170,168,175,153,185,135,172)
+y <- c(61,57,58,40,90,35,68)
+plot(x,y)#画散点图
+z <- lm(y~x+1)#表示回归，带截距项
+
+abline(z)#画出拟合曲线，这样画的会画出训练集的范围
+lines(x,fitted(z))#或者这样画也可以，仅在训练集的范围内画
+
+summary(z)#看回归结果，主要看系数的“*”，还有R平方，以及整体模型F检验的p值
+plot(z)#画各种图
+
+model.matrix(z)#可以输出向量形式的输入正，第一列为1，接下来为各个变量
+
+names(z)#查看模型中包括的其他数据
+
+w <- lm(y~x-1)#表示过原点的模型
+summary(w)#看回归结果
 ```
+
+* residuals: 残差分析数据<br>
+* coefficients: 回归方程的系数，以及推算的系数的标准差，t值，p值<br>
+* F-statistic: 检验值<br>
+* signif: 显著性标记<br>
+    * " *** ": 极度显著<br>
+    * " ** " : 高度显著<br>
+    * " * "  : 显著<br>
+    * " · "  : 不太显著<br>
+    * "   "  : 不显著<br>
+
+```{r}
+deviance(z)#计算残差平方和
+residuals(z)#计算每个点的残差，生成一个向量
+
+#生成训练集的预测值
+yhat <- predict(z)
+#预测新值
+a <- data.frame(x=185)#用数据框类型
+predict(z,a)#预测出新值
+predict(z,a,interval = "prediction",level = 0.95)#预测出值，以及区间
+
+predict(z,interval = "confidence")#对y的均值预测
+predict(z,interval = "prediction")#对y的值预测
+
+coef(z)#求出拟合模型的系数,为numeric型，可以加[1],[2]等引用个别系数
+
+formula(z)#提取模型公式
+```
+
+---
+
+##多元线性回归模型
+* 采用数据集swiss
+```{r}
+str(swiss)#查看出数据
+#拟合模型
+swiss.lm=lm(Fertility~.,data = swiss)
+summary(swiss.lm)
+#变量选择
+swiss.lm1=update(swiss.lm,.~.+I(Education^2))#如添Education^2
+summary(swiss.lm1)
+
+swiss.lm2=update(swiss.lm,.~.-Education)#如删除Education
+summary(swiss.lm2)
+
+```
+
+---
+
+##逐步回归
+* step()函数
+    ** step(z,direction=" ")
+    ** forward: 向前引入法
+    ** backward: 向后引入法
+    ** both: 逐步引入
+* 可直接回归一个包括所有变量的模型，然step()（此时默认用AIC准则选择模型），既可以完成自动的逐步回归模型，若对模型不满意，任然可以自己处理（如添加变量，删除变量等），此时用的函数：
+    ** add(object,scope,...)
+    ** drop(object,scope,...)
+    ** 以上可以查看增加或者删除变量后AIC准则如何变化
+
+```{r}
+swiss.lmstep=step(swiss.lm)#查看之后自己复制公式重新拟合
+summary(swiss.lmstep)
+
+swiss.lmstepBest=lm(formula = Fertility ~ Agriculture + Education + Catholic + Infant.Mortality, data = swiss)#得出自己想要的模型
+summary(swiss.lmstep)
+#下面进行变量添加或者删除,
+drop1(swiss.lmstep)#此时可以自己判断，判断完和之后需要自己重新用lm函数拟合出新的模型
+add1(swiss.lm,~I(Education^2)+.)#添加一个Education的平方 
+
+#用AIC准则比较多个模型
+AIC(swiss.lm,swiss.lm1,swiss.lm2)
+
+```
+
+---
+
+##回归诊断
+###正太分布检验：shapiro.test()
+```{r}
+plot(residuals(swiss.lm))
+shapiro.test(residuals(swiss.lm))#检验残差正太分布
+```
+
+---
+
+###画残差图
+```{r}
+y.res <- resid(swiss.lm)#同residuals()
+y.fit <- predict(swiss.lm)#给出拟合值
+plot(y.res~y.fit)
+
+#或者也可以：
+plot(swiss.lm$residuals~swiss$Fertility)
+```
+
+---
+
+###画标准化残差
+```{r}
+y.rst <- rstandard(swiss.lm)
+plot(y.rst~y.fit)
+
+```
+
+---
+
+###变换
+```{r}
+lm.new <- update(swiss.lm,sqrt(.)~.)#对y取根号
+coef(lm.new)#取出新拟合模型的系数
+
+```
+
+---
+
+###多重共线性的检验：kappa(z,exact=FALSE,...)
+* 其中z一般用矩阵，且未相关阵，cor(data.frame),data.frame中为各种变量，样本的数据框
+* exact=TRUE时表示计算精确的条件数
+* k<100,多重共线性小
+* 100《k《1000,多重共线性较强
+* k》1000 多重共线性严重
+* 找出那些多重共线性：xx=cor(data.frame);eign(xx)#看特征根
+
+---
+
+###广义线性模型：glm()
+
+    fitted.model <- glm(formula,family = family.generator,data = data.frame)
+
+    做logisti回归
+    fm <- glm(formula,family = binomial(link=logit),data = data.frame)当不加link=logit时算出的值为概率，加了算出的值为logit值
 
 
 
