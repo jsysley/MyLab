@@ -167,7 +167,117 @@ coef(lm.new)#取出新拟合模型的系数
     做logisti回归
     fm <- glm(formula,family = binomial(link=logit),data = data.frame)当不加link=logit时算出的值为概率，加了算出的值为logit值
 
+#The Book
 
+##Library
+```{r}
+#a very large collection of data sets and functions
+library(MASS)
+
+#indludes the data associated with the following
+library(ISLR)
+```
+
+##Simple Linear Regression
+```{r}
+#use the Boston data set included in MASS library
+str(Boston)#查看数据类型
+fix(Boston)#更加直观的查看数据集
+names(Boston)#查看数据集的各个变量名
+#下面进行回归
+lm.fit=lm(medv~lstat,data = Boston)#medv为因变量，lstat为自变量，简单线性回归
+lm.fit#查看回归结果
+summary(lm.fit)#查看详细回归结果
+names(lm.fit)#查看回归之后可用的数据
+coef(lm.fit)#查看变量系数
+confint(lm.fit)#对变量系数进行区间估计
+#prediction()可以产生confidence interval和prediction interval
+predict(lm.fit,data.frame(lstat=c(5,10,15)),interval = "confidence")
+predict(lm.fit,data.frame(lstat=c(5,10,15)),interval = "prediction")
+#画图
+plot(Boston$lstat,Boston$medv)#画出散点图
+abline(lm.fit)#画出拟合直线，abline(a,b)表示画出截距为a，斜率为b的直线
+
+par(mfrow = c(2,2))
+plot(lm.fit)
+
+
+#计算残差
+residuals(lm.fit)#计算每个样本与拟合值的差，即残差
+rstudent(lm.fit)#返回对应的标准化残差
+
+#画出残差图
+par(mfrow=c(1,1))
+plot(predict(lm.fit),residuals(lm.fit))#画出残差图
+plot(predict(lm.fit),rstudent(lm.fit))#画出标准化残差图
+
+#leverage statistics
+hatvalues(lm.fit)#计算每一个样本的hatvalues
+
+plot(hatvalues(lm.fit))
+which.max(hatvalues(lm.fit))#返回index
+```
+
+##Multiple Linear Regression
+```{r}
+lm.fitm <- lm(medv~lstat+age,data = Boston)
+summary(lm.fitm)
+
+#全部变量回归
+lm.fitall <- lm(medv~.,data = Boston)
+summary(lm.fitall)
+summary(lm.fitall)$r.sq#给出回归模型的R平方
+
+library(car)#为了用vif()函数
+vif(lm.fitall)#该数据集的vif均比较小
+
+#下面注意到age的p值比较大，想剔除
+lm.fit1 <- lm(medv~.-age,data = Boston)
+summary(lm.fit1)
+#或者可以用update来做
+lm.fit1 <- update(lm.fit,~.-age)
+summary(lm.fit1)
+```
+
+##Interaction Terms
+```{r}
+summary(lm(medv~lstat*age,data = Boston))#做一个有交互项的回归
+```
+
+##Non-linear Transformations of the Predictors
+当用到次方的时候需要I()<br>
+```{r}
+lm.fit2 <- lm(medv~lstat+I(lstat^2),data = Boston)
+summary(lm.fit2)
+```
+we use the anova() function to further quantify the extent to which the quadratic fit is superior to the linear fit<br>
+
+```{r}
+anova(lm.fit,lm.fit2)
+#anova() perform a hypothesis test comparing the two #models.原假设是两个模型同样好，备择假设是full model表现好
+```
+
+对于更高次的回归，建议用poly()函数<br>
+use the poly() function to create the polynomial within lm()
+```{r}
+lm.fit3 <- lm(medv~poly(lstat,5),data = Boston)#做5次多项式回归
+summary(lm.fit3)
+#对y做一个logtransformation
+summary(lm(medv~log(rm),data = Boston))
+```
+
+##Qualitative Predicors
+```{r}
+library(ISLR)
+str(Carseats)
+fix(Carseats)
+names(Carseats)#查看数据
+
+lm.fit4 <- lm(Sales~.+Income:Advertising+Price:Age,data = Carseats)
+summary(lm.fit4)
+
+contrasts(Carseats$ShelveLoc)#return the coding that R uses for the dummy variables
+```
 
 
 
