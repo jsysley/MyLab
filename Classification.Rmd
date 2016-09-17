@@ -115,6 +115,42 @@ sum(lda.pred$posterior[,1]<0.5)#up的个数
 library(MASS)
 qda.fit=qda(Direction~Lag1+Lag2,data = Smarket,subset=train)
 qda.fit
+
+#用predict()拟合,然后查看准确率
+qda.class=predict(qda.fit,Smarket.2005)$class
+table(qda.class,Direction.2005)
+mean(qda.class==Direction.2005)
+```
+
+
+##K-Nearset Neighbors
+用class包中的knn()函数<br>
+要求四个输入：
+* training data
+* testing data
+* one class labei vector
+* the value of K
+
+```{r}
+library(class)
+#训练集
+train.x=cbind(Smarket$Lag1,Smarket$Lag2)[train,]
+#待预测集
+test.x=cbind(Smarket$Lag1,Smarket$Lag2)[!train,]
+#训练集的类标号向量
+train.Direction=Smarket$Direction[train]
+#每次结果可能不一样
+set.seed(1)
+knn.pred=knn(train.x,test.x,train.Direction,k=1)
+#查看结果
+table(knn.pred,Direction.2005)
+mean(knn.pred==Direction.2005)
+
+#下面尝试不同的k值
+knn.pred1=knn(train.x,test.x,train.Direction,k=3)
+#查看结果
+table(knn.pred1,Direction.2005)
+mean(knn.pred1==Direction.2005)
 ```
 
 
