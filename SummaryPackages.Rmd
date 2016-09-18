@@ -1,0 +1,41 @@
+---
+title: "Summary"
+author: "jsysley_mac"
+date: "2016年9月18日"
+output: html_document
+---
+
+#Summary
+
+##数据分析
+Hmisc()包：describe()
+fBasics包的basicStats()
+
+##Linear Regression
+不用包，用lm()函数，glm()函数
+
+##关联分析
+Arules、arulesViz包
+
+##聚类分析
+Cluster、mclust、stats包
+
+##判别分析
+MASS、klaR、class、kknn包
+
+##决策树
+Rpart、part，PWake包
+
+##集成学习
+adabag包
+
+##随机森林
+randomForest包
+
+##支持向量机
+e1071包
+
+##神经网络
+nnet包
+
+##
