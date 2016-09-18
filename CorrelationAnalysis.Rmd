@@ -1,0 +1,129 @@
+---
+title: "CorrelationAnalysis"
+author: "jsysley"
+date: "2016年9月18日"
+output: html_document
+---
+
+#library
+* 需要用到包arules和arulesViz
+* 其中arules用于关联规则的数字化生成，提供Apriori和Eclat这两种快速挖掘频繁项集和关联规则算法的实现函数
+* arulesViz包是arules的扩展包，提供几种实用而新颖的关联规则可视化技术
+
+#核心函数
+
+##apripri()
+apriori(data,parameter=NULL,appearance=NULL,control=NULL)
+
+当给定数据集，并设置各个参数值(如支持度和置信度阈值)，即可运行
+
+* parameter参数可以对支持度、置信度、每个项集所含项数的最大值/最小值，以及输出结果等重要参数进行设置。默认：support=0.1，confidence=0.8，maxlen=10,minlen=1,target="rules"/"frequent itemsets"(输出关联规则/频繁项集)
+
+* appearance可以对先决条件X(lhs)和关联结果Y(rhs)中具体包含哪些项进行限制，如设置：lhs=beer,将仅输出lhs中含有“啤酒”这一张的关联规则，默认所有项都将无限制出现
+
+* control参数控制函数性能，如可设定对项集进行升序(sort=1)还是降序(sort=-1)排序，是否报告进程(verbose=TURE/FALSE)
+
+##eclat()
+eclat(data,parameter=NULL,control=NULL)
+
+* parameter与control参数的作用于apriori()中基本相同
+
+* 注意：parameter中的输出结果(target)一项不可设置为rules,即通过eclat()函数无法生成关联规则，并且maxlen默认值5
+
+#数据集
+arules包中的Groceries
+```{r}
+library(arules)
+data("Groceries")
+str(Groceries)
+summary(Groceries)
+#加载Groceries数据集的前10条交易信息
+inspect(Groceries[1:10])
+```
+Groceries数据集，包含9835条交易，169个项。每一条数据即代表一位消费者购物篮中的商品类别。
+
+#演示
+运用apriori()函数，设置支持度最小阈值0.001，置信度最小阈值0.5，其他参数默认，将所得关联规则名记为rules()
+
+```{r}
+rules0=apriori(Groceries,parameter = list(support=0.001,confidence=0.5))#生成关联规则rules0
+```
+以上输出结果包括指明支持度、置信度最小值的参数详解部分，记录算法执行过程中相关参数的算法控制部分，以及apriori算法的基本信息和执行细节
+
+```{r}
+rules0#显示rules0中生成关联规则的条数
+
+inspect(rules0[1:10])#查看rules0中前10条规则
+```
+
+##对生成规则进行强度控制
+
+###通过支持度、置信度共同控制
+* 如果更关注关联项集在总体中所占的比例，则可以适当的多提高支持度的值；
+
+* 若是更加注重规则本身的可靠性，则可以多提高一些置信度值；
+
+###主要通过支持度控制
+对support调整
+
+采取对其中一个指标固定阈值，再按照其他指标来选择前5强的关联规则
+
+```{r}
+#给定置信度阈值为0.5，按支持度排序
+rules.sorted_sup=sort(rules0,by="support")
+inspect(rules.sorted_sup[1:5])#输出前5条强关联规则
+```
+
+###主要通过置信度控制
+
+对confidence调整
+```{r}
+#给定支持度阈值为0.001，按置信度排序
+rules.sorted_con=sort(rules0,by="confidence")
+inspect(rules.sorted_con[1:5])#输出前5条强关联规则
+```
+
+###主要通过提升度控制
+
+```{r}
+#给定支持度阈值为0.001，置信度阈值为0.5,按置信度排序
+rules.sorted_lift=sort(rules0,by="lift")
+inspect(rules.sorted_lift[1:5])#输出前5条强关联规则
+```
+
+#实际应用
+想要找出仅包含mustard的关联规则
+```{r}
+#仅生成关联结果中包含“芥末”的关联规则
+rules4=apriori(Groceries,parameter = list(maxlen=2,support=0.001,confidence=0.1),appearance = list(rhs="mustard",default="lhs"))
+
+inspect(rules4)
+```
+这里设置maxlen=2是因为控制lhs中仅包含一种食品，这是因为在实际中，我们仅将两种商品进行捆绑
+
+#改变输出结果形式
+
+apriori()和eclat()函数都可以根据需要输出频繁项集。比如当我们想知道某超市这个月销量最高的商品，或者捆绑销售策略在哪些商品中作用显著。选择输出给定条件下的频繁项集即可。
+
+如下将目标参数target设为“frequent itemsets"
+
+```{r}
+#将apriori()中目标参数设置为频繁项集
+itemsets_apr=apriori(Groceries,parameter = list(supp=0.001,target="frequent itemsets"),control = list(sort=-1))
+#显示生成的频繁项集的个数，并且排序了
+itemsets_apr
+inspect(itemsets_apr[1:5])#观测前5个
+```
+
+#可视化
+```{r}
+#加载包
+library(arulesViz)
+#生成关联规则
+rules5=apriori(Groceries,parameter = list(supp=0.002,conf=0.5))
+rules5 #查看规则数
+plot(rules5)
+
+```
+
+图中每个点对应于相应的支持度和置信度值。分别由图形的横纵轴显示，且其中关联规则点的颜色深浅由lift值得高低决定（详见《R语言 数据挖掘实战》）
