@@ -1,0 +1,62 @@
+---
+title: "Cluster"
+author: "jsysley"
+date: "2016年9月18日"
+output: html_document
+---
+
+#概述
+* K-均值聚类（K-Means）
+
+* K-中心点聚类（K-Medoids）
+
+* 密度聚类（Density-based Spatial Clustering of Application with Noise,DBSCAN）
+
+* 系谱聚类（Hierarchical Clustering,HC)
+
+* 期望最大化聚类（Expectation Maximization,EM）
+
+#library
+
+* stats: 包含基本的统计函数，如用于统计计算和随机数生成
+
+    * K-均值聚类（K-Means）： kmeans()
+    
+    * 系谱聚类（HC）: hclust()、cutree()、rect.hclust()
+    
+* cluster： 用于聚类分析，含有很多聚类相关的函数及数据集
+
+    * K-中心点聚类（K-Medoids）：  pam()
+    
+* fpc： 含有若干聚类算法函数，如固定点聚类，线性回归聚类，DBSCAN聚类等
+
+    * 密度聚类（DBSCAN）： dbscan()
+    
+* mclust： 主要用来处理基于高斯混合模型，通过EM算法实现的聚类、分类及密度估计等问题
+
+    * 期望最大化聚类（EM）： Mclust、clustBIC()、mclust2Dplot()、densityMclust()
+
+
+#核心函数
+
+##K-均值：kmeans()
+* K-均值算法的实现，来源stats包
+
+* kmeans(x,centers,iter.max=10,nstart=1,algorithm=c("Hartigan-Wong","Lloyd","For-gy","MacQueen"))
+
+    * 其中x为进行聚类的分析的数据集；centers为预设类别数k；iter.max为迭代的最大值，默认10；nstart为选择随机起始中心点的次数，默认1；algorithm提供4种算法选择，默认Hartigan-Wong
+    
+##K-中心点：pam()
+
+* k—中心点算法的实现，来源cluster包
+
+* pam(x,k,diss=inherits(x,"dist"),metric="euclidean",medoids=NULL,stand=FASLE,cluster.only=FALSE,do.swap=TRUE,keep.diss=!diss&&!cluster.only&&n<100,keep.data=!diss&&cluster.only,pamonce=FALSE,trace.lev=0)
+
+    * x于k分别表示待处理数据及类别数；
+    * metric参数选择样本点间距离计算方式，可选euclidean于manhattan
+    * medoids默认NULL，即由软件选择初始中心点样本，也可认为设定一个k维向量来指定初始点
+    * stand选择对数据进行聚类前是否需要标准化
+    * cluster.only选择是否获取各样本所属的类别（Cluster vector）这一项聚类结果，选择TRUE，则聚类过程效率更高
+    * keep.data 选择是否在聚类中保留数据
+
+##
