@@ -1,0 +1,268 @@
+#数据预处理
+用mice包的数据集
+```{r}
+library(mice)
+```
+
+用nhanes2数据集演示数据清理，该数据集含有缺失值的小规模数据
+```{r}
+str(nhanes2)#查看数据属性
+library(mice)
+md.pattern(nhanes2)#查看缺失值，还有诸如describe()，summary()函数可以用
+head(nhanes2)#直观了解数据
+```
+
+计算nhanes2中缺失值的数量
+```{r}
+sum(is.na(nhanes2))
+```
+
+函数complete.cases()用来判断某一观测样本是否完整,下面计算nhanes2中完整样本的数量
+```{r}
+sum(complete.cases(nhanes2))
+```
+
+结果显示数据中共有27个缺失值，数据框13条完整观测数据，12条观测值存在缺失值
+
+下面用mice包中的md.pattern()函数查看缺失值分布情况
+```{r}
+library(mice)
+md.pattern(nhanes2)
+```
+
+##缺失值处理的一直方法：多重插补法
+通过变量间的关系对缺失数据进行预测，利用蒙特卡洛方法生成多个完整的数据集，再对这些数据集分别进行分析，最后对分析结果进行汇总处理
+
+在R中通过mice包中的mice()函数进行处理
+
+mice(data,m=5,...)
+* 其中，data代表有一个缺失值的数据框或矩阵，缺失值用NA表示；m表示插补重数，即生成m个完整数据集，默认值m=5
+
+下面以数据集nhanes2数据集演示,以chl为因变量，age,hyp,bmi为自变量，构建回归模型，由于数据中存在缺失值，通过以下方式构建：
+
+```{r}
+library(mice)
+str(nhanes2)
+
+imp=mice(nhanes2,m=4)#生成4组完整的数据库并给imp
+fit=with(imp,lm(chl~age+hyp+bmi))#生成线性回归模型
+pooled=pool(fit)#对建立的4个模型进行汇总
+summary(pooled)
+```
+其中nmis表示了变量中的缺失数据个数，fmi表示由缺失数据贡献的变异
+
+##对缺失值判断后，如何处理
+
+###删除法
+* 删除观测样本
+* 删除变量
+* 使用完整原始数据分析
+* 改变权重
+
+###插补法（均值插补，回归插补，二阶插补，热平台，冷平台，抽样填补）
+
+#####从总体中抽取某个样本代替缺失样本
+
+```{r}
+sub=which(is.na(nhanes2[,4])==TRUE)#返回nhanes2数据集中第4列为NA的行的行号
+dataTR=nhanes2[-sub,]#将第4列不为NA的数据存入数据集dataTR中
+dataTE=nhanes2[sub,]#将第4列为NA的数据存入数据集dataTE中
+dataTE[,4]=sample(dataTR[,4],length(dataTE[,4]),replace = TRUE)#在非缺失值中简单抽样填充缺失值
+dataTE#第4列数据已经没有NA
+```
+
+####均值法
+* 均值法是计算缺失值所在变量的所有非缺失值的均值，用均值来代替插补方法，类似的还可以用中位数等各种统计量来插补，下面演示均值法
+
+```{r}
+sub=which(is.na(nhanes2[,4])==TRUE)#返回nhanes2数据集中第3列为NA的行
+dataTR=nhanes2[-sub,]#将第4列不为NA的数据存入数据集dataTR中
+dataTE=nhanes2[sub,]#将第4列为NA的数据存入数据集dataTE中
+dataTE[,4]=mean(dataTR[,4])#用非缺失值的均值代替缺失值
+dataTE
+```
+
+####回归法
+回归模型将需要插补变量作为因变量，其他变量作为自变量，通过建立回归模型预测出因变量的值对缺失值进行插补
+
+```{r}
+sub=which(is.na(nhanes2[,4])==TRUE)#返回nhanes2数据集中第3列为NA的行
+dataTR=nhanes2[-sub,]#将第4列不为NA的数据存入数据集dataTR中
+dataTE=nhanes2[sub,]#将第4列为NA的数据存入数据集dataTE中
+dataTE
+#下面进行回归
+lm1=lm(chl~age,data = dataTR)
+dataTE[,4]=round(predict(lm1,dataTE))
+dataTE
+```
+
+####热平台
+在非缺失数据集中找到一个与缺失值所在样本相似的样本(匹配样本)，利用其中的观察值对缺失值进行插补
+
+```{r}
+accept=nhanes2[which(apply(is.na(nhanes2),1,sum)!=0),]#取出存在缺失值的样本,1表示对行，apply对行求和，取出缺失值个数不为0的样本
+donate=nhanes2[which(apply(is.na(nhanes2),1,sum)==0),]#无缺失值的样本
+```
+以上将nhanes2数据集分层有缺失值和无缺失值两个样本，分别存在accept，donate中
+
+一下对accept中的第二个样本插补：
+
+```{r}
+accept[2,]
+sa=donate[which(donate[,1]==accept[2,1]&donate[,3]==accept[2,3]&donate[,4]==accept[2,4]),]#将缺失的数据小项分别比对，找出相似样本
+sa#发现存在
+accept[2,2]=sa[1,2]#缺失值插补
+accept[2,]
+```
+
+####冷平台
+实际中，当变量个数很多，难以找到相似样本，此时可以按照某些变量将数据分层，在层中对缺失值使用均值插补，即冷平台方法
+
+```{r}
+level1=nhanes2[which(nhanes2[,3]=="yes"),]#按变量hyp分层
+level1
+level1[4,4]=mean(level1[1:3,4])#用层内均值代替第4个样本
+level1
+```
+
+##噪声数据处理
+* 用outliers包的outlier()函数寻找噪声数据，该函数通过寻找数据集中与其他观测值以均值差距最大的点作为异常值
+
+outlier(x,opposite=FALSE,logical=FALSE)
+* 其中，x是一个数据（同常是向量），若x是数据框或矩阵，则函数逐列计算；opposite可输入TRUE时给出相反值（如果最大值与均值差异最大，则给出最小值）；logical为TRUE时，给向量赋予逻辑值，可能出现噪声的位置用TRUE表示
+```{r}
+library(outliers)
+#设置随机数种子，保证每次出现的随机数相同
+set.seed(1)
+s1=.Random.seed
+
+y=rnorm(100)#生成1--个标准正太随机数
+outlier(y)#找出离群最远的值
+outlier(y,opposite = TRUE)#找出离群值相反的值
+dotchart(y)
+
+dim(y) <- c(20,5)#将y数据划分成20行5列的数据
+outlier(y)#求矩阵中每列离群最远值
+
+set.seed(1)
+s1=.Random.seed
+y=rnorm(10)
+outlier(y,logical = TRUE)#返回相应逻辑值，离群最远值用TRUE标记
+plot(y)
+```
+
+---
+
+##数据不一致的处理
+当对数据进行批量操作时，可以通过对函数的返回值进行约束，，根据是否提示错误判断、是否存在数据不一致问题，如vapply()函数
+
+vapply(x,FUN,FUN.VALUE,...,USE.NAMES=TRUE)
+* 其中x是作为输入变量的列表或向量，FUN是指定函数，FUN.VALUE是函数要求的返回值，当USE.NAMES赋值为TRUE且X是字符型时，若返回值没有变量名则用X作为变量名。
+
+下面进行演示：rt.value变量设置返回值的长度和类型，如果FUN函数获得的结果和re.value设置的不一致（长度和类型）都会出错
+
+```{r}
+x <- list(a=1:10,beta = exp(-3:3),logical=c(TRUE,FALSE,FALSE,TRUE))#生成列表
+x
+probs <- c(1:3/4)#3个数，0.25，0.50，0.75
+rt.value <- c(0,0,0)#设置返回3个数字
+vapply(x,quantile,FUN.VALUE = rt.value,probs=probs)
+```
+
+若将probs <- c(1:3/4)改成probs <- c(1:4/4)，会导致返回值与要求格式不一致，提示错误
+
+```{r}
+probs <- c(1:4/4)
+#vapply(x, quantile, FUN.VALUE = rt.value, probs = probs)#结果显示错误，要求返回值的长度必须为3，但FUN(X[[1]])返回的结果的长度却是4，两者不一致导致错误。
+
+rt.value=c(0,0,0,0)#要求返回值长度为4
+vapply(x, quantile, FUN.VALUE = rt.value, probs = probs)
+#类似的设置返回值为3个数字1个字符串：rt.value <- c(0,0,0," ")
+```
+
+---
+
+##数据集成
+
+* 可以用相关分析对数据冗余进行检测：
+    * 对于定性数据，可以用卡方检验
+    * 对于定量数据，可以用相关系数和协方差
+
+定量数据演示：
+
+```{r}
+x=cbind(sample(c(1:50),10),sample(c(1:50),10))#生产由两列不相关的定性数据组成的矩阵x
+#下面进行检验
+chisq.test(x)#原假设是相关
+```
+
+定量数据演示：
+
+```{r}
+x=cbind(rnorm(10),rnorm(10))#生成由2列标准正太随机数组成的矩阵x
+cor(x)#给出两列数据的相关系数
+```
+当相关系数比较小，则两列之间的相关性不足以将两列数据视为冗余数据，无需删除。
+
+检测观测值是否存在重复
+
+```{r}
+#生成样本，第一列为样本编号，若样本编号相同则认为存在重复
+x=cbind(sample(c(1:10),10,replace = TRUE),rnorm(10),rnorm(10))
+head(x)#去掉重复值前的数据展示
+
+y=unique(x[,1])#将样本编号去掉重复，返回第一列的所有值（唯一）
+sub=rep(0,length(y))#生成列向量备用
+for(i in 1:length(y))#循环，根据样本编号筛选数据集，去掉重复,存下唯一编号
+    sub[i]=which(x[,1]==y[i])[1]
+x=x[sub,]#读取无重复数据
+head(x)
+```
+
+
+##数据变换
+
+###标准化：scale()
+
+```{r}
+#设置随机数种子
+set.seed(1)
+s1=.Random.seed
+a=rnorm(5)
+b=scale(a)#对该列随机数标准化
+b
+```
+* attr(,"scaled:center")表示原数据的均值，attr(,"scaled:scale")表示元数据的标准差
+
+---
+
+###离散化连续值
+```{r}
+a=rnorm(5)
+n=length(a)
+la=rep(0,n)#进行0-1离散化
+la[which(a>0.5)]=1
+la
+```
+
+---
+
+##数据归约：维归约，数值归约
+* 维归约指通过减少属性的方式压索数据量，通过移除不相关的属性，可以提高模型效率。方法很多：
+    * AIC准则通过选择最有模型来选择属性；
+    * LASSO通过一定约束标条件选择变量
+    * 分类树，随机森林通过对分类效果的影响大小筛选属性
+    * 小波变换，主成分分析通过对元数据变换或投影到较小的空间来降低维数。
+    
+下面以LASSO为例对其维归约进行阐述：<br>
+用到glmnet包的glmnet()函数
+
+```{r}
+library(glmnet)
+x=matrix(rnorm(100*20),100,20)#生成自变量，20列正态随机数
+y=rnorm(100)#生成一列正态随机数作为因变量
+fit1=glmnet(x,y)#广义线性回归，自变量未分组，默认LASSO
+b=coef(fit1,s=0.01)#s代表namuda值，随着namuda减小，约束放宽，筛选的变量变多
+b#b代表变量系数，有值得被选入模型
+predict(fit1,newx = x[1:10,],c=c(0.01,0.005))#namuda分别为0.01和0.005情况下的预测值
+```
