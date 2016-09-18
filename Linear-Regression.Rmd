@@ -254,7 +254,11 @@ we use the anova() function to further quantify the extent to which the quadrati
 
 ```{r}
 anova(lm.fit,lm.fit2)
-#anova() perform a hypothesis test comparing the two #models.原假设是两个模型同样好，备择假设是full model表现好
+dev.new()
+plot(medv~lstat,data = Boston)
+abline(lm.fit,lwd=3)
+abline(lm.fit2)
+#anova() perform a hypothesis test comparing the two #models.原假设是两个模型同样好，备择假设是full model表现好,这里lm.fit好
 ```
 
 对于更高次的回归，建议用poly()函数<br>
