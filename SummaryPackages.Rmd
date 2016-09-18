@@ -16,6 +16,7 @@ fBasics包的basicStats()
 
 ##关联分析
 Arules、arulesViz包
+apriori()、eclat()
 
 ##聚类分析
 Cluster、mclust、stats包
@@ -38,4 +39,5 @@ e1071包
 ##神经网络
 nnet包
 
-##
+##glmnet包进行LASSO变量选择
+glmnet()
