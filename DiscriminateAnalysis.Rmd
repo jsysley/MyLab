@@ -119,6 +119,8 @@ dim(data.test)
 
 ###线性判别分析
 
+MASS包:lda()
+
 ####公式形式
 ```{r}
 library(MASS)
@@ -160,7 +162,10 @@ error.lda1
 ```
 
 
-##朴素贝叶斯分类
+###朴素贝叶斯分类
+
+klaR包:NaiveBayes()
+
 
 ####公式格式
 ```{r}
@@ -192,5 +197,52 @@ table(data.test$nmkat,pre.Bayes1$class)#生成nmkat的真实值和预测值的�
 #计算错误率
 error.Bayes1=sum(as.numeric(as.numeric(pre.Bayes1$class)!=as.numeric(data.test$nmkat)))/nrow(data.test)
 error.Bayes1
+```
+
+###K-最近邻
+
+class包：knn()
+
+```{r}
+library(class)
+#分别放入训练集，测试集，训练集的类标号,K默认值为1
+fit.pre.knn=knn(data.train[,-12],data.test[,-12],cl=data.train[,12])
+fit.pre.knn#输出结果
+table(data.test$nmkat,fit.pre.knn)#生成nmkat真实值于预测值的混淆矩阵
+
+error.knn=sum(as.numeric(as.numeric(fit.pre.knn)!=as.numeric(data.test$nmkat)))/nrow(data.test)
+error.knn
+```
+下面控制k的取值来找到适合该数据的k值，控制1-20
+```{r}
+error.knn=rep(0,20)#存储每个k对饮的错误率
+
+for(i in 1:20)
+{
+    fit.pre.knn=knn(data.train[,-12],data.test[,-12],cl=data.train[,12],k=i)#对每个k构造knn
+    error.knn[i]=sum(as.numeric(as.numeric(fit.pre.knn)!=as.numeric(data.test$nmkat)))/nrow(data.test)#计算每一个取k值对应的错误
+}
+error.knn
+
+#可视化
+plot(error.knn,type = "l",xlab = "k")
+points(y=error.knn[which.min(error.knn)],x=which.min(error.knn),pch=10)
+```
+
+##有权重的K最近邻算法
+
+kknn包:kknn()
+
+将规则建立公式nmkat~.，以及训练集和测试集放入函数，设置k为5
+```{r}
+library(kknn)
+fit.pre.kknn=kknn(nmkat~.,data.train,data.test[,-12],k=5)
+summary(fit.pre.kknn)
+#预测结果
+fit=fitted(fit.pre.kknn)
+fit
+table(data.test$nmkat,fit)#输出nmkat真实值于预测值的混淆矩阵
+error.kknn=sum(as.numeric(as.numeric(fit)!=as.numeric(data.test$nmkat)))/nrow(data.test)
+error.kknn
 ```
 
