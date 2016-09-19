@@ -1,0 +1,23 @@
+---
+title: "RandomForest"
+author: "jsysley"
+date: "2016年9月19日"
+output: html_document
+---
+
+#概述
+
+#library
+
+randomForest包
+
+    
+
+
+#核心函数
+
+* importance(): 提取在利用函数randomForset()建立随机森林模型过程中各个变量重要性的度量结果
+* MDSplot():绘制利用函数randomForset()建立随机森林模型过程中产生的临近矩阵经过标准化后的坐标图，简言之，将高位图缩放到任意小的维度下来观看模型各个类别在不同维度下的分布情况
+* fflmpute():对数据中缺失值进行插值
+* treesize():查看随机森林模型中，每一颗树所具有的节点个数
+* randomForest()： 随机森林中最核心函数，建立随机森林模型，该函数既可以建立判别模型，也可以建立回归模型，还可以建立无监督模型
