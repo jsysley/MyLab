@@ -1,0 +1,188 @@
+---
+title: "SupportVector"
+author: "jsysley_mac"
+date: "2016年9月20日"
+output: html_document
+---
+
+#概述
+
+#library
+e1071：
+    * svm()
+    * predict()
+    * fitted()
+
+#核心函数
+
+##svm()
+
+用来建立支持向量机模型。
+* 第一种格式
+    * svm(formula,data=NULL,...,subset,na.action=na.omit,scale=TRUE)
+    
+        * formula: 公式
+        * data表示数据
+        * na.action: 遇到缺失值的处理
+        * scale: 是否标准化数据
+*第二种格式
+    * svm(x,  y=NULL,  scale=TRUE,  type=NULL,  kernel="radial",  degree=3,  gamma=if(is.vector(x)) 1 else 1/ncol(x),  coef0=0,  cost=1,  nu=0.5,  class.weights=NULL,  cachesize=40,  tolerance=0.001,  epsilon=0.1  shrinking=TRUE,  cross=0,  probability=FALSE,  fitted=TRUE,  seed=1L,  ...  ,   na.action=na.omit)
+    
+        * x: 数据矩阵或者数据向量，也可以是稀疏矩阵
+        * y: x数据的结果标签，可以是字符向量也可以是数量向量
+        * type: 建立模型的类别。C-classification、nu-classification、one-classification、eps-regression、nu-regression。前3种针对字符型结果变量的分类方式，其中第3种方式是逻辑判别，即判别结果输出所需判别的样本是否属于该类别；后2种则是针对数量型结果变量的分类方式
+        * kernel： 模型建立过程中使用的核函数。linear（线性函数）、多项式核函数（polynomial）、径向基核函数(也称高斯核函数)（radial basis)，神经网络核函数（sigmoid）。识别率最高、性能最好的事径向基核函数，然后多项式核函数，最差神经网络核函数
+        * degree： 指核函数多项式内积函数中的参数，默认3
+        * gamma： 指核函数中除线性内积函数以外的所有函数的参数，默认1
+        * coef0： 指核函数中多项式内积函数与sigmoid内积函数中的参数，默认0
+        * nu： 用于nu-classification、nu-regression、one-classification回归类型中的参数
+        
+* svm()函数输出结果：
+
+    * SV： support vectors，即支持向量机模型中最核心的支持向量
+    * Index： 模型中支持向量在样本数据中的位置，简言之就是支持向量是样本数据的第几个样本
+    * 使用标准化后的数据建立的模型更好
+    
+##plot()
+
+* plot(x,data,formula,fill=TRUE,grid=50,slice=list(),symbolPalette=palette(),svSymbol="x"mdataSymbol="o",...)
+
+    * x: svm()函数建立的模型
+    * data： 绘制支持向量机分类图采用的数据，与模型建立的数据一致
+    * formula： 用来观察任意两个特征维度对模型分类的相互影响
+    * fill: TRUE是绘制图形有背景色，反之没有
+    * symbolPalette： 决定分类点以及支持向量的颜色
+    * svSymbol: 决定支持向量的形状
+    * dataSymbol: 决定数据散点图的形状
+    
+
+#数据集：iris
+
+#演示示例
+```{r}
+library(e1071)
+#第一种使用格式
+sv=svm(Species~.,data=iris)#建立svm模型
+
+#第二种使用格式
+x=iris[,-5]
+y=iris[,5]
+sv=svm(x,y,kernel = "radial",gamma=if(is.vector(x))1 else 1/ncol(x))#建立模型
+#gamma：如果特征向量是向量则gamma取1，否则取为特征向量个数的倒数
+
+#结果分析
+summary(sv)
+```
+
+* SVM-Type: 说明本模型的类别为C分类模型
+* SVM-Kernel: 说明本模型所使用的核函数为高斯内积函数且参数gamma为0.25
+* cost： 说明本模型的约束违反成本为1
+* 结果中可以看到，对于该数据，找到51个支持向量，第一类具有8个支持向量，第二类具有22个支持向量，第三类具有21个支持向量，最后说明了三个类别名称
+
+#预测判别
+
+```{r}
+#构造新数据
+x=iris[,1:4]
+pred=predict(sv,x)#用模型sv预测
+pred[sample(1:150,8)]#随机挑选8个结果展示
+
+#模型精度展示
+table(pred,y)
+```
+
+#综合建模
+数据集iris，需要判别的是三个类别，且均为字符类别，可选支持向量分类机有三类：
+
+* C-classification
+* nu-classification
+* one-classification
+
+可选核函数有四类：
+* 线性核函数(linear)
+* 多项式核函数(polynomial)
+* 径向基核函数(radial basis,RBF)
+* 神经网络核函数(sigmoid)
+
+```{r}
+attach(iris)#将数据集iris按列单独确认向量
+x=subset(iris,select=-Species)
+y=Species
+#确定要使用的分类方式
+type=c("C-classification","nu-classification","one-classification")
+
+kernel=c("linear","polynomial","radial","sigmoid")#确定要使用的核函数
+
+pred=array(0,dim=c(150,3,4))#初始化预测结果矩阵，三维长度，150，3，4
+accuracy=matrix(0,3,4)#初始化模型精准度矩阵的两维长度3，4
+yy=as.integer(y)#方便精度计算，将结果变量数量化为1，2，3
+
+for(i in 1:3)#i影响的维度代表分类方式
+{
+    for(j in 1:4)#j影响的维度代表核函数
+    {
+        pred[,i,j]=predict(svm(x,y,type=type[i],kernel=kernel[j]),x)#对每 一模型进行预测
+        if(i>2) accuracy[i,j]=sum(pred[,i,j]!=1)#accuracy表示模型预测错误个数
+        else accuracy[i,j]=sum(pred[,i,j]!=yy)
+        
+    }
+}
+dimnames(accuracy)=list(type,kernel)#确定模型精度变量的列名和行名
+accuracy#查看结果
+```
+发现C-classification和高斯核函数radial结合的结果比较好
+
+```{r}
+#查看结果
+table(pred[,1,3],y)
+#确认最后模型
+attach(iris)#将数据集iris按列单独确认向量
+x=subset(iris,select=-Species)
+y=Species
+sv.final=svm(x,y,,type="C-classification",kernel = "radial")
+
+```
+
+#可视化分析
+
+```{r}
+plot(cmdscale(dist(iris[,-5])),col=c("lightgray","black","gray")[as.integer(iris[,5])],pch=c("o","+")[1:150 %in% sv.final$index+1])#+表示支持向量，0表示普通样本点
+
+legend(2,-0.8,c("setosa","versicolor","virginica"),col=c("lightgray","black","gray"))
+```
+
+#优化建模
+
+尽管结果已经很好，但仍然有4个错误，下面进行进一步优化。
+
+发现类别setosa同其他两个类别的差异较大，versicolor和virginica类别差别比较小，而且直观上能看到两部分出现少许交叉，结果出错也是这两类的问题。
+
+针对这种问题，可以考虑降低类别setosa类别在模型中的比重，而提高另外两个类别比重，即适当牺牲类别setosa的精度来提高其他两个类别的精度，通过svm()函数的class.weights参数来调整，特别注意，该参数所需要的数据必须为向量，且具有列名
+
+
+
+```{r}
+wts=c(1,1,1)#确定模型各个类别比重1：1：1
+names(wts)=c("setosa","versicolor","virginica")#确定各个比重对应的类别
+svw=svm(x,y,class.weights = wts)#建立模型
+```
+以上是原始模型，预测结果上面已提到。下面进行修正
+
+```{r}
+wts=c(1,100,100)
+names(wts)=c("setosa","versicolor","virginica")#确定各个比重对应的类别
+svw1=svm(x,y,class.weights = wts)#建立模型
+pred1=predict(svw1,x)
+table(pred1,y)
+```
+
+继续修正
+```{r}
+wts=c(1,500,500)
+names(wts)=c("setosa","versicolor","virginica")#确定各个比重对应的类别
+svw2=svm(x,y,class.weights = wts)#建立模型
+pred2=predict(svw2,x)
+table(pred2,y)
+```
+
+
