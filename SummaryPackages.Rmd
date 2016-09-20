@@ -14,10 +14,39 @@ fBasics包的basicStats()
 ##Linear Regression
 不用包，用lm()函数，glm()函数
 
+
+##聚类分析
+
+* stats: 包含基本的统计函数，如用于统计计算和随机数生成
+
+    * K-均值聚类（K-Means）： kmeans(data,k,iter.max)
+        * 对k选最优值，目标函数聚类优度，组间差/总离差 最大
+    
+    * 系谱聚类（HC）: hclust(d)、cutree(tree,k)(k为类别)、rect.hclust(tree,k)(在系谱图圈出来)
+        * 对k选最优值，
+    
+* cluster： 用于聚类分析，含有很多聚类相关的函数及数据集
+
+数据集均要剔除因变量
+    * K-中心点聚类（K-Medoids）：  pam(data,k)
+    
+* fpc： 含有若干聚类算法函数，如固定点聚类，线性回归聚类，DBSCAN聚类等
+
+    * 密度聚类（DBSCAN）： dbscan(data,eps,MinPts)#半径，密度阈值
+        * 要看各个样本点的距离大概在什么区间，然后循环eps的值（范围就是0-距离区间），然后内层循环密度阈值1-10，
+    
+* mclust： 主要用来处理基于高斯混合模型，通过EM算法实现的聚类、分类及密度估计等问题
+
+    * 期望最大化聚类（EM）： Mclust(data)、clustBIC()、mclust2Dplot()、densityMclust()
+    
+
 ##关联分析
 Arules、arulesViz包
 apriori()、eclat()
+* rules0=apriori(data,parameter = list(support=0.001,confidence=0.5))#支持度，置信度
 
+* 可视化：
+arulesViz包的plot(object)
 ##聚类分析
 Cluster、mclust、stats包
 
