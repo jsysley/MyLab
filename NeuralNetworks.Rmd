@@ -71,19 +71,19 @@ class.ind(vector2)
 
 ##数据处理
 ```{r}
-wine=read.table(file = "//Users//jsysley//Downloads//winequality-white.csv",sep = ";",header = TRUE)
+wine=read.table(file = "E:\\code\\R\\parctice\\winequality-white.csv",sep = ";",header = TRUE)
 names(wine)=c("fixedacidity","volatileacidity","citricacid","residualsugar","chlorides","freesulfurdioxide","totalsulfurdioxide","density","PH","sulphates","alcohol","quality")
 
 
 #白酒等级分为3个等级，其中3、4、5对应"bad",品质6对应"mid"，品质7、8、9对应"good"
-cha=0
-for(i in 1:4899)
+cha=vector()
+for(i in 1:4898)
 {
     if(wine[i,12]>6)
         cha[i]="good"
-    else if(wine[i,12]>5)
+    if(wine[i,12]>5&&wine[i,12]<=6)
         cha[i]="mid"
-    else cha[i]="bad"
+    if(wine[i,12]<=5) cha[i]="bad"
 }
 wine[,12]=factor(cha)#将所有字符型变量转化为含有因子变量并复制给wine
 summary(wine$quality)
@@ -95,8 +95,210 @@ summary(wine$quality)
 ```{r}
 scale01=function(x)
 {
-    ncol=dim(x)[2]-1#提取预处理数据样本集的特征变量个数
-    nrow=dim(x)[1]#提取预处理样本集中样本总量
+    ncolx=dim(x)[2]-1#提取预处理数据样本集的特征变量个数,y变量不管
+    nrowx=dim(x)[1]#提取预处理样本集中样本总量
+    new=matrix(0,nrowx,ncolx)
+    for (i in 1:ncolx)
+        {
+            maxx=max(x[,i])#提取每个变量的最大值
+            minx=min(x[,i])#提取每个变量的最小值
+            for(j in 1:nrowx)
+            {
+                new[j,i]=(x[j,i]-minx)/(maxx-minx)#计算归一化后的新数据集
+            }
+    }
+    new
 }
+```
+
+
+##建立模型
+
+```{r}
+set.seed(71)
+samp=sample(1:4898,3000)#从总体中抽取3000个样本作为训练集
+wine[samp,1:11]=scale01(wine[samp,])#对样本进行预处理
+r=1/max(abs(wine[samp,1:11]))#确定rang的变化范围
+#第一种使用格式
+set.seed(101)
+model1=nnet(quality~.,data = wine,subset = samp,size=4,rang=r,decay=5e-4,maxit=200)
+
+#第二种使用格式
+x=subset(wine,select = -quality)#提取wine数据集中除quality以外的数据作为自变量
+y=wine[,12]#提取wine数据集中的quality数据作为响应变量
+y=class.ind(y)#对响应变量预处理，将其变为类指标矩阵
+set.seed(101)
+model2=nnet(x,y,decay=5e-4,maxit=200,size=4,rang=r)
+
+#结果分析
+summary(model1)
+```
+* 输出结果分析
+    * 第一行看到模型的总体类型，一共3层，输入层11个节点，隐藏层4个节点，输出层3个节点，权重一共63个
+    * 第二行显示模型的相关参数设定，我们只设定了相应的模型权重衰减最小值decay
+    * 第三行为模型判断过程，其中i1-i11代表输入层11个节点，h1-h4代表隐藏层4个节点，o1-o3表示输出层3个节点，b为常数项，数值为这一层向下一层输入的权值
+    
+
+#预测判别：predict()
+建立模型有两种方式，利用predict()时，对两种模型也存在不同的预测结果。
+
+第一种建模方式的预测：
+```{r}
+x=wine[,1:11]#确认需要进行预测的样本特征矩阵
+pred=predict(model1,x,type="class")#根据模型model1对x数据进行预测
+set.seed(110)
+pred[sample(1:4898,8)]#随机挑选8个预测结果展示，直接给出预测结果
+```
+
+
+第二种建模方式的预测：
+```{r}
+xt=wine[,1:11]#确认需要进行预测的样本特征矩阵
+pred=predict(model2,xt)#根据模型对xt预测
+dim(pred)
+pred[sample(1:4898,4),]#随机挑选4个 预测结果进行展示，给出属于每一类的概率
+#还有继续处理才能看到结果：
+name=c("bad","good","mid")#为3个类别确定名称
+prednew=max.col(pred)#确定每行中最大值所在的列
+prednewn=name[prednew]#根据预测结果将其变为相对应的类别名称
+set.seed(201)
+prednewn[sample(1:4898,8)]#随机挑选8个预测结果展示
+
+#检查模型精度
+true=max.col(y)#确定真实值的每行中最大值所在的列
+table(true,prednewn)
+```
+
+
+##模型差异分析
+利用nnet()建模时，其中的参数Wts的值是默认值，用于建立模型过程中迭代的权重初始值，该值是系统随机生成的。用数据集iris
+
+```{r}
+x=iris[,-5]
+y=iris[,5]
+y=class.ind(y)
+#两个模型虽然一样，但具体分析发现有差异
+model11=nnet(x,y,rang=1/max(abs(x)),size=4,decay=5e-4,maxit=500)
+
+model22=nnet(x,y,rang=1/max(abs(x)),size=4,decay=5e-4,maxit=500)
+```
+
+* 模型是否因为迭代次数达到最大而停止
+```{r}
+model11$convergence#查看model1的迭代过程中是否达到迭代次数最大值
+
+model22$convergence#查看model2的迭代过程中是否达到迭代次数最大值
+
+
+#结果为0说明不是
+```
+
+* 模型迭代的最终值
+```{r}
+model11$value#查看模型model1的迭代最终值
+
+model22$value#查看模型model2的迭代最终值
+
+#最终迭代值越小越好
+```
+
+* 观察两个模型的预测效果
+```{r}
+name=c("bad","good","mid")#为3个类别确定名称
+pred1=name[max.col(predict(model11,x))]#利用第二种模型的预测方法对model1预测
+pred2=name[max.col(predict(model22,x))]#利用第二种模型的预测方法对model2预测
+table(iris$Species,pred1)
+table(iris$Species,pred2)
+```
+
+##优化建模
+* 首先确定隐藏层最有节点
+```{r}
+wine=read.table(file = "E:\\code\\R\\parctice\\winequality-white.csv",sep = ";",header = TRUE)
+names(wine)=c("fixedacidity","volatileacidity","citricacid","residualsugar","chlorides","freesulfurdioxide","totalsulfurdioxide","density","PH","sulphates","alcohol","quality")
+
+
+#白酒等级分为3个等级，其中3、4、5对应"bad",品质6对应"mid"，品质7、8、9对应"good"
+cha=vector()
+for(i in 1:4898)
+{
+    if(wine[i,12]>6)
+        cha[i]="good"
+    if(wine[i,12]>5&&wine[i,12]<=6)
+        cha[i]="mid"
+    if(wine[i,12]<=5) cha[i]="bad"
+}
+wine[,12]=factor(cha)#将所有字符型变量转化为含有因子变量并复制给wine
+
+set.seed(71)
+samp=sample(1:4898,3000)#从总体中抽取3000个样本作为训练集
+nrow.wine=dim(wine)[1]
+wine[samp,1:11]=scale01(wine[samp,])#对样本进行预处理
+r=1/max(abs(wine[samp,1:11]))#确定rang的变化范围
+#以上数据处理
+#以下计数
+n1=length(samp)#向量，因此不能nrow
+n2=nrow(wine)#矩阵数据，因此要nrow
+err1=0
+err2=0
+
+for(i in 1:5)#隐藏层节点，真正做的时候用20甚至更大
+{
+    set.seed(111)
+    nn=nnet(quality~.,data=wine,maxit=300,rang=r,size=i,subset=samp,decay=5e-4)
+    err1[i]=sum(predict(nn,wine[samp,1:11],type="class")!=wine[samp,12])/n1
+    err2[i]=sum(predict(nn,wine[-samp,1:11],type="class")!=wine[-samp,12])/n2-n1
+}
+
+
+#下面画图展示
+plot(1:5,err1,"l",col=1,lty=1,ylab="模型误判率",xlab ="隐藏层节点个数",ylim=c(min(min(err1),min(err2)),max(max(err1),max(err2))))
+
+lines(1:5,err1,col=1,lty=3)
+points(1:5,err1,col=1,pch="+")
+points(1:5,err2,col=1,pch="o")
+
+#这个图需要作出图来才能确定坐标画出
+legend(x=1,y=-500,"测试集误判率",bty="n",cex=1.5)
+legend(x=1,y=-1000,"训练集误判率",bty="n",cex=1.5)
+```
+
+
+* 找出最优节点数之后，下面确定最有迭代次数(用以上已经确定好的最优隐藏层数)
+```{r}
+errl1=0
+errl2=0
+
+for(i in 1:10)#这里真正做的时候用500甚至更大
+{
+    set.seed(111)
+    nn=nnet(quality~.,data=wine,maxit=i,rang=r,size=3,subset=samp,decay=5e-4)
+    errl1[i]=sum(predict(nn,wine[samp,1:11],type="class")!=wine[samp,12])/n1
+    errl2[i]=sum(predict(nn,wine[-samp,1:11],type="class")!=wine[-samp,12])/n2-n1
+}
+
+
+#下面画图展示
+plot(1:length(errl1),errl1,"l",col=1,lty=1,ylab="模型误判率",xlab ="die dai ci shu ",ylim=c(min(min(errl1),min(errl2)),max(max(errl1),max(errl2))))
+
+#以下同上
+#lines(1:length(errl1),err1,col=1,lty=3)
+#points(1:length(errl1),err1,col=1,pch="+")
+#points(1:length(errl2),err2,col=1,pch="o")
+
+#legend(1,0.53,"测试集误判率",bty="n",cex=1.5)
+#legend(1,0.53,"训练集误判率",bty="n",cex=1.5)
+```
+
+*确定完最优迭代次数后再次你拟合出最优的模型
+假如为如下：
+
+```{r}
+set.seed(111)
+samp=sample(1:4898,3000)
+nn.final=nnet(quality~.,data=wine,maxit=300,rang=r,size=3,subset=samp)
+x=wine[-samp,1:11]#确定需要进行预测的样本的特征矩阵
+pred=predict(nn.final,x,type="class")
+table(wine[-samp,12],pred)
 ```
 
