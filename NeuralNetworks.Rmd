@@ -1,0 +1,102 @@
+---
+title: "NeuralNetworks"
+author: "jsysley_mac"
+date: "2016年9月20日"
+output: html_document
+---
+
+#概述
+
+#library
+nnet包
+* class.ind()
+* multinom()
+* nnet()
+* nnetHess()
+
+#核心函数
+
+##class.ind()
+* 进行属于预处理，即对模型中的y预处理，通过结果变量的因子变量来生成一个类指标矩阵。
+* class.ind(cl)
+    * cl: 可以使一个因子向量，也可以是一个类别向量，需要进行预处理的结果变量
+
+###class.ind()示例
+```{r}
+library(nnet)
+vector1=c("a","b","a","c")#生成字符向量vector1
+vector2=c(1,2,1,3)#生成数量向量vector2
+class.ind(vector1)
+class.ind(vector2)
+```
+
+
+
+##nnet()
+实现神经网络的核心函数，主要来建立单隐藏层的前馈人工神经网络模型，也可以建立无隐藏层的前馈人工神经网络模型。
+
+* 第一类使用格式
+    * nnet(formula,data,weights,...,subset,na.action,contrasts=NULL)
+        * formula： 函数模型的形式
+        * data： 数据
+        * weights： 代表各类样本在模型中所占的权重，默认值为1，即各类样本按原始比例建立模型
+        * subset: 抽取样本数据中的部分样本为训练集，为一个向量，向量中的每个数代表所需要抽取的样本行数
+        
+*第二类使用格式
+    * nnet(x,  y,  weights,  size,  Wts,  mask,  linout=FALSE,  entropy=FASLE,  softmax=FALSE,  censored=FALSE,  skip=FASLE,  rang=0.7,  decay=0,  maxit=100,  Hess=FALSE,  trace=TRUE,  MaxNWts=1000,  abstol=1.0e-4,  reltol=1.0e-8,...)
+        * y： 建立模型需要的类别变量数据。这里的y是一个矩阵，即有class.ind()处理后的类指标矩阵
+        * weights: 代表各类样本在模型中所占的权重，默认值为1，即各类样本按原始比例建立模型
+        * size: 代表隐藏层中节点个数，隐藏层的节点个数通常为输入层节点个数的1.2倍至1.5倍，即自变量个数个数的1.2倍至1.5倍。设为0则为无隐藏层的神经网络
+        * rang： 初始随机权重的范围是[-rang,rang].通常该参数值只有在输入变量很大的情况下才会取到0.5左右，而一般对于确定该参数的值存在一个公式，即rang与x的绝对值中的最大值的乘积大约等于1
+        * decay： 建立模型过程中模型权重的衰减精度，即当模型的权重每次衰减小于该参数值时，不再迭代，默认为0
+        * maxit: 控制模型最大迭代次数
+        
+*输出结果
+    * wts ：包含了在模型迭代过程中所寻找到的最优权重值，可以理解为模型的最优稀疏
+    * residuals：包含训练集的残差值
+    * convergence: 模型在迭代中过程中，迭代次数是否达到最大迭代次数。取值1表明迭代次数达到最大迭代次数；取值0表明没有达到最大迭代次数。当达到了最大迭代次数，应对模型进一步分析，因为模型建立过程中是因为达到最大迭代次数才停止迭代的，说明迭代过程中没有触碰到其他决定模型精度的条件，很可能导致模型精度不高，不是最后模型。
+    
+    
+##nnetHess()
+估计神经网络模型中的黑塞矩阵(即二次导数矩阵)
+* nnetHess(net,x,y,weights)
+    * net: 函数nnet()建立的神经网络模型
+    * x： 模型中的自变量
+    * y: 模型中的响应变量
+    * weights： 与nnet()中的weights一致
+    
+
+
+#示例
+
+##数据处理
+```{r}
+wine=read.table(file = "//Users//jsysley//Downloads//winequality-white.csv",sep = ";",header = TRUE)
+names(wine)=c("fixedacidity","volatileacidity","citricacid","residualsugar","chlorides","freesulfurdioxide","totalsulfurdioxide","density","PH","sulphates","alcohol","quality")
+
+
+#白酒等级分为3个等级，其中3、4、5对应"bad",品质6对应"mid"，品质7、8、9对应"good"
+cha=0
+for(i in 1:4899)
+{
+    if(wine[i,12]>6)
+        cha[i]="good"
+    else if(wine[i,12]>5)
+        cha[i]="mid"
+    else cha[i]="bad"
+}
+wine[,12]=factor(cha)#将所有字符型变量转化为含有因子变量并复制给wine
+summary(wine$quality)
+```
+
+
+下面进行数据归一处理，即Xk=（Xk-Xmin）/（Xmax-Xmin）
+
+```{r}
+scale01=function(x)
+{
+    ncol=dim(x)[2]-1#提取预处理数据样本集的特征变量个数
+    nrow=dim(x)[1]#提取预处理样本集中样本总量
+}
+```
+
