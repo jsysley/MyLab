@@ -25,14 +25,40 @@ Cluster、mclust、stats包
 MASS、klaR、class、kknn包
 
 ##决策树
-Rpart、part，PWake包
+rpart、rpart.plot，maptree,RWeka,PWake包
+
+* CART(Classification and Regression Trees)
+    
+        * rpart：rpart()、prune.rpart()、post()
+        
+        * rpart.plot: rpart.plot()
+        
+        * maptree: draw.tree()
+        
+    * C4.5(successor of ID3)
+        
+        *RWeka: J48()
 
 ##集成学习
 adabag包
 
+* bagging(formula,data,mfinal=100)
+    *预测：predict(object,data)
+
+*boosting(formula,data,mfinal=5)
+
 ##随机森林
 randomForest包
 
+* importance(object)
+* MDSplot(object,factors)
+* rflmpute()
+    * rfImpute(x,y,iter=5,ntree=300,...)
+    
+    * rfImpute(x,data,...,subset)
+* treesize(x,terminal=TRUE)
+* randomForest(formula,data)
+* 可视化：plot()
 ##支持向量机
 e1071包
 
