@@ -65,5 +65,14 @@ e1071包
 ##神经网络
 nnet包
 
+* model1=nnet(quality~.,data = wine,subset = samp,size=4,rang=r,decay=5e-4,maxit=200)#samp为训练集行号向量，size为隐藏层中节点个数，decay为迭代精度，maxit为迭代最大次数
+
+* model2=nnet(x,y,decay=5e-4,maxit=200,size=4,rang=r)#此时x，y要分开，且y要经过class.ind()处理
+
+* 预测函数：
+    * 第一种建模方式：predict(model1,x,type="class"),x是数据矩阵，直接给出预测结果
+    * 第二种建模方式：pred=predict(model2,xt)#根据模型对xt预测，给出分别属于各类的概率
+    
+    
 ##glmnet包进行LASSO变量选择
 glmnet()
