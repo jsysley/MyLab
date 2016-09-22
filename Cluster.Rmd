@@ -129,6 +129,7 @@ var=Countries$country#取变量country的值赋予var
 var=as.character(var)#将var转换为字符型
 for(i in 1:68) row.names(Countries)[i]=var[i]#将countries的行命名为相应的国家名
 #实际上自己构造的数据集已经处理好了
+#Countries=Countries[sample(nrow(Countries),50),]
 head(Countries)#查看处理后的数据
 
 #小技巧怎么在图上标出想要的点
@@ -189,7 +190,7 @@ round(result,2)#输出计算得到的result，取小数位后两位结果
 
 #画图
 
-plot(1:50,result,tybe="b",main="choosing the optimal number of cluster",xlab="number of cluster",ylab="betweenss/totss")
+plot(1:50,result,type="b",main="choosing the optimal number of cluster",xlab="number of cluster",ylab="betweenss/totss")
 
 points(10,result[10],pch=16)#比如想选10类，可以标出点，看看实际效果
 legend(10,result[10],paste("10",sprintf("%.1f%%",result[10]*100),")",sep="|"),bty="n",xjust = 0.3,cex = 0.8)#对类别10，标出坐标（x，y），x为类别数，y为聚类优度
@@ -197,7 +198,7 @@ legend(10,result[10],paste("10",sprintf("%.1f%%",result[10]*100),")",sep="|"),bt
 
 ##K-中心点聚类
 
-选择类别墅3来聚类：
+选择类别数3来聚类：
 
 ```{r}
 library(cluster)
@@ -235,7 +236,7 @@ sapply(unique(group.k3),function(g)Countries$country[group.k3==g])
 
 #画图
 plot(fit.hc)#对系谱聚类做系谱图
-rect.hclust(fit.hc,k=2,border = "light grey")#浅灰色矩形框出2分类的聚类结果
+rect.hclust(fit.hc,k=3,border = "light grey")#浅灰色矩形框出2分类的聚类结果
 ```
 
 ##密度聚类
