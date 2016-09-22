@@ -99,7 +99,7 @@ size1=c(a1,b1,c1)
 library(sampling)
 
 
-##有问题
+
 sub=strata(Boston[order(Boston$Group.Mileage),],stratanames = "Group.Mileage",size = size1,method = "srswor")#使用strata()函数对数据集分层抽样
 train.bos=Boston[-sub$ID_unit,]#生成训练集
 test.bos=Boston[sub$ID_unit,]#生成测试集
