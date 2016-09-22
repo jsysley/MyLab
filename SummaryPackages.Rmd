@@ -17,27 +17,32 @@ fBasics包的basicStats()
 
 ##聚类分析
 
-* stats: 包含基本的统计函数，如用于统计计算和随机数生成
+* stats包: 包含基本的统计函数，如用于统计计算和随机数生成
 
     * K-均值聚类（K-Means）： kmeans(data,k,iter.max)
-        * 对k选最优值，目标函数聚类优度，组间差/总离差 最大
-    
+        * 对k选最优值，循环，目标函数聚类优度，（聚类优度）组间差/总离差 最大
+        * data的类别变量要去掉
+        
     * 系谱聚类（HC）: hclust(d)、cutree(tree,k)(k为类别)、rect.hclust(tree,k)(在系谱图圈出来)
         * 对k选最优值，
-    
-* cluster： 用于聚类分析，含有很多聚类相关的函数及数据集
+        * 求距离阵dist()时data的类别变量要去掉
+* cluster包： 用于聚类分析，含有很多聚类相关的函数及数据集
 
 数据集均要剔除因变量
     * K-中心点聚类（K-Medoids）：  pam(data,k)
+        * data的类别变量要去掉
     
-* fpc： 含有若干聚类算法函数，如固定点聚类，线性回归聚类，DBSCAN聚类等
+* fpc包： 含有若干聚类算法函数，如固定点聚类，线性回归聚类，DBSCAN聚类等
 
     * 密度聚类（DBSCAN）： dbscan(data,eps,MinPts)#半径，密度阈值
-        * 要看各个样本点的距离大概在什么区间，然后循环eps的值（范围就是0-距离区间），然后内层循环密度阈值1-10，
+        * 要看各个样本点的距离大概在什么区间，然后循环eps的值（范围就是0-距离区间），然后内层循环密度阈值1-10
+        * data的类别变量要去掉
     
-* mclust： 主要用来处理基于高斯混合模型，通过EM算法实现的聚类、分类及密度估计等问题
+* mclust包： 主要用来处理基于高斯混合模型，通过EM算法实现的聚类、分类及密度估计等问题
 
     * 期望最大化聚类（EM）： Mclust(data)、clustBIC()、mclust2Dplot()、densityMclust()
+        * data的类别变量要去掉
+        * summary(object)查看结果
     
 
 ##关联分析
@@ -53,20 +58,58 @@ Cluster、mclust、stats包
 ##判别分析
 MASS、klaR、class、kknn包
 
+MASS包：
+    * 线性判别分析(LDA)
+        * lda(formula,data,subset,na.action)
+        * 预测：predict(object,data)
+        * 此处data可有多余变量，包括类别
+    
+    * 二次判别分析(QDA)
+        * qda(formula,data,subset,na.action)
+        * 预测：predict(object,data)
+        * 此处data可有多余变量，包括类别
+
+klaR包：
+    * 朴素贝叶斯分类
+        * NaiveBayes(formula,data,subset,na.action=na.pass)
+        * 预测：predict(object,data)
+        * 此处data可有多余变量，包括类别
+        
+class包：
+    * k最近邻kNN
+        *knn(train,test,k=1,cl,)#k为近邻数，train,test数据集均要去掉类别，cl为train被别向量
+        * 选取最优值看，循环找错误率最小的
+        * 预测：predict(object,data)
+        * 此处data可有多余变量，包括类别
+        
+kknn包：
+    * 有权重的k最近邻
+        * kknn(formula,train,test,na.action,=na.omit(),k=7,distance=2)#distance为闵氏距离中的参数，1为曼哈顿距离，2为欧氏距离
+        * train是完整的数据包括x和y，test是仅有x的数据
+        * 预测： fitted(object)
+
+
 ##决策树
 rpart、rpart.plot，maptree,RWeka,PWake包
 
 * CART(Classification and Regression Trees)
     
-        * rpart：rpart()、prune.rpart()、post()
+        * rpart包：
+            * rpart(formula,data,method=c("anova","poisson","class","exp"),control=rpart.control(minsplit=20,minbucket=round(minsplit/3),cp=0.01,maxdepth=4)    
+            * rpart(formula,data,method,minsplit，maxdepth)#y为连续型数值则用avova，离散型则用class
+                * 输出结果：print(tree)
+                * 输出各节点cp值：printcp(tree)
+                * 详细信息：Summary(tree)
+                * 预测：predict(tree,data)#此处data可带多变量
+            * prune.rpart(tree,cp)、post()
         
-        * rpart.plot: rpart.plot()
+        * rpart.plot包: rpart.plot(tree)#树的可视化
         
-        * maptree: draw.tree()
+        * maptree包: draw.tree()
         
     * C4.5(successor of ID3)
         
-        *RWeka: J48()
+        *RWeka包: J48(formula,data,subset,)
 
 ##集成学习
 adabag包
