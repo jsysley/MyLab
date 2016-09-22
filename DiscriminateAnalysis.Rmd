@@ -101,7 +101,7 @@ head(miete)#查看前面若干条数据集
 ```{r}
 library(sampling)#加载获取分层抽样函数strata()
 n=round(2/3*nrow(miete)/5)#训练集2/3，计算每一等级应该抽取的样本量
-sub.train=strata(miete,stratanames = "nmkat",size=rep(n,5),method = "srswor")#以nmkat变量的5个等级划分层次，分层抽样，有放回抽样
+sub.train=strata(miete,stratanames = "nmkat",size=rep(n,5),method = "srswor")#以nmkat变量的5个等级划分层次，分层抽样，无放回抽样
 head(sub.train)
 
 #获取如上ID_unit所对应的样本构成训练集，并移除变量1，3，12
