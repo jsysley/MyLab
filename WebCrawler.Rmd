@@ -1,0 +1,22 @@
+---
+title: "WebCrawler"
+author: "jsysley"
+date: "2016年9月23日"
+output: html_document
+---
+
+#第二课
+
+##使用python原件
+* requests：网络资源URLs
+    import requests
+    
+* beautifulsoup4： HTML剖析
+    from bs4 import BeautifulSoup
+    
+---
+
+#第三课
+    import requests
+
+    res=requests.get("http://www.zhihu.com/question/37709992")
