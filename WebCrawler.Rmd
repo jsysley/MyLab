@@ -5,29 +5,93 @@ date: "2016年9月23日"
 output: html_document
 ---
 
+#FishC
+
+
+##第一课
+* URL的一般格式:protocol://hostname[:port]/path/[;parameters][?query]#fragment 
+
+* URL由三部分组成：
+    * 第一部分是协议：http,https,ftp,file,ed2k
+    * 第二部分是存放资源的服务器的域名系统或IP地址(有时候要包含端口号，各种传输协议都有默认的端口号，如http的默认端口号为80)
+    * 第三部分是资源的具体地址，如目录或文件名
+    
+* 包：urllib
+
+```{}
+import urllib.request
+response=urllib.request.urlopen("http://www.fishc.com")#将返回对象存于response
+html=response.read
+print(html)#读出来的字符串 b开头说明是二进制的文件
+html=html.decode("utf-8")#解码
+print(html)#可打印
+```
+
+
+   
+
+##第二课
+
+#实战一
+
+```{}
+import urllib.request
+response=urllib.request.urlopen("http://placekitten.com/g/500/600")#将返回对象存于response
+cat_img=response.read()
+
+with open('cat_500_600.jpg','wb') as f:#wb表示二进制文件写入
+    f.write(cat_img)
+    
+    
+##以上也可以：
+req=urllib.request.Request("http://placekitten.com/g/500/600")
+response=urllib.request.urlopen(req)
+
+response.geturl()#得到访问的具体地址
+print(response.info())#返回远程服务器的一些信息
+response.getcode()#xxx的状态，200表示正常响应
+```
+
+
+
+
+
+    
+
+    
 #第二课
 
 ##使用python原件
 * requests：网络资源URLs
-    import requests
+    
+```{}
+import requests
+```
+
     
 * beautifulsoup4： HTML剖析
-    from bs4 import BeautifulSoup
     
+```{}
+from bs4 import BeautifulSoup
+```
+
 ---
 
 #第三课
-    import requests
 
-    res=requests.get("http://www.zhihu.com/question/37709992")
+```{}
+import requests
+res=requests.get("http://www.zhihu.com/question/37709992")
+print(res.text)#读取网页原始码
+```
+
     
-    print(res.text)#读取网页原始码
     
 ---
 
 #第四课
-
-    from bs4 import BeautifulSoup
+```{}
+from bs4 import BeautifulSoup
     
 html_sample=' \
 <html> \
@@ -43,3 +107,6 @@ soup = BeautifulSoup(html_sample)
 print(soup.text)#打印不含caked的内容
 
 print(soup.contents)#打印包含caked的内容
+```
+
+    
