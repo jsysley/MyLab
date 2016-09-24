@@ -114,25 +114,38 @@ rpart、rpart.plot，maptree,RWeka,PWake包
 ##集成学习
 adabag包
 
-* bagging(formula,data,mfinal=100)
-    *预测：predict(object,data)
+* bagging(formula,data,mfinal=100)#基分类器数量 
+    * 预测：predict(object,data)#data可以包含多余向量
+        * 预测对象中：
+            * pre.bag$confusion#测试集结果的混淆矩阵
+            * pre.bag$error#测试集预测错误率
 
-*boosting(formula,data,mfinal=5)
+* boosting(formula,data,mfinal=100)
 
 ##随机森林
 randomForest包
 
-* importance(object)
-* MDSplot(object,factors)
-* rflmpute()
+* importance(object,scale=TRUE)#提取随机森林模型的重要值
+* MDSplot(object,factors)#产生建立随机森林模型过程中产生的临近矩阵经过标准化的坐标图
+* rflmpute()#对缺失值进行插值
     * rfImpute(x,y,iter=5,ntree=300,...)
     
-    * rfImpute(x,data,...,subset)
-* treesize(x,terminal=TRUE)
-* randomForest(formula,data)
+    * rfImpute(formula ,data,...,subset)
+* treesize(x,terminal=TRUE)#查看随机森林中每一颗树的节点数，TRUE只计算最终根节点的数；FALSE则计算全部全部节点个数
+* randomForest(formula,data,ntree)
 * 可视化：plot()
+
+
 ##支持向量机
 e1071包
+    * svm(formula,data=NULL,subset,na.action=na.omit,scale=TRUE,kernel=c("radial","linear","polynomial","sigmoid"),type=c("C-classification","nu-classification","one-classification","eps-regression","nu-regression"")，weights=c())#type前3种针对字符型结果变量的分类方式，其中第3种方式是逻辑判别,kernel是核函数,weights为各类样本的数量比例，提高分错样本的数量可以提高准确率
+
+可视化：
+plot(object,data,formula)#formula指用来观察任意两个特征维度对模型分类的相互影响，复杂，见原文
+
+预测：predict(object,data)#
+
+优化：两层循环，分类方式，核函数，寻找最优，计算错误率
 
 ##神经网络
 nnet包
@@ -142,8 +155,10 @@ nnet包
 * model2=nnet(x,y,decay=5e-4,maxit=200,size=4,rang=r)#此时x，y要分开，且y要经过class.ind()处理
 
 * 预测函数：
-    * 第一种建模方式：predict(model1,x,type="class"),x是数据矩阵，直接给出预测结果
-    * 第二种建模方式：pred=predict(model2,xt)#根据模型对xt预测，给出分别属于各类的概率
+    * 第一种建模方式：predict(model1,x,type="class"),x是数据矩阵(可包含多余变量数据)，直接给出预测结果
+    * 第二种建模方式：pred=predict(model2,xt)#根据模型对xt预测(不能有多余变量数据)，给出分别属于各类的概率
+    
+优化：对隐藏层节点数size循环寻找最优，看模型误判率，对迭代次数循环寻找最优（maxit）
     
     
 ##glmnet包进行LASSO变量选择
