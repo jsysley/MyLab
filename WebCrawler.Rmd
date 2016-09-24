@@ -20,3 +20,26 @@ output: html_document
     import requests
 
     res=requests.get("http://www.zhihu.com/question/37709992")
+    
+    print(res.text)#读取网页原始码
+    
+---
+
+#第四课
+
+    from bs4 import BeautifulSoup
+    
+html_sample=' \
+<html> \
+ <body> \
+   <h1 id="title">Hello World</h1> \
+   <a href="#" class ="link"> This is link1</a> \
+   <a href="#" link2 class="link"> This is link2</a> \
+ <body> \
+<html>'
+
+soup = BeautifulSoup(html_sample)
+
+print(soup.text)#打印不含caked的内容
+
+print(soup.contents)#打印包含caked的内容
