@@ -1,0 +1,70 @@
+---
+title: "Temp"
+author: "jsysley"
+date: "2016年9月25日"
+output: html_document
+---
+
+#隐藏
+
+* 修改header
+    * 通过Request的headers参数修改
+    * 通过Request.add_header()方法修改
+
+* 延迟提交时间：time模块
+```{}
+import time
+
+time.sleep(5)#睡5秒
+```
+
+
+```{}
+import urllib.request#爬虫
+import urllib.parse#编码
+import json#因为target的解读
+import time#延迟时间
+
+
+while True:
+    
+    content=input('请输入要翻译的内容(输入q()退出程序)： ')
+    if content=='q()':
+        break
+    
+    url='http://fanyi.youdao.com/translate?smartresult=dict&smartresult=rule&smartresult=ugc&sessionFrom=https://www.baidu.com/link'
+    #设置隐藏 设置访问客户端名字
+    head={}
+    head['User-Agent']=' '
+    
+    data={}    
+    data['type']='AUTO'
+    data['i']=content
+    data['doctype']='json'
+    data['xmlVersion']='1.8'
+    data['keyfrom']='fanyi.web'
+    data['ue']='UTF-8'
+    data['action']='FY_BY_CLICKBUTTON'
+    data['typoResult']='true'    
+    
+    data=urllib.parse.urlencode(data).encode('utf-8')
+    
+    req=urllib.request.Request(url,data,head)
+    response=urllib.request.urlopen(req)
+    html=response.read().decode('utf-8')
+    
+    target=json.loads(html)
+    target=target['translateResult'][0][0]['tgt']
+    print('翻译结果： %s' % target)
+    
+    time.sleep(5)
+```
+
+
+* 使用代理
+    1. 参数是一个字典{‘类型’：‘代理ip：端口号’}，proxy_support=urllib.request.ProxyHandler({})
+    2. 定制、创建一个opener，opener=urllib.request.build_opener(proxy_support)
+    3a. 安装 opener，urllib.request.install_opener(opener),此时以后在系统使用urlopen等函数时就会自动使用该定制的opener
+    3b. 调用opener，opener.open(url)，此时仅该次使用，下次使用时用回默认的urlopen
+    
+代理ip只需百度‘代理ip即可查找’
