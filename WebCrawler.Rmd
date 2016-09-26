@@ -20,17 +20,55 @@ output: html_document
 
 ```{}
 import urllib.request
-response=urllib.request.urlopen("http://www.fishc.com")#将返回对象存于response
-html=response.read
+response=urllib.request.urlopen("http://www.fishc.com")#将返回对象存于response，当data这个参数被赋值说明是post方法，否则是get方法，data的对象用urllib.parse.urlencode()转换
+html=response.read()
 print(html)#读出来的字符串 b开头说明是二进制的文件
 html=html.decode("utf-8")#解码
 print(html)#可打印
 ```
 
+##第二课
+
+```{}
+#有道词典翻译
+import urllib.request
+import urllib.parse
+import json
+
+content=input('清输入要翻译的内容： ')
+url='http://fanyi.youdao.com/translate?smartresult=dict&smartresult=rule&smartresult=ugc&sessionFrom=https://www.baidu.com/link'
+
+#post方法，因此data要赋值
+data={}
+data['type']='AUTO'
+data['i']=content
+data['doctype']='json'
+data['xmlVersion']='1.8'
+data['keyfrom']='fanyi.web'
+data['ue']='UTF-8'
+data['action']='FY_BY_CLICKBUTTON'
+data['typoResult']='true'
+
+#对data编码
+data=urllib.parse.urlencode(data).encode('utf-8')#encode()把Unicode文件编码成其他形式
+
+response=urllib.request.urlopen(url,data)
+ 
+html=response.read().decode('utf-8')#decode()把其他文件变成Unicode编码形式
+
+#print(html)
+
+#以上为json结构，下面载入
+#import json
+target=json.loads(html)#此时target为字典格式
+#下面访问翻译：
+print(target['translateResult'][0][0]['tgt'])
+```
+
 
    
 
-##第二课
+
 
 #实战一
 
@@ -39,7 +77,7 @@ import urllib.request
 response=urllib.request.urlopen("http://placekitten.com/g/500/600")#将返回对象存于response
 cat_img=response.read()
 
-with open('cat_500_600.jpg','wb') as f:#wb表示二进制文件写入
+with open('cat_500_600.jpg','wb') as f: #wb表示二进制文件写入
     f.write(cat_img)
     
     
@@ -48,16 +86,131 @@ req=urllib.request.Request("http://placekitten.com/g/500/600")
 response=urllib.request.urlopen(req)
 
 response.geturl()#得到访问的具体地址
-print(response.info())#返回远程服务器的一些信息
+print(response.info())#返回远程服务器的Head信息
 response.getcode()#xxx的状态，200表示正常响应
 ```
 
+* 审查元素解析
+    * Remote Address: 服务器的IP地址，端口号
+    * Request URL: 真实地址
+    * Request Method: 请求方法
+    * Status Code: 状态码，200为正常响应，404为页面找不到
+    * Request Header: 客户端，可判断是认为访问还是机器访问。User-Agent可以看出访问的客户端
+    * From Data:post方法提交的主要内容
 
 
-
-
+##第三课：隐藏
     
+* 修改header
+    * 通过Request的headers参数修改
+    * 通过Request.add_header()方法修改
 
+改变User—Agent的参数实现隐藏
+
+* 法一：Requests的headers参数，通过字典形式改变
+```{}
+head['User-Agent']='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.116 Safari/537.36'
+
+#此时只能以第二种方法才能：
+req=urllib.request.Request(url,data,head)
+response=urllib.request.urlopen(req)
+```
+
+* 法二：生成req=urllib.request.Request(url,data）之后用req.add_header()
+```{}
+req.add_header('User-Agent','Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.116 Safari/537.36')
+```
+
+
+* 延迟提交时间：time模块
+```{}
+import time
+
+time.sleep(5)#睡5秒
+```
+
+
+```{}
+import urllib.request#爬虫
+import urllib.parse#编码
+import json#因为target的解读
+import time#延迟时间
+
+
+while True:
+    
+    content=input('请输入要翻译的内容(输入q()退出程序)： ')
+    if content=='q()':
+        break
+    
+    url='http://fanyi.youdao.com/translate?smartresult=dict&smartresult=rule&smartresult=ugc&sessionFrom=https://www.baidu.com/link'
+    #设置隐藏 设置访问客户端名字
+    head={}
+    head['User-Agent']=' '
+    
+    data={}    
+    data['type']='AUTO'
+    data['i']=content
+    data['doctype']='json'
+    data['xmlVersion']='1.8'
+    data['keyfrom']='fanyi.web'
+    data['ue']='UTF-8'
+    data['action']='FY_BY_CLICKBUTTON'
+    data['typoResult']='true'    
+    
+    data=urllib.parse.urlencode(data).encode('utf-8')
+    
+    req=urllib.request.Request(url,data,head)
+    response=urllib.request.urlopen(req)
+    html=response.read().decode('utf-8')
+    
+    target=json.loads(html)
+    target=target['translateResult'][0][0]['tgt']
+    print('翻译结果： %s' % target)
+    
+    time.sleep(5)
+```
+
+
+* 使用代理
+    1. 参数是一个字典{‘类型’：‘代理ip：端口号’}，proxy_support=urllib.request.ProxyHandler({})
+    2. 定制、创建一个opener，opener=urllib.request.build_opener(proxy_support)
+    3a. 安装 opener，urllib.request.install_opener(opener),此时以后在系统使用urlopen等函数时就会自动使用该定制的opener
+    3b. 调用opener，opener.open(url)，此时仅该次使用，下次使用时用回默认的urlopen
+    
+代理ip只需百度'代理ip'即可查找
+
+```{}
+import urllib.request
+import random
+
+#url='http://www.whatismyip.com.tw/'#一个网站，访问时就会返回你访问时的ip
+url='https://s.taobao.com/search?q=%E8%8A%B1%E8%8C%B6&refpid=430268_1006&source=tbsy&style=grid&tab=all&pvid=41dfe4c9c624bbc4215e02e627ec50a7&clk1=b98d6146ca538d1897cf3f9a17632eeb&spm=a21bo.50862.201856-sline.3.5XWz4o'
+iplist=['119.6.144.73:81','183.203.208.166:8118','111.1.32.28:81']#创建ip列表，下面随机用ip
+
+proxy_support=urllib.request.ProxyHandler({'http':random.choice(iplist)})
+
+opener=urllib.request.build_opener(proxy_support)#生成opener
+
+#伪装访问客户端
+opener.addheaders=[('User-Agent','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.116 Safari/537.36')]
+
+urllib.request.install_opener(opener)#安装opener
+
+#response=opener.open(url)
+
+response=urllib.request.urlopen(url)
+html=response.read().decode('utf-8')
+
+print(html) 
+```
+
+#第三课
+
+
+
+
+#爬虫教学视频
     
 #第二课
 
