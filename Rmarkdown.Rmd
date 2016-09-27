@@ -41,6 +41,8 @@ knitr::opts_chunk$set(echo = TRUE)
 无序列表用" * , + , - "
 有序列表在使用数字后面加上句号（还要有空格）
 
+一句话结尾有两个空格以上，就换换行
+
 ---
 
 #4.链接，图片
@@ -77,6 +79,8 @@ knitr::opts_chunk$set(echo = TRUE)
     This is a blcok
 
 > 这是引用
+
+一般代码框用```围起来
 
 #6.上标，脚注
 
@@ -119,7 +123,7 @@ X_i
 
 输入Cmd + Option + I（Ctrl + Alt + I ）输入
 ```{r}
-
+#none
 
 ```
 以上参数：<br>
@@ -132,4 +136,24 @@ fig.cap = "..." adds a caption to graphical results.<br>
 输入Cmd + Shift + Enter来运行代码块<br>
 输入Cmd + Enter运行句子
 
+#代码
+
+* inline code:
+文字 + 'r <code>' + 文字
+    *以上会显示代码运行后的结果
+    
+* code chunks
+```{r}
+#<code>
+```
+
+* 仅显示代码，不显示结果
+```{r,eval=FALSE}
+a=1
+```
+
+* 仅显示代码结果，不显示代码
+```{r,echo=FALSE}
+1+1
+```
 
