@@ -1,0 +1,361 @@
+---
+title: "RModeling"
+author: "jsysley"
+date: "2016年9月27日"
+output: html_document
+---
+
+# 2.R软件的使用
+
+##R软件介绍
+
+* 查看数据：view(data);fix(data)
+
+* 列出全部变量名：ls()
+
+* 删除全部变量：rm(list=ls(all=TRUE))
+
+* 列出查找路径：search()
+
+---
+
+##数字、字符与向量
+
+* 向量赋值：assign("x", c(10.4, 5.6, 3.1, 6.4, 21.7))
+
+* 向量的+、-、 * 、/是向量每一个元素的行为；次方运算:3^2=9;整数除法%/%；求余运算%%
+
+* max(),min(),range(),分别求变量最大值，最小值，【最小值，最大值】；which.max()、which.min()返回index
+
+* 求和运算sum()；联乘运算prod()；中位数median()；方差var()【分母为length(x)-1】，sort()返回顺序统计量，相应下标由order()或sort.list()给出
+
+* a:b表示从a开始，逐项加1或减1直到b
+
+* seq(from,to,by)产生等间隔数列；seq(length,from,by)
+
+* rep(x,times)表示重复x一共times次
+
+* 逻辑运算符<,<=,>,>=,==,!=,&,|;
+
+* 判断一个逻辑向量是否都是真值的函数all,all(c(1,2,3,4,5,6,7)>3)=false；判断其中是否有真值的函数any，any(c(1,2,3,4,5,6,7)>3)=true
+
+* which(is.na(data1),arr.ind = T):缺失值的行列；
+
+* is.na()检测缺失数据；is.nan()检测数据是否不确定（TRUE为不确定，FALSE为确定）；is.finite()检测数据是否有限（TRUE为有限，FALSE为无穷）；is.infinite()检测数据是否无穷（TRUE为无穷，FALSE为有限）
+
+* paste()函数用来把它的自变量连接成一个字符串，中间空格分开,
+```{r}
+paste("My","Job")
+paste("X",1:6,sep="")
+paste(1:10)#同as.character(1:10)
+paste("Today is ",date())
+paste(c('a','b'),collapse = '.')#重要
+```
+
+* 复数向量：complex()生成
+```{r}
+x <- seq(-pi,pi,by=pi/10)
+y <- sin(x)
+z <- complex(re=x,im=y)
+plot(z)#画出复数向量z的散点图
+lines(z)#用实现连接这些散点
+```
+
+* 定义一个分段函数
+    y=1-x,x<0;y=1+x,x>=0
+```{}
+
+y <- numeric(length(X))
+y[x<0] <- 1-x[x<0]
+y[x>=0] <- 1+x[x>=0]
+```
+
+* 用c()时可以加名字
+```{r}
+ages <- c(Li=33,Zhang=29,Liu=18)
+```
+
+##对象和它的模式与属性
+* R对象都有两个基本属性，mode(类型)属性和length(长度)属性；R还有一种特别的null(空值型)型，表示没有值(不同于NA，NA是一种特殊值，而NULL根本没有对象值)
+
+
+
+
+##因子
+* factor(x,levels=sort(unique(x),na.last=TRUE),labels,exclude=NA,ordered=FALSE)
+    * 其中x是向量，levels是水平，可以自行指定各离散取值
+    * labels可以用来指定个水平的标签，不指定时取各离散值的对应字符串
+    * exclude用来指定要转换为确实值(NA)的元素值集合ordered取值为TRUE时表示因子水平有序（按编码次序）
+
+* tapply(X,INDEX,FUN=NULL,…,simplify=TRUE) 
+    * x是一对象，通常是一向量 
+    * INDEX是与X有同样长度的因子 
+    * FUN是需要计算的函数 
+    * simplify是逻辑变量
+
+* gl(n,k,length=n *k,labels=1:n,ordered=FASLE)可以用来方便的产生因子
+    * n为水平数
+    * k为重复次数
+    * length为结果的长度
+    * labels是一个n维向量，表示因子水平
+    * ordered是逻辑变量，表示是否为有序因子
+
+* 多维数组和矩阵
+    * 向量定于了维数向量（dim属性）才能被看作数组/矩阵
+```{r}
+z=1:12
+dim(z)=c(3,4)
+```
+
+* array(data=NA,dim=length(data),dimnames=NULL可以用来构造数组
+    * data是一个向量数据
+    * dim是数组各维的长度
+    * dimnames是组数维的名字
+```{r}
+x <- array(1:20,dim=c(4,5))
+
+```
+
+*　matrix(data=NA,nrow=1,ncol=1,byrow=FALSE,dimnames=NULL)
+    * matrix()可以用来构造矩阵（二维数组）
+    * data是一个向量数据
+    * nrow是矩阵的行数
+    * ncol是矩阵列数
+    * byrow=TRUE时生成矩阵的数据按行放置
+    * dimnames是数组维的名字
+
+* 转置运算:t(A)
+
+* 求方阵的行列式:det(A)
+
+* 向量内积：x % *%y
+    * crossprod(x,y)是内积运算函数（交叉乘积），即t(x)% *%y;crossprod(x)表示x与x的内积，即||x||2-范数
+
+* 向量外积：x%o%y
+    * outer(x,y)是外积运算函数，计算向量x与y外积，相当于x%o%y
+    * outer(X,Y,fun=" *“)X,Y为矩阵(或向量)，fun是作外积运算函数，缺省值为乘法运算，函数puter()在绘制三维曲面时非常有用，可以生成一个X和Y的网格
+
+* 矩阵乘法： A B表示矩阵中对应的元素的乘积，A% %表示通常意义下的两个矩阵的乘积 * tcrossprod(A,B)表示 A% * % B
+
+* 生成对角阵和矩阵取对角运算
+    * diag(v):
+        * 当v是一个向量时，以v的元素为对角元素的对角阵
+        * 当M是一个矩阵时，取M的对角线上元素的向量
+
+* 解线性方程组和求矩阵的逆矩阵
+    * 求解Ax=b： solve(A,b)
+    * 求矩阵A的逆： solve(A)
+
+* 求矩阵的特征值与特征向量
+    * eigen(Sm)是求对称矩阵Sm的特征值与特征向量，Sm<-crossprod(A,A)，即，eigen(Sm)values是Sm的特征值构成的向量，eigen(Sm)values是Sm的特征值构成的向量，eigen(Sm)vectors是Sm的特征向量构成的矩阵t(A)% *%A
+
+* 矩阵奇异值分解：svd(A)为对矩阵A作奇异值分解，A=U D t(V),其中U,V是正交阵，D为对角阵，也就是矩阵A的奇异值。
+    * svd(A)返回值是列表
+    * svd(A)$d表示矩阵A的奇异值，即矩阵D的对角线上的元素
+    * svd()
+
+* 最小拟合于QR分解
+    * lsfit()的返回值是最小二乘拟合的结果；
+    
+    
+```{r}
+x <- c(0.9,0.2,0.4,0.6,0.8)
+y <- c(0.9,1.9,2.8,3.3,4.2)
+lsfit.sol <- lsfit(x,y)
+```
+    * 与lsfit()函数有密切关系的函数时ls.diag()，它给出拟合的进一步的统计信息
+    * 另一个最小二乘拟合有密切关系的函数时QR分解函数qr()，与之同类的函数qr(),qr.coef(),qr.fitted(),qr.resid()
+        * qr()需要手动加元素为1的列，其返回值是列表，其中$qr矩阵的上三角阵是QR分解中得到的R矩阵，下三角阵是QR分解得到的正交阵Q的部分信息，$qrux是Q的附加信息，注意，这两个参数的结果与lsfit()得到的结果相同
+  
+```{r}
+X <- matrix(c(rep(1,5),x),ncol=2)#需要手动加元素为1的列
+Xplus <- qr(X)
+Xplus
+```
+
+* 与矩阵（数组）运算有关的函数
+    * 取矩阵的维数：dim(A);nrow(A)得到矩阵A的行数；ncol(A)得到矩阵A的列数
+    * 矩阵的合并：cbind(),rbind()
+    * 矩阵的拉直： 设A是一个矩阵，则as.vector(A)将矩阵转化为向量
+```{r}
+A <- matrix(1:6,nrow=2)
+as.vector(A)
+```
+    * 数组的维名字：数组有一个属性dimnames保存各维的各个下标的名字
+```{r}
+X <- matrix(1:6,ncol=2,dimnames=list(c("one","two","three"),c("First","Second")),byrow=T)
+```
+    * 也可以先定义矩阵X然后再给dimnames(X)赋值
+```{r}
+X <- matrix(1:6,ncol=2,byrow=T)
+dimnames(X) <- list(c("one","two","three"),c("First","Second"))
+```
+    * 对于矩阵，还可以使用属性rownames和colnames来访问行名与列名
+    
+* 数组的广义转置
+    * aperm(A,perm)函数把数组A的各维按perm中指定的鑫次序重新排列
+```{r}
+A <- array(1:24,dim = c(2,3,4))
+B <- aperm(A,c(2,3,1))
+```
+    * 以上B把A的第2维移到了第1维,第3维移到了第2维，第1维移到了第3维
+    
+* apply函数
+    * apply(A,MARGIN,FUN,...)
+        * 其中A为一个数组
+        * MARGIN是固定哪些维不变
+        * FUN是用来计算的函数
+        
+##列表与数据框
+
+* 列表
+    * 构造：lst <- list(name=value,...)
+    * 可以用“列表名[[下标]][index]”引用
+    * 修改：lst$name=value
+    
+*数据框
+    * 数据框的生成：data.frame(x,y,z,...)
+    * 数据框的引用：略
+    * attach(data.frame):把数据框中的的变量“连接”到内存中；取消连接detach()(直接空值调用)
+    * 数据框的编辑：edit(x)
+    
+##读、写数据文件
+* 读纯文本文件
+    * read.table(file , header=FALSE , sep="" , quote="\"'" , dec="." , row.names , col.names , as.is=FALSE , na.strings="NA" , colClasses=NA , nrows=-1 , skip=0 , check.names=TRUE , fill=!blank.lines.skip , strip.white=FALSE , blank.lines.skip=TRUE , comment.char="#")
+        * 读入数据形式为data.frame
+        * file是读入数据文件路径和文件名
+        * header=TRUE表示所数据第一行为变量名
+        * sep是数据分隔字符，通常同空格作为分隔符
+        * skip表示读数据时跳过的行数
+    * scan(file="" , what=double(0) , nmax=-1 , n=-1 , sep="" , quote=if(identical(sep,"\n")) "" else "'\"" , dec="." , skip=0 , nlines=0 , na.strings="NA" , flush=FALSE , fill=FALSE , strip.white=FALSE , quite=FALSE , blank.lines.skip=TRUE , multi.line=TRUE , comment.char="" , allowEscapes=TRUE)
+        * file是读入数据文件路径和文件名
+        * skip表示读数据时跳过的行数
+        * sep是数据分隔字符，通常同空格作为分隔符
+        * what指定一个列表，则列表每项的类型为需要读取的类型
+        * 读入数据形式为list
+        
+* 读取其他格式的文件
+    * 读取excel文件：R软件无法直接读取Excel表，需要将Excel表进入转化成其他形式，才能被R读出
+        * 法一：转化为“文本文件(制表符分隔)”文件，为txt格式，用read.delim()读取，读取的结果是一个数据框
+        * 法二： 转化为”CSV(逗号分隔)“文件，为csv格式，用read.csv()读取
+        
+* 写入数据文件
+    * write(x,file="data",ncolumns=if(is.character(x)) 1 else 5,append=FALSE)
+        * 其中x是数据，通常是矩阵，也可以是向量
+        * file是文件名，缺省时为data
+        * append为TRUE时表示在原文件上添加数据，FASLE时写一个新文件
+    
+    * 写入纯文本格式文件：write.table(x,file="",append=FALSE,quote=TRUE,sep=" ",eol="\n",na="NA",dec=".",row.names=TRUE,col.names=TRUE,qmethod=c("escape","double"))
+    * 写入CSV格式的Excel数据文件：write.csv(...,col.names=NA,sep=",",qmethod="double")
+    
+## 控制流
+* if/else语句
+    
+```{}
+if(cond) statement_1
+
+if(cond) statement_2 else statement_2
+
+if(cond_1)
+    statement_1
+else if (cond_2)
+    statement_2
+else if (cond_3)
+    statement_3
+else 
+    statement_4
+```
+
+* switch语句
+    * switch(statement,list)，其中statement是表达式，list是列表，可以用有名定义，如果表达式的返回值在1到length(list)，则返回列表相应位置的值，否则返回NULL值;
+    
+```{r}
+x <- 3
+switch(x,2+2,mean(1:10),rnorm(4))
+
+switch(2,2+2,mean(1:10),rnorm(4))
+
+switch(6,2+2,mean(1:10),rnorm(4))
+```
+        * 挡list是有名定义时，statement等于变量名时，返回变量名对应的值，否则返回
+```{r}
+y <- "fruit"
+switch(y,fruit="banana",vegetable="broccoli",meat="beef")
+```
+
+* 中止语句与空语句
+    * 中止语句是break，中止循环，使程序调到循环以外
+    * 空语句是next，next是继续执行，而不执行某个实质性的内容
+    
+* 循环语句
+    * for循环语句
+        * for(name in expr-1) expr-2
+            * 其中name是循环变量，expr-1是一个向量表达式（通常是个序列）
+    
+    * while循环语句
+        * while(condition) expr
+            * 当condition成立时，则执行表达式expr
+            
+    * repeat循环语句
+        * repear expr
+            * repeat循环依赖break语句跳出循环
+```{r}
+#用repeat语句循环计算1000以内的Fibonacci数列
+f <- 1
+f[2] <- 1
+i <- 1
+repeat{
+    f[i+2] <- f[i]+f[i+1]
+    i <- i+1
+    if(f[i]+f[i+1]>=1000) break
+}
+```
+
+##编写自己的函数
+* name <- function(arg-1,arg-2,...)expression
+
+* 一元方程求根函数uniroot()
+    * uniroot(f,interval,lower=min(interval),upper=max(interval),tol=.Machine$double.eps^0.25,maxiter=1000,...)
+    
+---
+
+# 3.数据描述性分析
+
+##描述统计量
+* 均值： mean(x,trim=0,na.rm=FALSE)
+    * x是对象(如向量、矩阵、数组或数据框)
+    * trim是计算均值前去掉与均值差较大数据的比例，缺省值为0
+    * na.rm为TRUE时，允许数据中有缺失值
+    * 计算矩阵各行均值：apply(x,1,mean)
+    * 计算矩阵各列均值：apply(x,2,mean)
+    * mean(as.data.frame(x)):返回值是向量
+    * mean(x,trim=0.1)： 其中trim的取值在0-0.5之间，表示计算均值前需要去掉异常值比例
+    * weighted.mean(x,w,na.rm=FASLE)
+        * x是数值向量
+        * w是数据x的权重，与x维数相同
+        * na.rm为TRUE时忽略缺失值
+        * 该函数对数据框不适用
+        
+*顺序统计量
+    * sort(x,partial=NULL,na.last=NA,decreasing=FASLE,method=c("shell","quick"),index.return=FALSE)
+        * x是数值、或字符、或逻辑向量
+        * partial是部分排序的指标向量
+        * na.last是控制缺失数据，为na.last=NA时不处理缺失数据（不参与排序），na.last=TRUE时，缺失数据排在最后，na.last=FALSE缺失数据排在最前面
+        * decreasing控制数据排列的顺序，FALSE时从小到大排序;TRUE时从大到小排序
+        * method是排序方法
+        * index.return是逻辑变量，控制排序下标的返回值，TRUE时函数的返回值是一列表，列表的第一个变量$x是排序的顺序，第二个变量$ix是排序顺序的下标对应的值
+        
+* 中位数
+    * median(X,na.rm=FALSE)
+        * x是数值型向量
+        * na.rm是逻辑变量，TRUE时可以处理带有缺失数据的向量；FASLE时不能处理带有缺失数据的
+        
+* 百分位数
+    * quantile(x,probs=seq(0,1,0.25),na.rm=FASLE,names=TRUE,type=7,...)
+        * x是数值构成的向量
+        * probs是给出相应的百分位数，缺省值0、1/4、1/2、3/4、1
+        * na.rm是逻辑变量，TRUE时可以处理缺失数据
+        
+##分散程度
+* var(x)计算样本方差(除以n-1)
+        * 
