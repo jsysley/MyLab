@@ -316,7 +316,24 @@ repeat{
 
 * 一元方程求根函数uniroot()
     * uniroot(f,interval,lower=min(interval),upper=max(interval),tol=.Machine$double.eps^0.25,maxiter=1000,...)
-    
+        * f是所求方程的函数
+        * interval是包含有方程跟的初始区间
+        * lower是初始区间的左端点
+        * upper是初始区间的右端点
+        * tol是计算精度
+        * maxiter是最大迭代次数
+        
+    * optimize(f,c(min(interval),max(interval)))可直接求一维变量函数的极小值点
+        * optimize(f,interval,lower=min(interval),upper=max(interval),maximum=FALSE,tol=.Machine$double.eps^0.25,...)
+        * optimise(f,interval,lower=min(interval),upper=max(interval),maximum=FALSE,tol=.Machine$double.eps^0.25,...)
+            * f是求极小的目标函数
+            * interval是包含有极小的初始区间
+            * lower是初始区间的左端点
+            * upper是初始区间的右端点
+            * maximum为FALSE时表示求函数极小值点，否则极大值点
+            * tol表示计算精度
+    * nlm(f,c(min(interval),max(interval)))求解无约束问题，求多元函数极小值
+            
 ---
 
 # 3.数据描述性分析
@@ -344,6 +361,9 @@ repeat{
         * decreasing控制数据排列的顺序，FALSE时从小到大排序;TRUE时从大到小排序
         * method是排序方法
         * index.return是逻辑变量，控制排序下标的返回值，TRUE时函数的返回值是一列表，列表的第一个变量$x是排序的顺序，第二个变量$ix是排序顺序的下标对应的值
+        * order()给出排序后的下标
+        * rank()给出样本的秩统计量
+        
         
 * 中位数
     * median(X,na.rm=FALSE)
@@ -357,5 +377,232 @@ repeat{
         * na.rm是逻辑变量，TRUE时可以处理缺失数据
         
 ##分散程度
-* var(x)计算样本方差(除以n-1)
-        * 
+* var(x)计算样本方差(除以n-1),var(x,y=NULL,na.rm=FALSE,use)
+* sd(x)计算样本标准差，sd(x,na.rm=FALSE)
+    * x是数值向量
+    * na.rm是逻辑变量，TRUE时可以处理缺失数据
+* cov()求协方差矩阵
+* cor()求相关矩阵
+
+##极差与标准误
+* 极差：max(x)-min(x)
+* 样本标准误：sd(x)/sqrt(n)
+
+##分布形状的度量
+
+```{}
+library(timeDate)
+skewness(x)#计算偏度
+kurtosis(x)#计算峰度
+```
+
+##数据的分布
+* pnorm(q,mean=0,sd=1,lower.tail=TRUE,log.p=FALSE)
+    * 计算分布函数的值(负无穷到x)
+    * mu是均值，sigma是标准差
+* dnorm(x,mean=0,sd=1,log=FALSE)
+    * 计算概率密度函数的值
+* qnorm(alpha,mean=0,sd=1,lower.tail=TRUE,log.p=FALSE)
+    * 计算下分位点
+* rnorm(n,mean=0,sd=1)
+    * 生成(正态分布)随机数的函数
+        * log.p为TRUE时，函数的返回值不再是正态分布，而是对数正态分布
+        * lower.tail为TRUE时，分布函数计算P(X<=x)的值
+        
+* 直方图
+    * hist(x,breaks="Strurges",freq=NULL,probability=!freq,include.lowest=TRUE,right=TRUE,density=NULL,angle=45,col=NULL,border=NULL,main=paste("Histogram of ",xname),xlim=range(breaks),ylim=NULL,xlab=xname,ylab,axes=TRUE,plot=TRUE,labels=FALSE,nclass=NULL,...)
+            * 由样本构成的向量
+            * breaks规定直方图的组距
+            * freq为
+                * TRUE时画出频率直方图
+                * counts画出频率直方图
+                * FALSE画出密度直方图
+            * probability为
+                * TRUE画出密度直方图
+                * FASLE画出频率直方图
+            * col表示直方图填充颜色
+            * plot为
+                * TRUE时画出直方图
+                * FALSE给出直方图的各种结果（不画出）
+
+* 核密度估计函数（与直方图配合使用）
+     density(x,bw="nrd0",adjust=1,kernel=c("gaussian","epanechnikov","rectangular","triangular","biweight","cosine","optcosine"),window=kernel,width,give.Rkern=FALSE,n=512,from,to,cut=3,na.rm=FALSE)
+        * x是由样本构成的向量
+        * bw是带宽，省略时画出光滑曲线
+```{r}
+w <- c(75.0,64.0,47.4,66.9,62.2,62.2,58.7,63.5,66.6,64.0,57.0,69.0,56.9,50.0,72.0)
+hist(w,freq=FALSE)
+lines(density(w),col="blue")
+x <- 44:76
+lines(x,dnorm(x,mean(w),sd(w)),col="red")
+#画出直方图和密度估计曲线，正太分布概率密度曲线
+```
+
+* 经验分布
+    * ecdf(x)
+        * x为观察值得到的数值型向量
+    * plot(x,...,ylab="Fn(x)",verticals=FALSE,col.01line="gray70"，do.p=FALSE)
+        * x为ecdf生成的向量
+        * verticals为TRUE时表示话竖线，否则不画竖线
+        * do.p为FALSE时表示不画点处的记号，否则画
+```{r}
+plot(ecdf(w),verticals = TRUE,do.p=FALSE)
+x <- 44:78
+lines(x,pnorm(x,mean(w),sd(w)))
+```
+
+* QQ图：鉴别样本分布是否近似于某种类型的分布
+    * qqnorm(y,...)
+    * qqnorm(y,ylim,main="Normal Q-Q Plot",xlab="Theoretical Quantiles",ylab="Sample Quantiles",plot.it=TRUE,datax=FALSE)
+    * qqline(y,datax=FASLE,...)
+    * qqplot(x,y,plot.it=TRUE,xlab=deparse(substitute(x)),ylab=deparse(substitute(y)),...)
+        * x是第一列样本
+        * y是第二列样本或只有此列样本
+* 检验正态时只需qqnorm(x),qqline(x)
+
+* 茎叶图：stem(x，scale=1,width=80,atom=1e-08)
+    * x是数据
+    * scale控制绘出茎叶图的长度，scale=2即将10个个位数分成两段，0-4为一段，5-9为一段；scale=1/2即将10个个位数分成1/2段，即20个数为一段
+    * width绘图的宽度
+    * atom是容差
+    
+* 箱线图
+    * boxplot(x,...)
+        * x是数据构成的数值型向量，或是列表、数据框
+    * boxplot(formula,data=NULL,...,subset,na.action=NULL)
+        * formula是公式
+        * data是数据
+        * grp是数据的分组，通常是因子
+    * boxplot(x,..., range=1.5 , width=NULL , varwidth=FALSE , notch=FASLE , outline=TRUE , names , plot=TRUE , border=par("fg") , col=NULL , log="" , pars=list(boxwex=0.8 , staplewex=0.5 , outwex=0.5) , horizontal=FALSE , add=FASLE , at=NULL)
+        * range 是“触须”的范围，缺省1.5
+        * notch为TRUE时画箱线图带切口
+        * outline为FALSE不标明异常值点
+        * col是颜色变量
+        * horizontal为TRUE时把箱线图画成水平
+        * add为TRUE时在原图上画图
+        
+* 五数概括
+    * fivenum(x,na.rm=TRUE)
+        * x是样本数据
+        * na.rm为TRUE时，计算五数之前把所有NA和NAN数据去掉
+        
+* 正态性检验与分布拟合检验
+    * 正态性W检验：shapiro.test(x)
+    * 经验分布的Kolmogorov-Smirnov检验方法：ks.test(x,y,...,alternative=c("two.sided","less","greater"),exact=NULL)
+        * x是待检测的样本
+        * y是原假设的数据向量或是描述原假设的字符串
+        
+## R软件中的绘图
+* plot()函数
+    * plot(x,y)：生成y关于x的散点图
+    * plot(x):x是一时间序列，生成时间序列图形；如果x是向量，则产生x关于下标的散点图
+    * plot(f):f是因子，生成f的直方图
+    * plot(f,y):f是因子，y是数值向量，生成y关于f水平的箱线图
+
+* 显示多变量数据
+    * pairs(x): 当x是矩阵或数据框时，画出关于矩阵各列的散布图
+    * pairs(df): 画出相关矩阵图
+    * coplot(a~b|c)
+        * 当有三、四个变量时，coplot()可以将散点图画得更细，假设a和b是数值向量，c是向量或因子，则以上画出c不同水平下a与b的散点图
+        
+*其他函数
+    * image(x,y,z,...):画出三维图形的映像
+    * contour(x,y,z,...):画出三维图形的等值线
+    * persp(x,y,z,...): 画出三维图形的表面曲线
+        * x，y是数值型向量
+        * z与x和y对应矩阵，z的行数是x的维数，z的列数是y的维数
+        
+* 画图中的命令
+    * add=TRUE表示在原图上加图
+    * axes=FALSE表示所画图形没有坐标轴
+    * log="x"表示x轴的数据取对数，"y"表示y轴的数据取对数，"xy"表示x轴与y轴的数据同时取对数
+    * type命令
+        * p 散点图
+        * l 实线
+        * b 所有点被实线连接
+        * o 实线通过所有点
+        * h 画出点到x轴的竖线
+        * s或S 画出阶梯形曲线
+        * n 不画任何点或曲线
+    * xlab=字符串，ylab=字符串，main=字符串，sub=字符串，其中sub是子图的说明
+    * 加点与加线函数：
+        * points(x,y) ，在已有图上加点，相当于points(x,y)
+        * lines(x,y)，在已有图上加线，相当于plot(x,y,type="l")
+    * 在点处加标记: text(x,y,labels,...)
+        * x,y是数据向量
+        * labels可以是整数，也可以是字符串，缺省labels=1:length(x)
+    * 在图上加直线
+        * abline(a,b)：画一条y=a+bx的直线
+        * abline(h=y):画一条过所有点的水平直线
+        * abline(v=x):画一条过所有点的竖直直线
+        * abline(lm.obj): 画出线性模型得到的线性方程
+    * 在图上加标记、说明或其他内容
+        * title(main="Main Title",sub="sub title",):其中主题目加载图的顶部，子题目加在图的底部
+        * axis(side,...)：在坐标轴上标记、说明或其他内容，side=1表示所加内容在图的底部，2表示在图的左侧，3表示内容在图的顶部，4表示在内容在图的右侧
+        
+##多元数据的数据特征与相关分析
+* 相关性检验
+    * cor.test(x,y,alternative=c("two.sided","less","greater"),method=c("pearson","kendall","spearman"),exact=NULL,conf.level=0.95,...)
+        * x、y是数据长度相同的向量
+        * alternative是备择假设的单边双边选择
+        * method是方法选择，默认Pearson检验
+        * conf.level是置信区间水平，默认0.95
+    * cor.test(formula,data,subset,na.action,...)
+        * formula是公式
+        * data是数据框
+        * subset是可选择向量，表示观察值的子集
+
+* cut(x,breaks,labels=NULL,include.lowest=FALSE,right=TRUE,dig.lab=3,...)
+    * 将变量的区域分层若干个区间
+    * x是由数据构成的向量
+    * breaks是所分区间的端点构成的向量
+    
+* table(...,exclude=c(NA,NaN),dnn=list.names(...),deparde.level=1)
+    * 计算因子合并后的个数
+        
+##假设检验
+* t.test(x,y=NULL,alternative=c("two.sided","less","greater"),mu=0,paired=FALSE,var.equal=FALSE,conf.level=0.95)
+    * T检验和相应的区间估计，只提供x则做单个正态总体的均值检验，否则两个总体的均值检验
+    * x,y是来自两总体数据构成的向量
+    * alternative是备择假设单边双边选择
+
+* var.test(x,y,ratio=1,alternative=c("two.sided","less","greater"),conf.level=0.95,...)
+    * 方差比的检验
+    * ratio是方差比的原假设，缺省1
+    * x,y是来自两总体数据构成的向量
+    * alternative是备择假设单边双边选择
+    * var.equal为TRUE表示两样本方差相同
+    
+* binom.test(x,n,p=0.5,alternative=c("two.sided","less","greater"),conf.level=0.95,)
+    * 二项分布总体的假设检验
+    * 其中x是成功次数；或是一个由成功和失败次数组成的二维向量
+    * n是实验总数，x是二维向量时该值无效
+    * p是原假设的概率
+    
+* Pearson拟合优度检验：检验总体分布是某种分布，常用正态。原假设：x具有分布F
+    * chisq.test(x,y=NULL,correct=TRUE,p=rep(1/length(x),length(x)),rescale.p=FALSE,simulate.p.value=FALSE,B=2000)
+        * x是由观测数据构成的向量或矩阵
+        * y是数据向量(当x为矩阵时，y无效)
+        * correct为TRUE时表示用于连续修正
+        * p是原假设落在小区间的理论概率，缺失为均匀分布
+        * rescale.p为FALSE时要求sum(p)=1，TRUE时不要求这一点
+        * simulate.p.value为TRUE时用仿真方法计算p值，此时B表示仿真次数
+        
+
+ * Kolmogorov-Smirnov检验：
+    * 单样本检验：原假设：x具有分布F
+        * ks.test(x,"分布名",参数)
+    * 双样本检验：原假设：F(x)=G(X)
+        ks.test(x,y)
+
+* 列联表的独立性检验
+    * Pearson 卡方检验
+        * 需要将数据写成列联表的形式x : chisq.test(x,correct=FALSE)
+    * Fisher精确的独立检验
+        * fisher.test(x,y=NULL,workspace=200000,hybrid=FALSE,control=list(),or=1,alternative="two.sided",conf.int=TRUE,conf.level=0.95)
+            * x是具有二维列联表形式的矩阵或是有因子构成的对象
+            * y是由因子构成的对象，当x时矩阵时，此值无效
+            * workspace的输入值是一整数，表示用于网络算法空座空间的打小
+            * hybrid为FALSE时表示精确计算概率
+            * conf.int为TRUE时给出区间估计
+            
