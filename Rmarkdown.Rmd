@@ -147,7 +147,7 @@ fig.cap = "..." adds a caption to graphical results.<br>
 #<code>
 ```
 
-* 仅显示代码，不显示结果
+* 仅显示代码，不显示结果，不运行代码
 ```{r,eval=FALSE}
 a=1
 ```
