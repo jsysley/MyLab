@@ -1,0 +1,761 @@
+---
+title: "RShow"
+author: "jsysley"
+date: "2016年10月5日"
+output: html_document
+---
+
+#第一周:基本制图函数综述
+* 画散点图
+```{r,eval=FALSE}
+plot(cars$dist~cars$speed)#画出散点图
+```
+
+```{r,eval=FALSE}
+plot(cars$dist~cars$speed,#y~x
+     main="Relationship betweeb car distance&speed",#画标题
+     xlab="Speed(miles per hour",#X坐标轴标题
+     ylab="Distance travelled(miles)",#y坐标轴
+     xlim=c(0,30),#设置x轴范围
+     ylim=c(0,140),#设置y轴范围
+     xaxs="i",#设置x轴风格internal
+     yaxs="i",#设置y轴风格internal
+     col="red",#设置散点的颜色
+     pch=19)#设置散点的形状为实心原点
+     
+```
+
+* 画线图
+```{r,eval=FALSE}
+sales <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\dailysales.csv",header=TRUE)
+
+plot(sales$units~as.Date(sales$date,"%d/%m/%y"),#日/月/年
+     type="l",#指定散点图类型为”l“，表示画线图
+     main="Unit Sales in the month of January 2010",
+     xlab="Date",
+     ylab="Number of units sold",
+     col="blue")
+```
+    * lines()函数：要先有散点图，才能画出
+    
+```{r,eval=FALSE}
+lines(sales$units~as.Date(sales$date,"%d/%m/%y"),col="red")
+```
+
+* 柱形图
+```{r,eval=FALSE}
+sales <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\citysales.csv",header=TRUE)
+
+barplot(sales$ProductA,names.arg = sales$City,col="black")
+
+#水平柱形图
+barplot(sales$ProductA,names.arg = sales$City,col="black",horiz = TRUE)
+
+#彩色柱形图,legend产生图例
+barplot(as.matrix(sales[,2:4]),beside = TRUE,legend=sales$City,col=heat.colors(5),border="white")
+```
+
+* 直方图
+```{r,eval=FALSE}
+hist(rnorm(1000))
+```
+
+* 密度图
+```{r,eval=FALSE}
+plot(density(rnorm(1000)))
+```
+
+* 箱型图
+```{r,eval=FALSE}
+metals <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\metals.csv",header=TRUE)
+
+boxplot(metals,xlab="Metals",ylab="Atmospheric oncentration in ng per cubic metre",main="Atmospheric Metal Concentrations in London")
+```
+
+* 热力图
+```{r,eval=FALSE}
+heatmap(as.matrix(mtcars),Rowv=NA,Colv = NA,col=heat.colors(256),scale="column",margins = c(2,8),main="Car characteristics by Model")
+
+# Rowv:
+# Colv:
+```
+
+* 散点图阵
+```{r,eval=FALSE}
+pairs(iris[,1:4])
+#变量两两画散点图
+
+pairs(iris[,1:4],main="Relationships",pch=19,col="blue",cex=0.9)
+```
+
+
+```{r,eval=FALSE}
+#在一张画板上画多个散点图
+par(mfrow=c(2,3))
+plot(rnorm(100),col="blue",main="Plot No.1")
+plot(rnorm(100),col="blue",main="Plot No.2")
+plot(rnorm(100),col="green",main="Plot No.3")
+plot(rnorm(100),col="black",main="Plot No.4")
+plot(rnorm(100),col="green",main="Plot No.5")
+plot(rnorm(100),col="orange",main="Plot No.6")
+
+```
+
+```{r,eval=FALSE}
+#增加图例说明
+rain <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\cityrain.csv",header=TRUE)
+
+plot(rain$Tokyo,type="l",col="red",ylim=c(0,300),main="Monthly Rainfall in major cities",xlab = "Month of Year",ylab="Rainfall(mm)",lwd=2)
+lines(rain$NewYork,type = "l",col="blue",lwd=2)
+lines(rain$London,type = "l",col="green",lwd=2)
+lines(rain$Berlin,type = "l",col="orange",lwd=2)
+#增加图例
+legend("topright",legend = c("Tokyo","NewYork","London","Berlin"),col=c("red","blue","green","orange"),lty=1,lwd=2)
+```
+
+* 画地图
+```{r,eval=FALSE}
+library(maps)
+map()
+```
+
+```{r,eval=FALSE}
+map("world",fill = TRUE,col=heat.colors(10))
+# fill表示要填充颜色
+```
+
+```{r,eval=FALSE}
+#美国地图
+map("state",interior = FALSE)#不画里面的东西，只有轮廓
+map("state",boundary = FALSE,col="red",add=TRUE)#add=TRUE表示在前一张图上加，不覆盖
+```
+
+```{r,eval=FALSE}
+#画英国地图
+library(sp)
+load(url("http://gadm.org/data/rda/GBR_adm1.RData"))
+spplot(gadm,"Shape Area")
+```
+
+* 输出为图形文件
+```{r,eval=FALSE}
+png("scatterplot.png")
+plot(rnorm(1000))
+dev.off#关闭面板
+
+#输出选项
+png("scatterplot.png"，height=600,width=600)#选择高度和宽度
+png("scatterplot.png"，height=4,width=4,units="in")#以英寸为单位
+png("scatterplot.png",res=600)#以像素为单位，指出分辨率
+pdf("scatterplot.pdf")#输出pdf格式
+```
+
+
+
+#第二周 理解关键制图函数
+
+* 设置图形要素的颜色
+```{r,eval=FALSE}
+plot(rnorm(1000),col="red")
+
+sales <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\dailysales.csv",header=TRUE)
+
+plot(sales$units~as.Date(sales$date,"%d/%m/%y"),#日/月/年
+     type="l",#指定散点图类型为”l“，表示画线图
+     main="Unit Sales in the month of January 2010",
+     xlab="Date",
+     ylab="Number of units sold",
+     col="blue",xlim=range(as.Date(sales$date,"%d/%m/%y")),ylim=range(sales$units))
+```
+* 设置图形要素的颜色
+    * Plot函数中，使用col=参数来觉得要素的颜色
+    * 如果不指定plot type，颜色加在散点上，如果指定了plot type，例如line，颜色加在线上
+    * 其他函数，例如barplot()和histogram()也使用col=参数 来影响颜色
+
+* 颜色的表达：
+    * 使用colors()函数列出全部颜色名，约660种
+    
+```{r,eval=FALSE}
+colors()
+```
+
+* 使用数值表达颜色
+    * col=n
+    * n为当前调色板上的颜色值
+    * 缺省调色板上，1表示黑色，2表示红色，0表示背景色
+    * palette()函数观看当前调色板
+        
+```{r,eval=FALSE}
+palette()
+```
+    
+* 设定修改缺省调色板
+```{r,eval=FALSE}
+palette(c("red","blue","green","orange"))#设置调色板
+palette()
+
+#恢复成默认调色板
+palette("default")
+palette()
+```
+
+* 十六进制表达颜色
+```{r,eval=FALSE}
+plot(rnorm(1000),col="#AC5500BB")
+#红色，绿色，蓝色，alpha(透明度)。 两个数字一组表示前面内容
+
+rgb(0.5,0.5,0.5,0.5) #转变成十六进制数字,数值分别表示红色，绿色，蓝色，alpha(透明度)
+rgb(0.5,0.5,0.5,0.2)
+
+heat.colors(5)#自动产生红黄组合的颜色
+heat.colors(15)
+heat.colors(25)
+```
+
+* 直观的调色板控制包RColorBrewer
+    
+```{r,eval=FALSE}
+library(RColorBrewer)
+display.brewer.all()#列出多个调色板
+
+brewer.pal(7,"YlOrRd")#第一个数字表示需要的颜色数
+display.brewer.pal(7,"YlOrRd")#画出来
+```
+
+* 颜色向量：使用多颜色画图
+    * 其它颜色函数:
+        * cm.colors()
+        * topo.colors()
+```{r,eval=FALSE}
+sales <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\citysales.csv",header=TRUE)
+
+barplot(as.matrix(sales[,2:4]),beside=T,legend=sales$City,col=c("red","blue","green","orange","pink"),border="white")
+#加了beside=T则当颜色与样本数不一致时，会循环使用颜色，因此不报错
+```
+
+```{r,eval=FALSE}
+barplot(as.matrix(sales[,2:4]),beside=T,legend=sales$City,col=heat.colors(length(sales$City)),border="white")#无论多少种类都有不同的颜色
+```
+
+```{r,eval=FALSE}
+#利用rainbow
+barplot(as.matrix(sales[,2:4]),beside=T,legend=sales$City,col=rainbow(length(sales$City)),border="white")
+```
+
+```{r,eval=FALSE}
+#利用terrain.colors()
+barplot(as.matrix(sales[,2:4]),beside=T,legend=sales$City,col=terrain.colors(length(sales$City)),border="white")
+```
+
+* 设置背景颜色
+```{r,eval=FALSE}
+par(bg="gray")#设置背景颜色
+plot(rnorm(100))
+#par的作用知道画板被关闭为止
+    #可以重新设置par()参数
+    #可以关闭画板，dev.off()
+    #可以打开新画板，dev.new()
+```
+
+* 只设置坐标系内的背景颜色
+```{r,eval=FALSE}
+plot(rnorm(1000),type="n")
+x <- par("usr")#需要填充颜色区域的四个角的坐标
+x
+rect(x[1],x[3],x[2],x[4],col="lightgray")# 画一个矩形，前面四个参数为坐标，颜色为青灰色
+points(rnorm(1000))
+```
+
+* 设置标题、坐标轴标号等颜色
+```{r,eval=FALSE}
+plot(rnorm(100),main="Plot Title",col.axis="blue",col.lab="red",col.main="darkblue")
+```
+
+* 使用par()设置
+```{r,eval=FALSE}
+par(col.axis="black",col.lab="#444444",col.main="darkblue")
+plot(rnorm(100),main="plot")
+```
+
+* 关于标题，使用title()函数
+```{r,eval=FALSE}
+title("Sales Figures for 2010",col.main="blue")
+title(xlab="Month",ylab="Sales",col.lab="red")
+title(xlab="X axis",col.lab="red")
+title(ylab="Y axis",col.lab="blue")
+```
+
+*字体设置
+    * Win下能用的字体非常有限
+        * par(family="serif",font=2)设置Times New Roman字体
+        * 0缺省，1粗体，2斜体，3粗斜体
+
+* 设置散点样式
+    * pch:代表散点的符号
+    * cex:代表散点  的大小
+```{r}
+rain <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\cityrain.csv",header=TRUE)
+
+plot(rnorm(100),pch=19,cex=2)
+
+```
+
+* bty参数控制坐标系的风格
+    * par(bty="l")
+    * par(bty="7")
+    * par(bty="c")
+    * par(bty="u")
+    
+* box()函数:把坐标系用一个框包起来
+    
+```{r}
+par(oma=c(1,1,1,1))#(oma是外面区域的一个宽度)
+plot(rnorm(100),bty="l")
+box(which="figure")
+```
+
+* 设置坐标轴刻度
+    * 缺省情况下比上限再增大约4%，并且自动计算刻度
+    * 可以通过xaxs来改变上述风格
+```{r}
+plot(rnorm(100),xaxp=c(0,100,10))#from=0,to=100,by=10
+```
+
+* las参数：刻度数字的方向
+    * las=1/2/3/4
+    
+* 设置画图区域的大小
+    * par(fin=c(5,5),pin=c(3,3))
+        * fin:figure区域的inche
+        * pin：画图的区域
+* lty:决定线型
+    * 0：blank
+    * 1:solid(default)
+    * 2:dashed
+    * 3:dotted
+    * 4:dotdash
+    * 5:longdash
+    * 6:twodash
+    
+* mai和omi参数：控制边缘
+    * mai：分割了多个画图区域，omi[1]-omi[4]表示四个边缘
+    * mar：无分割，mar[1]-mar[4]表示四个边缘
+    
+    
+
+#第三周 散点图
+
+* 利用xyplot()对散点分组
+```{r}
+library(lattice)
+xyplot(mpg~disp,data=mtcars,groups=cyl,auto.key=list(corner=c(1,1)))
+# 按groups=cyl分组
+# auto.key生成图裂，c(1,1)表示坐标
+```
+
+* 初试ggplot2包画分组图
+    * 用颜色分组
+```{r}
+library(ggplot2)
+qplot(disp,mpg,data=mtcars,col=as.factor(cyl))
+```
+
+    * 使用散点形状和大小来表示分组
+```{r}
+qplot(disp,mpg,data=mtcars,shape=as.factor(cyl))
+```
+
+```{r}
+qplot(disp,mpg,data=mtcars,size=as.factor(cyl))
+```
+
+
+* 用text()标识点
+    * 先画图
+```{r}
+plot(mpg~disp,data=mtcars)
+text(258,22,"Hornet")#前面的是坐标
+```
+
+```{r}
+sales <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\citysales.csv",header=TRUE)
+
+plot(sales$ProductA,sales$ProductB,type="n")
+text(sales$ProductA,sales$ProductB,sales$City)
+```
+
+* 例子：散点图+相关系数
+```{r}
+panel.cor <- function(x,y,...)
+{
+    par(usr=c(0,1,0,1))#每一幅小图我们定义的坐标值的范围
+    txt <- as.character(format(cor(x,y),digits=2))
+    text(0.5,0.5,txt,cex=6*abs(cor(x,y)))#值放在图中心，c(0.5,0.5)
+}
+
+pairs(iris[1:4],upper.panel = panel.cor)
+```
+
+
+* 误差条
+```{r}
+plot(mpg~disp,data=mtcars)
+
+arrows(x0=mtcars$disp,y0=mtcars$mpg*0.95,x1=mtcars$disp,y1=mtcars$mpg*1.05,angle = 90,code=3,length=0.04,lwd=0.4)
+
+#x0,y0表示起点左边，x1,y1表示终点坐标
+#code=3:箭头的式样
+# length： 箭头的（横线）的长度
+# lwd：箭头的长度
+```
+
+* jitter()函数：给向量加上少许噪音
+```{r}
+x <- rbinom(1000,10,0.25)
+y <- rbinom(1000,10,0.25)
+plot(x,y)
+#因为是整数的原因，很多点重叠在一起，看起比较少
+```
+
+```{r}
+plot(jitter(x),jitter(y))#使得原来重叠的点不在重叠，可以
+```
+
+* 线性模型：画回归直线
+```{r}
+plot(mtcars$mpg~mtcars$disp)
+lmfit <- lm(mtcars$mpg~mtcars$disp)
+abline(lmfit)
+```
+
+* 非线性模型的拟合曲线
+```{r}
+x <- -(1:100)/10
+y <- 100+10*exp(x/2)+rnorm(x)/10
+
+nlmod <- nls(y~Const+A*exp(B*x),trace=TRUE)
+
+plot(x,y)
+lines(x,predict(nlmod),col="red")
+```
+
+* lowess:局部加权回归散点平滑法
+```{r}
+plot(cars,main="lowess(cars)")
+lines(lowess(cars),col="blue")
+lines(lowess(cars,f=0.3),col="orange")#f表示取周围多少比例的点来画
+```
+
+* 三维散点图
+```{r}
+library(scatterplot3d)
+scatterplot3d(x=mtcars$wt,y=mtcars$disp,z=mtcars$mpg)
+```
+
+```{r}
+scatterplot3d(x=mtcars$wt,y=mtcars$disp,z=mtcars$mpg,pch=16,highlight.3d=TRUE,angle = 20,xlab="Weight",ylab="Displacement",zlab="Fuel Economy(mpg)",type="h",main="Relations between car specifications")
+#pch:散点形状
+# highligh.3d:随着z值渐变颜色
+#angle:x和y轴的视觉夹角20度
+#type:画直线
+```
+
+* 高维数据展现专业扩展包：rggobi
+
+* QQ图：验证数据是否整天分布
+```{r}
+qqnorm(mtcars$mpg)
+qqline(mtcars$mpg)
+```
+
+* 画密度函数
+```{r}
+x <- rnorm(1000)
+plot(density(x))
+rug(x)#在下面画竖线，密的地方线多
+```
+
+* rug()
+```{r}
+metals <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\metals.csv",header=TRUE)
+
+plot(Ba~Cu,data = metals,xlim=c(0,100))
+rug(metals$Cu)
+rug(metals$Ba,side=2,col="red",ticksize=0.02)
+#side表示画在哪
+#ticksize表示竖线长度
+```
+
+* smoothScatter():密度大的地方颜色深
+```{r}
+n <- 10000
+x <- matrix(rnorm(n),ncol=2)
+y <- matrix(rnorm(n,mean=3,sd=1.5),ncol=2)
+smoothScatter(x,y)
+```
+
+
+# 第四周 线图与时间序列谱图
+```{r}
+rain <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\cityrain.csv",header=TRUE)
+
+plot(rain$Tokyo,type="b",lwd=2,xaxt="n",ylim=c(0,300),col="black",xlab="Month",ylab="Rainfall(mm)",main="monthly Rainfall in major cities")
+#xaxt="n"表示不画x轴刻度，刻度多少是用xaxp=c(from,to,by),坐标系风格xaxs
+#type="b"即both，点线都画
+
+axis(1,at=1:length(rain$Month),labels=rain$Month)
+#画刻度，1表示在下面，at表示刻度，labels表示要标记的内容
+
+
+lines(rain$Berlin,col="red",type = "b",lwd=2)
+lines(rain$NewYork,col="orange",type = "b",lwd=2)
+lines(rain$London,col="purple",type = "b",lwd=2)
+
+legend("topright",legend = c("Tokyo","Berlin","NewYork","London"),lty=1,lwd=2,pch=21,col=c("black","red","orange","purple"),ncol=2,bty = "n",cex=0.8,text.col = c("black","red","orange","purple"),inset=0.01)
+# ncol表示画成两列
+#lty线的类型
+#pch点的类型
+#bty="n"表示图例没有小框框围起来
+#inset表示图例内容和box()距离比例
+
+legend(1,300,legend=c("Tokyo","Berlin","New York","London"),lty=1,lwd=2,pch=21,col=c("black","red","orange","purple"),horiz = TRUE,bty = "n",bg="yellow",cex=1,text.col = c("black","red","orange","purple"))
+```
+
+
+* 画底纹格子
+```{r}
+plot(rain$Tokyo,type="b",lwd=2,xaxt="n",ylim=c(0,300),col="black",xlab="Month",ylab="Rainfall(mm)",main="monthly Rainfall in major cities")
+#xaxt="n"表示不画x轴刻度，刻度多少是用xaxp=c(from,to,by),坐标系风格xaxs
+#type="b"即both，点线都画
+
+axis(1,at=1:length(rain$Month),labels=rain$Month)
+#画刻度，1表示在下面，at表示刻度，labels表示要标记的内容
+
+grid()#画底纹
+```
+    * 水平线底纹：
+```{r,eval=FALSE}
+grid(nx=NA,ny=8,lwd=1,lty=2,col="blue")
+#nx,ny表示x轴，y轴的线数
+```
+
+* 垂直线和水平线
+```{r,eval=FALSE}
+abline(v=9)
+
+abline(h=150,col="red",lty=2)
+```
+
+
+* Sparkline
+```{r}
+dev.new()
+rain <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\cityrain.csv",header=TRUE)
+
+par(mfrow=c(4,1),mar=c(5,7,4,2),omi=c(0.2,2,0.2,2))
+
+for(i in 2:5)
+{
+    plot(rain[,i],ann=FALSE,axes=FALSE,type="l",col="gray",lwd=2)
+    mtext(side=2,at=mean(rain[,i]),names(rain[i]),las=2,col="black")
+    mtext(side=4,at=mean(rain[,i]),mean(rain[,i]),las=2,col="black")
+    
+    points(which.min(rain[,i]),min(rain[,i]),pch=19,col="blue")
+    points(which.max(rain[,i]),max(rain[,i]),pch=19,col="red")
+}
+```
+
+
+* 时间序列图
+```{r}
+sales <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\dailysales.csv",header=TRUE)
+
+plot(sales$units~as.Date(sales$date,"%d/%m/%y"),type="l",xlab="Date",ylab="Units Sold")
+```
+
+* 处理时间序列数据的包：zoo
+    * 可以把数据转换成时间序列类型的数据
+```{r}
+library(zoo)
+plot(zoo(sales$units,as.Date(sales$date,"%d/%m/%y")))
+```
+
+* 时间刻度刻度化
+```{r,eval=FALSE}
+plot(sales$units~as.Date(sales$date,"%d/%m/%y"),type="l",xlab="Date",ylab="Units Sold",xaxt="n")#此处不画x轴
+#失败了 不知道讲什么
+xlabels <- strptime(sales$date,format="%d/%m/%y")
+axis.Date(1,at=xlabels[xlabels$mday==1],format="%b-%y")
+```
+
+* 标记特定的时间事件
+```{r,eval=FALSE}
+abline(v=as.Date("12/01/2010","%d/%m/%y"))
+```
+
+* 求出均值后画时间序列
+
+* 画股票数据： 
+    * 包 quantmod
+    * 包 tseries
+    * 抓取股票数据并画出趋势图
+```{r,eval=FALSE}
+library(quantmod)
+library(tseries)
+#从网上抓数据
+aapl <- get.hist.quote(instrument="aapl",quote=c("Cl","Vol"))
+goog <- get.hist.quote(instrument = "goog",quote = c("Cl","Vol"))
+msft <- get.hist.quote(instrument = "msft",quote = c("Cl","Vol"))
+
+plot(msft$Close,main="Stock Price Comparison",ylim = c(0,800),col="red",type="l",lwd=0.5,pch=19,cex=0.6,xlab="Date",ylab="Stock price(USD)")
+
+lines(goog$Close,col="blue",lwd=0.5)
+lines(aapl$Close,col="gray",lwd=0.5)
+legend("top",horiz = T,legend=c("Microsoft","Google","Apple"),col=c("red","blue","gray"),lty=1,bty="n")
+```
+
+* 使用quantmod包的功能画图
+```{r}
+library(quantmod)
+getSymbols("AAPL",src = "yahoo")
+barChart(AAPL)
+```
+
+* 蜡烛图
+```{r}
+candleChart(AAPL,theme="white")
+```
+
+
+#第五周 柱形图、点图、饼图、直方图
+
+* 柱形图
+```{r}
+library(RColorBrewer)
+
+citysales <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\citysales.csv",header=TRUE)
+barplot(as.matrix(citysales[,2:4]),beside=TRUE,legend.text = citysales$City,args.legend = list(bty="n",horiz=TRUE),col=brewer.pal(5,"Set1"),border="white",ylim=c(0,100),ylab="Sales Revenue(1000's of USD)",main="Sales Figures")
+
+#legend.text:图例的文字
+#args.legend:对图例进行处理，bty=“n"表示没有边框，horiz=TRUE表示水平排列，col表示去Set1调色板的5个颜色
+#border=”white"表示柱子的边界颜色是白色
+
+box(bty="l")#一种风格
+```
+
+* 用堆叠效果展示百分比
+    * 只有当每条柱子的数据加起来的和是100才能表示出
+```{r}
+library(RColorBrewer)
+
+citysales <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\citysales.csv",header=TRUE)
+
+par(mar=c(5,4,4,8),xpd=T)#xpd表示画图的界限
+
+barplot(as.matrix(citysales[,2:4]),col=brewer.pal(5,"Set1"),border="white",ylab="Sales Revenue(1000's of USD)",main="Sales Figures")
+
+legend("right",legend = citysales$City,bty="n",inset=c(-0.3,0),fill=brewer.pal(5,"Set1"))
+```
+
+    * 调整柱形图的宽度u、间隔和颜色
+```{r}
+x <- barplot(as.matrix(citysales[,2:4]),beside = TRUE,legend.text = citysales$City,args.legend = list(bty="n",horiz=T,x=40,y=100),col=c("#E5562A","#491A5B","#8C6CA8","#BD1B8A"),border=FALSE,space=c(0,5),ylim=c(0,100),ylab="Sales Revenue(1000's of USD)",main="Sales Figures")
+
+#柱子颜色 col
+#间距：space=c(0,5),表示每组柱子间距离是0，组间距离5
+
+#柱子顶端显示数据
+y <- as.matrix(citysales[,2:4])
+text(x,y+2,labels = as.character(y))
+```
+
+    * 在柱子内标注
+```{r}
+rain <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\cityrain.csv",header=TRUE)
+
+y <- barplot(as.matrix(rain[1,-1]),horiz = T,col="white",yaxt="n",main = "Rainfall in January",xlab="Rainfall(mm)")#不画y轴
+
+x <- 0.5*rain[1,-1]
+
+text(x,y,colnames(rain[-1]))
+```
+
+    * 标注误差
+```{r}
+citysales <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\citysales.csv",header=TRUE)
+
+sales <- t(as.matrix(citysales[,-1]))
+
+colnames(sales) <- citysales[,1]
+
+x <- barplot(sales,beside = T,legend.text = rownames(sales),args.legend = list(bty="n",horiz=T),col=brewer.pal(3,"Set2"),border="white",ylim=c(0,100),ylab="Sales Ravenue(100's of USD)",main="Sales Figures")
+
+arrows(x0=x,y0=sales*0.95,x1=x,y1=sales*1.05,angle=90,code=3,length=0.04,lwd=0.4)
+#code=3表示箭头类型，双箭头
+```
+
+* 点图：包reshape
+```{r}
+library(reshape)
+citysales <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\citysales.csv",header=TRUE)
+
+sales <- melt(citysales)
+sales$color[sales[,2]=="ProductA"] <- "red"
+sales$color[sales[,2]=="ProductB"] <- "blue"
+sales$color[sales[,2]=="ProductC"] <- "violet"
+
+dotchart(sales[,3],labels=sales$City,groups = sales[,2],col=sales$color,pch = 19,main="Sales Figures",xlab="Sales Revenue(1000's of USD)")
+```
+
+* 饼图
+```{r}
+citysales <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\citysales.csv",header=TRUE)
+
+pie(citysales[,2],labels=citysales[,1],clockwise = TRUE,radius=1,col=brewer.pal(5,"Set1"),border="white",main="Percentage Share of Internet Browser usage")
+
+#clockwise表示数据排列顺时针排列
+#radius表示圆盘半径，[-1,1],标识文字比较长，半径设小
+#border表示饼图边界颜色
+
+```
+
+```{r}
+#在饼图上标注百分比
+pielabels <- sprintf("%s=%3.1f%s",citysales[,1],100*citysales[,2]/sum(citysales[,2]),"%")
+
+pie(citysales[,2],labels=pielabels,clockwise = TRUE,radius=1,col=brewer.pal(7,"Set1"),border="white",cex=0.8,main="Percentage Share of Internet Browser usage")
+
+#增加图释
+legend("bottomright",legend=pielabels,bty="n",fill=brewer.pal(7,"Set1"))
+```
+
+* 直方图
+```{r,eval=FALSE}
+hist(data,xlab=" ...".main="...")#查看数据的分布情况
+#以概率密度显示
+hist(data,xlab=" ...".main="...",freq=FALSE)
+#增加柱子数breaks
+hist(data,xlab=" ...".main="...",freq=FALSE，breaks=20)#20条柱子，若breaks是向量，则表示范围的断点值
+
+hist(data,xlab=" ...".main="...",freq=FALSE，prob=TRUE)#纵轴显示概率，col可以控制柱子颜色
+
+#用线条美化
+grid(nx=NA,ny=NULL,lty=1,lwd=1,col="gray")
+#x轴不画
+#y轴画的为缺省
+
+#标识密度函数
+lines(density(data,na.rm = T),col="red",lwd=4)
+```
+
+* 图阵上对角线加直方图
+```{r,eval=FALSE}
+panel.hist=function(x,...)
+{
+    par(usr=c(par("usr")[1:2],0,1.5))
+    hist(x,prob=TRUE,add=TRUE,col="black",border = "white")
+}
+
+plot(iris[,1:4],main="Relationships between characteristics of iris flowers",pch=19,col="blue",cex=0.9,diag.panel=panel.hist)
+```
+
