@@ -259,7 +259,7 @@ plot(rnorm(100))
 
 * 只设置坐标系内的背景颜色
 ```{r,eval=FALSE}
-plot(rnorm(1000),type="n")
+plot(rnorm(1000),type="n")#type="n"表示图内不画，但坐标系有
 x <- par("usr")#需要填充颜色区域的四个角的坐标
 x
 rect(x[1],x[3],x[2],x[4],col="lightgray")# 画一个矩形，前面四个参数为坐标，颜色为青灰色
@@ -293,7 +293,7 @@ title(ylab="Y axis",col.lab="blue")
 * 设置散点样式
     * pch:代表散点的符号
     * cex:代表散点  的大小
-```{r}
+```{r,eval=FALSE}
 rain <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\cityrain.csv",header=TRUE)
 
 plot(rnorm(100),pch=19,cex=2)
@@ -308,7 +308,7 @@ plot(rnorm(100),pch=19,cex=2)
     
 * box()函数:把坐标系用一个框包起来
     
-```{r}
+```{r,eval=FALSE}
 par(oma=c(1,1,1,1))#(oma是外面区域的一个宽度)
 plot(rnorm(100),bty="l")
 box(which="figure")
@@ -317,7 +317,7 @@ box(which="figure")
 * 设置坐标轴刻度
     * 缺省情况下比上限再增大约4%，并且自动计算刻度
     * 可以通过xaxs来改变上述风格
-```{r}
+```{r,eval=FALSE}
 plot(rnorm(100),xaxp=c(0,100,10))#from=0,to=100,by=10
 ```
 
@@ -346,7 +346,7 @@ plot(rnorm(100),xaxp=c(0,100,10))#from=0,to=100,by=10
 #第三周 散点图
 
 * 利用xyplot()对散点分组
-```{r}
+```{r,eval=FALSE}
 library(lattice)
 xyplot(mpg~disp,data=mtcars,groups=cyl,auto.key=list(corner=c(1,1)))
 # 按groups=cyl分组
@@ -355,29 +355,29 @@ xyplot(mpg~disp,data=mtcars,groups=cyl,auto.key=list(corner=c(1,1)))
 
 * 初试ggplot2包画分组图
     * 用颜色分组
-```{r}
+```{r,eval=FALSE}
 library(ggplot2)
 qplot(disp,mpg,data=mtcars,col=as.factor(cyl))
 ```
 
     * 使用散点形状和大小来表示分组
-```{r}
+```{r,eval=FALSE}
 qplot(disp,mpg,data=mtcars,shape=as.factor(cyl))
 ```
 
-```{r}
+```{r,eval=FALSE}
 qplot(disp,mpg,data=mtcars,size=as.factor(cyl))
 ```
 
 
 * 用text()标识点
     * 先画图
-```{r}
+```{r,eval=FALSE}
 plot(mpg~disp,data=mtcars)
 text(258,22,"Hornet")#前面的是坐标
 ```
 
-```{r}
+```{r,eval=FALSE}
 sales <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\citysales.csv",header=TRUE)
 
 plot(sales$ProductA,sales$ProductB,type="n")
@@ -385,7 +385,7 @@ text(sales$ProductA,sales$ProductB,sales$City)
 ```
 
 * 例子：散点图+相关系数
-```{r}
+```{r,eval=FALSE}
 panel.cor <- function(x,y,...)
 {
     par(usr=c(0,1,0,1))#每一幅小图我们定义的坐标值的范围
@@ -398,7 +398,7 @@ pairs(iris[1:4],upper.panel = panel.cor)
 
 
 * 误差条
-```{r}
+```{r,eval=FALSE}
 plot(mpg~disp,data=mtcars)
 
 arrows(x0=mtcars$disp,y0=mtcars$mpg*0.95,x1=mtcars$disp,y1=mtcars$mpg*1.05,angle = 90,code=3,length=0.04,lwd=0.4)
@@ -447,12 +447,12 @@ lines(lowess(cars,f=0.3),col="orange")#f表示取周围多少比例的点来画
 ```
 
 * 三维散点图
-```{r}
+```{r,eval=FALSE}
 library(scatterplot3d)
 scatterplot3d(x=mtcars$wt,y=mtcars$disp,z=mtcars$mpg)
 ```
 
-```{r}
+```{r,eval=FALSE}
 scatterplot3d(x=mtcars$wt,y=mtcars$disp,z=mtcars$mpg,pch=16,highlight.3d=TRUE,angle = 20,xlab="Weight",ylab="Displacement",zlab="Fuel Economy(mpg)",type="h",main="Relations between car specifications")
 #pch:散点形状
 # highligh.3d:随着z值渐变颜色
@@ -462,8 +462,8 @@ scatterplot3d(x=mtcars$wt,y=mtcars$disp,z=mtcars$mpg,pch=16,highlight.3d=TRUE,an
 
 * 高维数据展现专业扩展包：rggobi
 
-* QQ图：验证数据是否整天分布
-```{r}
+* QQ图：验证数据是否正态分布
+```{r,eval=FALSE}
 qqnorm(mtcars$mpg)
 qqline(mtcars$mpg)
 ```
@@ -476,7 +476,7 @@ rug(x)#在下面画竖线，密的地方线多
 ```
 
 * rug()
-```{r}
+```{r,eval=FALSE}
 metals <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\metals.csv",header=TRUE)
 
 plot(Ba~Cu,data = metals,xlim=c(0,100))
@@ -487,7 +487,7 @@ rug(metals$Ba,side=2,col="red",ticksize=0.02)
 ```
 
 * smoothScatter():密度大的地方颜色深
-```{r}
+```{r,eval=FALSE}
 n <- 10000
 x <- matrix(rnorm(n),ncol=2)
 y <- matrix(rnorm(n,mean=3,sd=1.5),ncol=2)
@@ -496,11 +496,14 @@ smoothScatter(x,y)
 
 
 # 第四周 线图与时间序列谱图
-```{r}
-rain <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\cityrain.csv",header=TRUE)
+```{r,eval=FALSE}
+#rain <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\cityrain.csv",header=TRUE)
+rain <- read.csv(file = "/Users/jsysley/Desktop/R/R/01.数据分析R语言全套教程/01.数据分析之R语言初级篇/05.R语言进阶数据展现 14课/资料/Code/Chapter 4/Data Files/cityrain.csv",header=TRUE)
 
 plot(rain$Tokyo,type="b",lwd=2,xaxt="n",ylim=c(0,300),col="black",xlab="Month",ylab="Rainfall(mm)",main="monthly Rainfall in major cities")
-#xaxt="n"表示不画x轴刻度，刻度多少是用xaxp=c(from,to,by),坐标系风格xaxs
+#xaxt="n"表示不画x轴刻度
+#刻度多少是用xaxp=c(from,to,by)
+#坐标系风格xaxs
 #type="b"即both，点线都画
 
 axis(1,at=1:length(rain$Month),labels=rain$Month)
@@ -523,7 +526,7 @@ legend(1,300,legend=c("Tokyo","Berlin","New York","London"),lty=1,lwd=2,pch=21,c
 
 
 * 画底纹格子
-```{r}
+```{r,eval=FALSE}
 plot(rain$Tokyo,type="b",lwd=2,xaxt="n",ylim=c(0,300),col="black",xlab="Month",ylab="Rainfall(mm)",main="monthly Rainfall in major cities")
 #xaxt="n"表示不画x轴刻度，刻度多少是用xaxp=c(from,to,by),坐标系风格xaxs
 #type="b"即both，点线都画
@@ -548,10 +551,11 @@ abline(h=150,col="red",lty=2)
 
 
 * Sparkline
-```{r}
+```{r,eval=FALSE}
 dev.new()
-rain <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\cityrain.csv",header=TRUE)
-
+#rain <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\cityrain.csv",header=TRUE)
+rain <- read.csv(file = "/Users/jsysley/Desktop/R/R/01.数据分析R语言全套教程/01.数据分析之R语言初级篇/05.R语言进阶数据展现 14课/资料/Code/Chapter 4/Data Files/cityrain.csv",header=TRUE)
+dev.new()
 par(mfrow=c(4,1),mar=c(5,7,4,2),omi=c(0.2,2,0.2,2))
 
 for(i in 2:5)
@@ -567,15 +571,16 @@ for(i in 2:5)
 
 
 * 时间序列图
-```{r}
-sales <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\dailysales.csv",header=TRUE)
+```{r,eval=FALSE}
+#sales <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\dailysales.csv",header=TRUE)
+sales <- read.csv(file="/Users/jsysley/Desktop/R/R/01.数据分析R语言全套教程/01.数据分析之R语言初级篇/05.R语言进阶数据展现 14课/资料/Code/Chapter 4/Data Files/dailysales.csv",header=TRUE)
 
 plot(sales$units~as.Date(sales$date,"%d/%m/%y"),type="l",xlab="Date",ylab="Units Sold")
 ```
 
 * 处理时间序列数据的包：zoo
     * 可以把数据转换成时间序列类型的数据
-```{r}
+```{r,eval=FALSE}
 library(zoo)
 plot(zoo(sales$units,as.Date(sales$date,"%d/%m/%y")))
 ```
@@ -615,14 +620,14 @@ legend("top",horiz = T,legend=c("Microsoft","Google","Apple"),col=c("red","blue"
 ```
 
 * 使用quantmod包的功能画图
-```{r}
+```{r,eval=FALSE}
 library(quantmod)
 getSymbols("AAPL",src = "yahoo")
 barChart(AAPL)
 ```
 
 * 蜡烛图
-```{r}
+```{r,eval=FALSE}
 candleChart(AAPL,theme="white")
 ```
 
@@ -630,10 +635,12 @@ candleChart(AAPL,theme="white")
 #第五周 柱形图、点图、饼图、直方图
 
 * 柱形图
-```{r}
+```{r,eval=FALSE}
 library(RColorBrewer)
 
-citysales <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\citysales.csv",header=TRUE)
+#citysales <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\citysales.csv",header=TRUE)
+citysales <- read.csv(file="/Users/jsysley/Desktop/R/R/01.数据分析R语言全套教程/01.数据分析之R语言初级篇/05.R语言进阶数据展现 14课/资料/Code/Chapter 5/Data Files/citysales.csv",header=TRUE)
+
 barplot(as.matrix(citysales[,2:4]),beside=TRUE,legend.text = citysales$City,args.legend = list(bty="n",horiz=TRUE),col=brewer.pal(5,"Set1"),border="white",ylim=c(0,100),ylab="Sales Revenue(1000's of USD)",main="Sales Figures")
 
 #legend.text:图例的文字
@@ -645,10 +652,11 @@ box(bty="l")#一种风格
 
 * 用堆叠效果展示百分比
     * 只有当每条柱子的数据加起来的和是100才能表示出
-```{r}
+```{r,eval=FALSE}
 library(RColorBrewer)
 
-citysales <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\citysales.csv",header=TRUE)
+#citysales <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\citysales.csv",header=TRUE)
+citysales <- read.csv(file="/Users/jsysley/Desktop/R/R/01.数据分析R语言全套教程/01.数据分析之R语言初级篇/05.R语言进阶数据展现 14课/资料/Code/Chapter 5/Data Files/citysales.csv",header=TRUE)
 
 par(mar=c(5,4,4,8),xpd=T)#xpd表示画图的界限
 
@@ -658,11 +666,11 @@ legend("right",legend = citysales$City,bty="n",inset=c(-0.3,0),fill=brewer.pal(5
 ```
 
     * 调整柱形图的宽度u、间隔和颜色
-```{r}
+```{r,eval=FALSE}
 x <- barplot(as.matrix(citysales[,2:4]),beside = TRUE,legend.text = citysales$City,args.legend = list(bty="n",horiz=T,x=40,y=100),col=c("#E5562A","#491A5B","#8C6CA8","#BD1B8A"),border=FALSE,space=c(0,5),ylim=c(0,100),ylab="Sales Revenue(1000's of USD)",main="Sales Figures")
 
 #柱子颜色 col
-#间距：space=c(0,5),表示每组柱子间距离是0，组间距离5
+#间距：space=c(0,5),表示每组内柱子间距离是0，组间距离5
 
 #柱子顶端显示数据
 y <- as.matrix(citysales[,2:4])
@@ -670,8 +678,9 @@ text(x,y+2,labels = as.character(y))
 ```
 
     * 在柱子内标注
-```{r}
-rain <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\cityrain.csv",header=TRUE)
+```{r,eval=FALSE}
+#rain <- read.csv(file="/Users/jsysley/Desktop/R/R/01.数据分析R语言全套教程/01.数据分析之R语言初级篇/05.R语言进阶数据展现 14课/资料/Code/Chapter 5/Data Files/cityrain.csv",header=TRUE)
+rain <- read.csv(file="/Users/jsysley/Desktop/R/R/01.数据分析R语言全套教程/01.数据分析之R语言初级篇/05.R语言进阶数据展现 14课/资料/Code/Chapter 1/Data Files/cityrain",header=TRUE)
 
 y <- barplot(as.matrix(rain[1,-1]),horiz = T,col="white",yaxt="n",main = "Rainfall in January",xlab="Rainfall(mm)")#不画y轴
 
@@ -681,8 +690,9 @@ text(x,y,colnames(rain[-1]))
 ```
 
     * 标注误差
-```{r}
-citysales <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\citysales.csv",header=TRUE)
+```{r,eval=FALSE}
+#citysales <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\citysales.csv",header=TRUE)
+citysales <- read.csv(file="/Users/jsysley/Desktop/R/R/01.数据分析R语言全套教程/01.数据分析之R语言初级篇/05.R语言进阶数据展现 14课/资料/Code/Chapter 5/Data Files/citysales.csv",header=TRUE)
 
 sales <- t(as.matrix(citysales[,-1]))
 
@@ -695,9 +705,10 @@ arrows(x0=x,y0=sales*0.95,x1=x,y1=sales*1.05,angle=90,code=3,length=0.04,lwd=0.4
 ```
 
 * 点图：包reshape
-```{r}
+```{r,eval=FALSE}
 library(reshape)
-citysales <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\citysales.csv",header=TRUE)
+#citysales <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\citysales.csv",header=TRUE)
+citysales <- read.csv(file="/Users/jsysley/Desktop/R/R/01.数据分析R语言全套教程/01.数据分析之R语言初级篇/05.R语言进阶数据展现 14课/资料/Code/Chapter 5/Data Files/citysales.csv",header=TRUE)
 
 sales <- melt(citysales)
 sales$color[sales[,2]=="ProductA"] <- "red"
@@ -708,8 +719,9 @@ dotchart(sales[,3],labels=sales$City,groups = sales[,2],col=sales$color,pch = 19
 ```
 
 * 饼图
-```{r}
-citysales <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\citysales.csv",header=TRUE)
+```{r,eval=FALSE}
+#citysales <- read.csv(file="E:\\数据分析\\R\\R\\01.数据分析R语言全套教程\\01.数据分析之R语言初级篇\\05.R语言进阶数据展现 14课\\资料\\资料\\Code\\Chapter 1\\Data Files\\citysales.csv",header=TRUE)
+citysales <- read.csv(file="/Users/jsysley/Desktop/R/R/01.数据分析R语言全套教程/01.数据分析之R语言初级篇/05.R语言进阶数据展现 14课/资料/Code/Chapter 5/Data Files/citysales.csv",header=TRUE)
 
 pie(citysales[,2],labels=citysales[,1],clockwise = TRUE,radius=1,col=brewer.pal(5,"Set1"),border="white",main="Percentage Share of Internet Browser usage")
 
@@ -719,7 +731,7 @@ pie(citysales[,2],labels=citysales[,1],clockwise = TRUE,radius=1,col=brewer.pal(
 
 ```
 
-```{r}
+```{r,eval=FALSE}
 #在饼图上标注百分比
 pielabels <- sprintf("%s=%3.1f%s",citysales[,1],100*citysales[,2]/sum(citysales[,2]),"%")
 
