@@ -14,7 +14,7 @@ output: html_document
 ufo <- read.delim(file = "/Users/jsysley/Documents/R/ML_for_Hackers-master/01-Introduction/data/ufo/ufo_awesome.tsv",sep="\t",stringsAsFactors = FALSE,header = FALSE,na.strings = "")
 str(ufo)
 View(ufo)
-head
+head(ufo)
 #给每一列有意义的标签
 names(ufo) <- c("DateOccurred","DateReported","Location","ShortDescription","Duration","LongDescription")
 
@@ -26,8 +26,8 @@ ufo$DateOccurred <- as.Date(ufo$DateOccurred,format = "%Y%m%d")
 * 转换日期字符串及处理畸形数据
 正确的字符串一定是8个字符，即“YYYYMMDD”这样格式的，因此有问题的数据行，只需要找出长度在8个字符串以上的。
 ```{r,eval=FALSE}
-bad <- ufo[which(nchar(ufo$DateOccurred)!=8 | nchar(ufo$DateReported)!=8)]
-length(bad)
+bad <- ufo[which(nchar(ufo$DateOccurred)!=8 | nchar(ufo$DateReported)!=8),]
+nrow(bad)
 head(bad)
 
 #挑选
@@ -65,6 +65,7 @@ get.location <- function(l)
 }
 
 city.state <- lapply(ufo.good$Location,get.location)#其数据是一个列表，每列是每个样本的拆分单词组成
+head(city.state)
 ```
     
     * 下面要把城市和州的信息作为不同的两列加入到数据框中，为此把list转换成一个两列的矩阵，其中city（城市）作为其首列
@@ -142,4 +143,187 @@ states.dates <- data.frame(do.call(rbind,states.dates),stringsAsFactors = FALSE)
 all.sightings <- merge(states.dates,sightings.counts,by.x = c("s","date.strings"),by.y = c("USState","YearMonth"),all = TRUE)
 head(all.sightings)
 ```
+    * 数据聚合最后一步简单的修补
+        * 把all.sightings数据框列名改成有意义的名称
+        * 把NA值改为0
+        * 把YearMonth和State列的数据转换为合适的类型。用前面的data.range（包括所有时间）向量和rep函数创建一个和data.range一抹一样的向量，并把年-月字符串转换为Date对象
+        * 州名缩写用分类变量表示，转换为factor
+```{r,eval=FALSE}
+names(all.sightings) <- c("State","YearMonth","sightings")
 
+all.sightings$sightings[is.na(all.sightings$sightings)] <- 0
+
+all.sightings$YearMonth <- as.Date(rep(date.range,length(us.states)))
+#简单来说是直接用新向量覆盖
+
+all.sightings$State <- as.factor(toupper(all.sightings$State))
+
+```
+
+* 分析数据
+    * 本利仅介绍R编程的核心范例，仅可视化分析.
+    * 以下操作暂时不可行
+    
+    
+```{r,eval=FALSE}
+library(ggplot2)
+state.plot <- ggplot(all.sightings, aes(x = YearMonth,y = Sightings)) +
+  geom_line(aes(color = "darkblue")) +
+  facet_wrap(~State, nrow = 10, ncol = 5) + 
+  theme_bw() + 
+  scale_color_manual(values = c("darkblue" = "darkblue"), legend=FALSE) +
+  scale_x_date(breaks = "10 years") +
+  xlab("Time")
+  ylab("Number of Sightings") +
+  opts(title="Number of UFO sightings by Month-Year and U.S. State (1990-2010)")
+```
+
+
+# 第2章 数据分析
+* 数据
+    * 均假设已经是一张表的形式
+    * 数据验证的两种方法：
+        1. 交叉验证：用另一批数据来测试这个模型
+        2. 假设检验：利用概率论来测试你在原始数据集上发现的额模式是否是巧合
+
+* 数据处理
+    * 将每列摘要成一个数字
+    * 将一列数据画成图
+    * 将两列数据变成一个数字：相关性
+    * 将多列数据变成少列数据：降维
+    
+* 推断数据类型
+    * is.numeric
+    * is.character
+    * is.factor
+    
+* 推断数据含义
+
+* 数值摘要表
+    * 最好的方法之一就是计算所有列的数值摘要：summary()
+    
+* 均值、中位数、众数
+    * 均值：mean(x)
+```{r,eval=FALSE}
+my.mean <- function(x)
+{
+  return(sum(x) / length(x))
+}
+```
+
+    * 中位数：median(x)
+```{r,eval=FALSE}
+my.median <- function(x)
+{
+  sorted.x <- sort(x)
+  if (length(x) %% 2 == 0)
+  {
+    indices <- c(length(x) / 2, length(x) / 2 + 1)
+    return(mean(sorted.x[indices]))
+  }
+  else
+  {
+    index <- ceiling(length(x) / 2)
+    return(sorted.x[index])
+  }
+}
+```
+
+* 分位数
+    * 最大值：max(x)
+    * 最小值：min(x)
+    * 范围：range()
+    * 5数：quantile(x),quantile(x,probs=seq(0,1,by=0.2))#产生各个百分位数，单个数时产生单个百分位数
+        * 产生一个覆盖95%的数据的范围：
+```{r,,eval=FALSE}
+c(quantile(x,probs=0.025),quantile(x,probs=0.975)
+```
+
+* 方差与标准差
+    * 方差：var()
+```{r,eval=FALSE}
+my.var <- function(x)
+{
+  m <- mean(x)
+  return(sum((x - m) ^ 2) / length(x))
+}
+```
+    * 看看数据散步程度：
+```{r,eval=FALSE}
+c(mean(x) - var(x), mean(x) + var(x))
+
+range(x)
+```
+
+    * 标准差：sd(x)
+```{r,eval=FALSE}
+my.sd <- function(x)
+{
+  return(sqrt(my.var(x)))
+}
+```
+    * 看看数据范围：
+```{r,eval=FALSE}
+c(mean(heights) - sd(heights), mean(heights) + sd(heights))
+```
+
+* 可视化分析
+```{r,eval=FALSE}
+library(ggplot2)
+library(labeling)
+heights.weights <- read.csv(file='/Users/jsysley/Documents/R/ML_for_Hackers-master/02-Exploration/data/01_heights_weights_genders.csv',header=TRUE,sep=',')
+ggplot(heights.weights, aes(x = Height)) +geom_histogram(binwidth = 1)
+```
+
+    * 发现数据呈钟形。大部分数据处于中间，与均值和中位数接近，但这只是因所选的直方图类型造成的假象。检验是否存在假象的方法之一就是尝试不同的区间宽度。直方图中，区间宽度是你强加给数据的一个外部结构，但他同事揭示了数据的内部结构。下面画区间宽度5英寸的直方图。
+```{r,eval=FALSE}
+ggplot(heights.weights, aes(x = Height)) +geom_histogram(binwidth = 5)
+```
+    * 当采用一个较大的区间宽度时，数据的很多结构不见了，虽然还有顶峰，但之前的 对称性已经几乎不在了，叫做过平滑。与之相反的问题是欠平滑。
+```{r,eval=FALSE}
+ggplot(heights.weights, aes(x = Height)) +geom_histogram(binwidth = 0.01)
+```
+    * 选择区间宽度值：倾向于选择一种和直方图类似的方法来可视化，即核密度估计（Kernel Density Estimate，KDE）或者叫密度曲线图。
+```{r,eval=FALSE}
+ggplot(heights.weights, aes(x = Height)) +geom_density()
+```
+    * 你觉得数据结构有缺失时，可以根据任意一个定性变量将曲线分开
+```{r,eval=FALSE}
+ggplot(heights.weights, aes(x = Height, fill = Gender)) +geom_density()
+```
+    * 发现机构，正态分布，进一步观察，把之前的密度曲线分片
+```{r,eval=FALSE}
+ggplot(heights.weights, aes(x = Weight, fill = Gender)) +geom_density()
+
+ggplot(heights.weights, aes(x = Weight, fill = Gender)) + geom_density() + facet_grid(Gender ~ .)
+```
+
+
+* 列相关可视化
+    * 绘制散点图
+```{r,eval=FALSE}
+ggplot(heights.weights, aes(x = Height, y = Weight)) +geom_point()
+```
+    * 用ggplot2中的平滑方法把所看到的线性模式描绘出来。ggplot_smooth函数可以预测，曲线周围的阴影区域就是预测值
+```{r,eval=FALSE}
+ggplot(heights.weights, aes(x = Height, y = Weight)) +geom_point() + geom_smooth()
+
+ggplot(heights.weights[1:20, ], aes(x = Height, y = Weight)) +geom_point() +
+geom_smooth()
+
+ggplot(heights.weights[1:200, ], aes(x = Height, y = Weight)) +geom_point() + geom_smooth()
+
+ggplot(heights.weights[1:2000, ], aes(x = Height, y = Weight)) +geom_point() + geom_smooth()
+
+```
+    * 简单的回归
+```{r,eval=FALSE}
+heights.weights <- transform(heights.weights, Male = ifelse(Gender == 'Male', 1, 0))
+
+logit.model <- glm(Male ~ Weight + Height,data = heights.weights,family = binomial(link = 'logit'))
+
+ggplot(heights.weights, aes(x = Height, y = Weight)) +geom_point(aes(color = Gender, alpha = 0.25)) +scale_alpha(guide = "none") + scale_color_manual(values = c("Male" = "black", "Female" = "gray")) +theme_bw() +stat_abline(intercept = -coef(logit.model)[1] / coef(logit.model)[2],slope = - coef(logit.model)[3] / coef(logit.model)[2],geom = 'abline',color = 'black')
+```
+
+
+# 第3章 分类：垃圾过滤
