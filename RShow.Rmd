@@ -716,7 +716,7 @@ sales$color[sales[,2]=="ProductB"] <- "blue"
 sales$color[sales[,2]=="ProductC"] <- "violet"
 
 dotchart(sales[,3],labels=sales$City,groups = sales[,2],col=sales$color,pch = 19,main="Sales Figures",xlab="Sales Revenue(1000's of USD)")
-```
+ ```
 
 * 饼图
 ```{r,eval=FALSE}
@@ -769,5 +769,251 @@ panel.hist=function(x,...)
 }
 
 plot(iris[,1:4],main="Relationships between characteristics of iris flowers",pch=19,col="blue",cex=0.9,diag.panel=panel.hist)
+```
+
+
+# 第六周 箱线图、热力图
+
+* 箱线图
+```{r,eval=FALSE}
+air<-read.csv(file="/Users/jsysley/Desktop/R/R/01.数据分析R语言全套教程/01.数据分析之R语言初级篇/05.R语言进阶数据展现 14课/资料/Code/Chapter 7/Data Files/airpollution.csv",header = TRUE)
+
+boxplot(air,las=1)
+#las=1 坐标轴刻度风格，改变横坐标刻度文字的方向
+
+```
+
+* 收窄箱体宽度
+```{r,eval=FALSE}
+boxplot(air,boxwex=0.2,las=1)
+#boxwex:表示箱体宽度
+```
+
+* 制定箱体宽度
+```{r,eval=FALSE}
+boxplot(air,width = c(1,2))
+#width：指定每个箱体宽度，一般来说有几个箱体就有几个值
+```
+
+* 分组
+```{r,eval=FALSE}
+metals<-read.csv(file="/Users/jsysley/Desktop/R/R/01.数据分析R语言全套教程/01.数据分析之R语言初级篇/05.R语言进阶数据展现 14课/资料/Code/Chapter 7/Data Files/metals.csv",header = TRUE)
+
+boxplot(Cu~Source,data=metals,
+		main="Summary of Copper (Cu) concentrations by Site")
+#cu纵轴，source为横轴，即根据source来分组
+
+boxplot(Cu~Source*Expt,data=metals,
+		main="Summary of Copper (Cu) concentrations by Site")
+#cu纵轴，source*Expt为横轴，即根据source和Expt的组合来分组，这里expt是假设，没有这个变量
+```
+
+* 观测值数量决定箱体宽度
+```{r,eval=FALSE}
+boxplot(Cu ~ Source, data = metals,
+        varwidth=TRUE,
+        main="Summary of Copper concentrations by Site")
+#varwidth=TRUE:观测值多的箱子会宽，根据观测值数量调整
+```
+
+* 带notch的箱型图
+```{r,eval=FALSE}
+boxplot(Cu ~ Source, data = metals,
+        varwidth=TRUE,
+        notch=TRUE,	
+        main="Summary of Copper concentrations by Site")
+# notch=TRUE：强调中位线所在的位置
+```
+
+* 排除离群值
+```{r,eval=FALSE}
+boxplot(metals[,-1], 
+	outline=FALSE,
+	main="Summary of metal concentrations by Site \n (without outliers)")
+# outline=FALSE:不画离群值
+```
+
+* 水平放置箱子
+```{r,eval=FALSE}
+boxplot(metals[,-1], 
+	horizontal=TRUE,
+	las=1,
+	main="Summary of metal concentrations by Site")
+#horizontal=TRUE:箱子水平放置
+```
+
+* 改变箱型风格
+```{r,eval=FALSE}
+boxplot(metals[,-1],
+        border = "white",
+        col = "black",
+        boxwex = 0.3,
+        medlwd=1, #中位线的线宽
+        whiskcol="black", #触须的颜色
+        staplecol="black", # 上下两条横线的颜色
+        outcol="red",  #离群点的颜色
+        cex=0.3, #离群点的大小
+        outpch=19, #离群点的形状
+        main="Summary of metal concentrations by Site")
+
+grid(nx=NA,ny=NULL,col="gray",lty="dashed") #h画网线
+# nx=NA:没有垂直x轴的线
+# ny=NULL:有垂直y轴的横线，间距R语言自动计算，不满意可以直接给向量自定
+# lty="dashed":表示虚线
+```
+
+* 延长虚线，链接到离群值，给出真正最大值最小值
+```{r,eval=FALSE}
+boxplot(metals[,-1],
+	range=0,
+        border = "white",
+        col = "black",
+        boxwex = 0.3,
+        medlwd=1,
+        whiskcol="black",
+        staplecol="black",
+        outcol="red",cex=0.3,outpch=19,
+        main="Summary of metal concentrations by Site \n (range=0) ")
+
+# 设置range=0即可
+```
+
+* 显示观测数量
+```{r,eval=FALSE}
+b<-boxplot(metals[,-1],
+	  xaxt="n",
+        border = "white",
+        col = "black",
+        boxwex = 0.3,
+        medlwd=1,
+        whiskcol="black",
+        staplecol="black",
+        outcol="red",cex=0.3,outpch=19,
+        main="Summary of metal concentrations by Site")
+
+axis(side=1,at=1:length(b$names),
+     labels=paste(b$names,"\n(n=",b$n,")",sep=""),mgp=c(3,2,0))
+
+# side=1:在x轴下方
+# at：画刻度
+# labels：刻度上标注的内容，\n换行，
+# mgp：坐标系刻度或坐标轴名字与画板边缘的距离
+
+```
+
+* 使用gplot包
+```{r,eval=FALSE}
+library(gplots)
+
+boxplot.n(metals[,-1],
+        border = "white",
+        col = "black", #箱线图主体的颜色
+        boxwex = 0.3, #箱线图的大小
+        medlwd=1,  #中位线的宽度
+        whiskcol="black",  #触须的颜色
+        staplecol="black", #顶上的横线的颜色
+        outcol="red",  #离群点的颜色
+        cex=0.3, #离群点的大小
+        outpch=19, #离群点的形状
+        main="Summary of metal concentrations by Site")
+
+```
+
+* 分割数据
+```{r,eval=FALSE}
+cuts<-c(0,40,80)  #分区间，[-∞,0],[0,40],[40,80],[80,+∞]
+Y<-split(x=metals$Cu, f=findInterval(metals$Cu, cuts))
+#findInterval(metals$Cu, cuts)
+    # 数据metals$Cu，根据区间点cuts，返回因子，依次区间对应因子0，1，2，3。返回向量
+#Y为列表，根据因子分成4个原色
+
+boxplot(Y,
+        xaxt="n",            
+        border = "white",
+        col = "black",
+        boxwex = 0.3,
+        medlwd=1,           
+	whiskcol="black",
+        staplecol="black",
+        outcol="red",cex=0.3,outpch=19,
+        main="Summary of Copper concentrations",
+	xlab="Concentration ranges",
+	las=1)
+
+axis(1,at=1:length(clabels),
+     labels=c("Below 0","0 to 40","40 to 80","Above 80"),      
+     lwd=0,
+     lwd.ticks=1, #值刻度线的长度
+     col="gray")
+```
+
+* 子集
+```{r,eval=FALSE}
+boxplot(Cu~Source,data = metals,subset = Cu>40)
+```
+
+* 热力图
+```{r,eval=FALSE}
+sales <- read.csv(file = "/Users/jsysley/Desktop/R/R/01.数据分析R语言全套教程/01.数据分析之R语言初级篇/05.R语言进阶数据展现 14课/资料/Code/Chapter 8/Data Files/sales.csv",header=TRUE)
+
+rownames(sales)<-sales[,1]#把行号改为月份
+sales<-sales[,-1]#删除月份的列
+
+data_matrix<-data.matrix(sales)#转换为matrix
+
+library(RColorBrewer)
+pal=brewer.pal(7,"YlOrRd")
+
+breaks<-seq(3000,12000,1500)#产生向量 from=3000，to=12000，by=1500
+
+#下面画图
+layout(matrix(data=c(1,2), nrow=1, ncol=2), widths=c(8,1), heights=c(1,1))
+#将画板分割成两个区域，1号区域画热力图，2号区域画图例
+    #看效果技巧：xx <- layout(matrix(data=c(1,2), nrow=1, ncol=2), widths=c(8,1), heights=c(1,1))
+    #            layout.show(xx)
+
+#Set margins for the heatmap
+par(mar = c(5,10,4,2),oma=c(0.2,0.2,0.2,0.2),mex=0.5)           
+#设定画图边缘
+
+image(x=1:nrow(data_matrix), #画行
+      y=1:ncol(data_matrix), # 画列	
+      z=data_matrix, #z指定画每个格子的颜色，用data_matrix矩阵的值作为每个格子的颜色值
+      axes=FALSE, #不画坐标轴
+      xlab="Month",
+      ylab="",
+      col=pal[1:(length(breaks)-1)], #？ 
+      breaks=breaks,
+      main="Sales Heat Map")
+
+axis(1,at=1:nrow(data_matrix),labels=rownames(data_matrix), col="white",las=1)
+#画横坐标轴，las表示lebels文字方向
+           
+axis(2,at=1:ncol(data_matrix),labels=colnames(data_matrix), col="white",las=1)
+# 画纵坐标轴
+
+abline(h=c(1:ncol(data_matrix))+0.5, #水平线 
+       v=c(1:nrow(data_matrix))+0.5, #垂直线
+       col="white",lwd=2,xpd=FALSE)
+#画热力图中间的一些线
+
+breaks2<-breaks[-length(breaks)]#一个向量，去掉最后的12000
+
+#下面画图例
+par(mar = c(5,1,4,7)) 
+#设置边缘
+
+image(x=1, y=0:length(breaks2),z=t(matrix(breaks2))*1.001,
+      col=pal[1:length(breaks)-1],
+      axes=FALSE,
+      breaks=breaks,
+      xlab="", ylab="",
+      xaxt="n")
+
+axis(4,at=0:(length(breaks2)-1), labels=breaks2, col="white", las=1)
+#在右边画，表数字
+
+abline(h=c(1:length(breaks2)),col="white",lwd=2,xpd=F)
+#画白线
 ```
 
