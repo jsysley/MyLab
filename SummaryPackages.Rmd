@@ -163,3 +163,37 @@ nnet包
     
 ##glmnet包进行LASSO变量选择
 glmnet()
+
+##lars包最小角回归变量选择，
+data=as.matrix(data)
+laa <- lars(x=,y=)
+laa#这里标出几号变量在第几步选择
+plot(laa)
+summary(laa)
+
+
+##岭回归：MASS包
+lm.ridge(y~.,data,seq(0,0.1,0.001))#后面的seq是lambda选择范围
+select(lm.ridge(y~.,data,seq(0,0.1,0.001)))#可以自动选择变量
+
+##对日期和时间进行操作处理
+* lubridate
+* chron
+
+##相关系数矩阵可视化分析
+* GGally包，ggpairs(data)
+
+##交叉验证
+* boot包的cv.glm()
+    * 仅适用于glm模型
+    
+##弹性网络
+* 正则化（regularization）:glmnet包的glmnet()
+* 压缩（shrinkage）:arm包的bayesglm()
+
+* glmnet包的glmnet()
+    * lambda控制压缩的程度。glmnet()默认的在100个不同的lambda值上进行路径拟合。最优路径的选择依赖于使用者，交叉验证往往是一个不错的方法。glmnet包有一个函数cv.glmnet()可以自动的计算交叉验证的值。 
+        * coef(object,lambda="lambda.1se")查看选择变量结果
+        * lasso回归模型拟合用lars包
+
+* useful包的build.x(y~x1+x2...,contrasts=FALSE)#FALSE时不编码成示性变量，仅普通的0-1编码，build.y()函数用法同上。
