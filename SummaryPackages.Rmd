@@ -22,6 +22,11 @@ fBasics包的basicStats()
     * K-均值聚类（K-Means）： kmeans(data,k,iter.max)
         * 对k选最优值，循环，目标函数聚类优度，（聚类优度）组间差/总离差 最大
         * data的类别变量要去掉
+        * 可视化：useful包的plot.kmeans(object,data)，plot.kmeans(object,data,class="列名")，class为真正的分类
+        * 如何选择类数：
+            * Hartigan准则，useful包的FitKMeans()，如果分k类的值大于10，则选择k+1类
+            * Gap统计值，通过对数据bootstrap抽样来比较聚类的内差异性，cluster包的clusGap()计算（仅仅适合于数值型数据），它需要一点时间，因为需要大量模拟
+            
         
     * 系谱聚类（HC）: hclust(d)、cutree(tree,k)(k为类别)、rect.hclust(tree,k)(在系谱图圈出来)
         * 对k选最优值，
@@ -197,3 +202,16 @@ select(lm.ridge(y~.,data,seq(0,0.1,0.001)))#可以自动选择变量
         * lasso回归模型拟合用lars包
 
 * useful包的build.x(y~x1+x2...,contrasts=FALSE)#FALSE时不编码成示性变量，仅普通的0-1编码，build.y()函数用法同上。
+
+## 广义相加模型（GAMs）
+* 包mgcv，函数gam()
+
+##时间序列
+* 将数据转化为时间序列：ts(data,start=min(year),end=max(year))#data仅为一列数据，与时间对应
+* 查看其自相关系数（ACF）和偏自相关系数（PACF），R中函数acf(),pacf()
+* 寻找差分包：forecast,函数ndiffs(data)#data为一列时间序列数据
+* 时间序列：ar(),ma(),arima(),
+    * forecast包的auto.arima(data)有能自动确定模型结构的功能
+* 多元时间序列：vars包。
+    * 拟合多元时间序列常用模型向量自回归模型VAR，函数ar()虽然可以拟合，但常会在AR阶数过高时出现奇异矩阵，所以最好用vars包的var()函数。为了检验数据是否要差分运算，用forecast包的ndiffs()确定差分次数
+* 广义自回归异方差模型（GARCH），包rugarch
