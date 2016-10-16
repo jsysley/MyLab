@@ -1072,7 +1072,7 @@ require(glmnet)
 set.seed(1863561)
 #自动计算交叉验算的值
 acsCV1 <- cv.glmnet(x=acsX,y=acsY,family="binomial",nfold=5)
-#cv.glmnet函数返回的最有用的信息是交叉验证和使交叉验证误差达到最小的lambda值。此外还返回使得交叉验证误差在一个标准误差范围内的最大的lambda值。
+#cv.glmnet函数返回的最有用的信息是交叉验证和使交叉验证误差达到最小的lambda值。此外还返回使得交叉验证误差在一个标准误差范围内的最大的lambda值。默认alpha=1，lasso计算。
 
 acsCV1$lambda.min
 
@@ -1179,7 +1179,10 @@ alphaMelt$Type <- str_extract(string = alphaMelt$Measure,pattern = "(min|1se)")
 alphaMelt$Measure <- str_replace(string = alphaMelt$Measure,pattern = "\\.(min|1se)",replacement = "")
 alphaCast <- dcast(alphaMelt,Alpha+Type~Measure,value.var = "Value")
 
-ggplot(alphaCast,aes(x=Alpha,y=error))+geom_line(aes(group=Type))+facet_wrap(~Type,scales = "free_y",ncol=1)+geom_point(aes(size=lambda))
+ggplot(alphaCast,aes(x=Alpha,y=error))+
+    geom_line(aes(group=Type))+
+    facet_wrap(~Type,scales = "free_y",ncol=1)+
+    geom_point(aes(size=lambda))
 #两图中，交叉验证误差越小越好，上图alpha最佳值为0.75，下图alpha最佳值为0.95
 #选定alpha=0.75,重新拟合
 set.seed(5127151)
@@ -1187,7 +1190,7 @@ acsCV3 <- cv.glmnet(x=acsX,y=acsY,family="binomial",nfold=5,alpha=alphaInfo$Alph
 plot(acsCV3)
 abline(v=log(c(acsCV3$lambda.min,acsCV3$lambda.1se)),lty=2)
 #下面画系数图
-theCoef <- as.matrix(coef(acsCV3,s="lambda.1se"))#为加入的变量系数为0
+theCoef <- as.matrix(coef(acsCV3,s="lambda.1se"))#未加入的变量系数为0
 coefDF <- data.frame(Value=theCoef,Coefficient=rownames(theCoef))
 coefDF <- coefDF[nonzeroCoef(coef(acsCV3,s="lambda.1se")),]#拿出非0的系数
 
