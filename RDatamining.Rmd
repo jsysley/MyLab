@@ -1,0 +1,659 @@
+---
+title: "RDatamining"
+author: "jsysley"
+date: "2016年10月17日"
+output: html_document
+---
+
+#第四章 决策树与随机森林
+
+##4.1 使用party包构建决策树
+```{r,eval=FALSE}
+#使用数据集irsi
+str(iris)
+set.seed(1234) 
+#分离训练集和验证集
+ind <- sample(2, nrow(iris), replace=TRUE, prob=c(0.7, 0.3))
+trainData <- iris[ind==1,]
+testData <- iris[ind==2,]
+#构建模型
+library(party)
+myFormula <- Species ~ Sepal.Length + Sepal.Width + Petal.Length + Petal.Width
+iris_ctree <- ctree(myFormula, data=trainData)
+# 检验训练集的预测
+table(predict(iris_ctree), trainData$Species)
+sum(predict(iris_ctree)==trainData$Species)/nrow(trainData)#准确率
+#查看拟合的决策树
+print(iris_ctree)
+#画出来
+plot(iris_ctree)
+plot(iris_ctree, type="simple")#向量分别表示属于三个类的数据比例
+#测试集上
+testPred <- predict(iris_ctree, newdata = testData)
+table(testPred, testData$Species)
+sum(predict(iris_ctree, newdata = testData)==testData$Species)/nrow(testData)#准确率
+```
+* ctree()的目前版本不能很好地的处理缺失值，因此缺失值有时会划分到左子树中，有时划分到右子树中。
+* 如果训练集中的一个变量在使用函数ctree()构建决策树后被剔除，那么在对测试集进行预测时也必须包含该变量，否则predict()会报错。
+* 如果测试集与训练集的分类变量水平不同，对测试集的预测也会失败。
+    * 解决办法：使用训练集构建了一颗决策树后，再用第一颗决策树中 包含的所有变量重新用ctree()建立一颗新的决策树，并根据测试集中分类变量的水平值显示的设置训练数据。
+    
+##4.2 使用rpart包构建决策树
+```{r,eval=FALSE}
+data("bodyfat", package = "TH.data")
+dim(bodyfat)
+attributes(bodyfat)
+#分离训练集与测试集
+set.seed(1234) 
+ind <- sample(2, nrow(bodyfat), replace=TRUE, prob=c(0.7, 0.3))
+bodyfat.train <- bodyfat[ind==1,]
+bodyfat.test <- bodyfat[ind==2,]
+#建立模型
+library(rpart)
+myFormula <- DEXfat ~ age + waistcirc + hipcirc + elbowbreadth + kneebreadth
+bodyfat_rpart <- rpart(myFormula, data = bodyfat.train, 
+                       control = rpart.control(minsplit = 10))#分支包含最小样本数minsplit
+attributes(bodyfat_rpart)
+#查看cp值，错误率
+print(bodyfat_rpart$cptable)
+print(bodyfat_rpart)
+
+library(rpart.plot)
+rpart.plot(bodyfat_rpart)
+printcp(bodyfat_rpart)#导出回归树cp表格，各节点的CP值，节点序号nsplit，错误率relerror，交互验证错误率xerror等被列出
+text(bodyfat_rpart, use.n=T)#坏了
+#选择具有最小预测误差的决策树
+opt <- which.min(bodyfat_rpart$cptable[,"xerror"])
+cp <- bodyfat_rpart$cptable[opt, "CP"]
+#剪枝，把对应cp值放入
+bodyfat_prune <- prune(bodyfat_rpart, cp = cp)
+print(bodyfat_prune)
+rpart.plot(bodyfat_prune)
+text(bodyfat_prune, use.n=T)#坏了
+
+#在测试集上，将预测结果与真实结果对比
+DEXfat_pred <- predict(bodyfat_prune, newdata=bodyfat.test)
+xlim <- range(bodyfat$DEXfat)
+plot(DEXfat_pred ~ DEXfat, data=bodyfat.test, xlab="Observed", 
+     ylab="Predicted", ylim=xlim, xlim=xlim)
+abline(a=0, b=1)
+
+```
+
+##4.2 随机森林
+* randomForest()存在两个限制：
+    * 第一个限制是该函数不能处理带有缺失值的数据
+    * 第二个限制是分类属性的水平划分数量的最大值为32，水平划分大于32的分类属性需要在调用randomForest()前进行转换
+* 另一种建立随机森林的方法是party包的cforest()函数
+    * 该函数没有限定分类属性的水平划分数
+
+```{r,eval=FALSE}
+#iris数据集，分离训练集与测试集
+ind <- sample(2, nrow(iris), replace=TRUE, prob=c(0.7, 0.3))
+trainData <- iris[ind==1,]
+testData <- iris[ind==2,]
+
+#建立模型
+library(randomForest)
+rf <- randomForest(Species ~ ., data=trainData, ntree=100, proximity=TRUE)
+table(predict(rf), trainData$Species)
+sum(predict(rf)==trainData$Species)/sum(nrow(trainData))#计算准确率
+print(rf)
+attributes(rf)
+
+#根据生成的随机森林中不同的树来绘制误差率
+plot(rf)
+
+#变量重要性可通过importance()和varImpPlot()获得
+importance(rf)
+varImpPlot(rf)
+
+#查看在测试集上的表现
+irisPred <- predict(rf, newdata=testData)
+table(irisPred, testData$Species)
+sum(irisPred==testData$Species)/sum(nrow(testData))#计算准确率
+plot(margin(rf, testData$Species))#数据点的边距为正确归类的比例减去被归到其他类别的最大比例。一般来说，边距为正数说明该数据点划分正确。
+```
+
+#第五章 回归分析
+```{r,eval=FALSE}
+year <- rep(2008:2010, each=4)#自变量
+quarter <- rep(1:4, 3)#自变量
+cpi <- c(162.2, 164.6, 166.5, 166.0, 
+         166.2, 167.0, 168.6, 169.5, 
+         171.0, 172.1, 173.3, 174.0)#因变量
+plot(cpi, xaxt="n", ylab="CPI", xlab="")#因变量散点图
+# draw x-axis
+axis(1, labels=paste(year,quarter,sep="Q"), at=1:12, las=3)
+
+#分别查看相关系数
+cor(year,cpi)
+cor(quarter,cpi)
+
+#拟合模型
+fit <- lm(cpi ~ year + quarter)
+summary(fit)
+
+predict(fit)
+#查看拟合模型的内容
+attributes(fit)
+fit$coefficients#获取系数
+
+#观测值与拟合结果的残差
+residuals(fit)
+
+layout(matrix(c(1,2,3,4),2,2)) # 4 graphs per page 
+plot(fit)#四幅图
+#拟合模型的3D图像
+library(scatterplot3d)
+s3d <- scatterplot3d(year, quarter, cpi, highlight.3d=T, type="h", lab=c(2,3))
+s3d$plane3d(fit)
+
+#新的值预测
+data2011 <- data.frame(year=2011, quarter=1:4)
+cpi2011 <- predict(fit, newdata=data2011)
+style <- c(rep(1,12), rep(2,4))
+plot(c(cpi, cpi2011), xaxt="n", ylab="CPI", xlab="", pch=style, col=style)
+axis(1, at=1:16, las=3,
+     labels=c(paste(year,quarter,sep="Q"), "2011Q1", "2011Q2", "2011Q3", "2011Q4"))
+
+```
+
+##5.2 逻辑回归
+glm()，且设置参数为binomial(link="logit")
+
+##5.3 广义线性回归
+
+```{r,eval=FALSE}
+data("bodyfat", package="TH.data")
+myFormula <- DEXfat ~ age + waistcirc + hipcirc + elbowbreadth + kneebreadth
+bodyfat.glm <- glm(myFormula, family = gaussian("log"), data = bodyfat)
+summary(bodyfat.glm)
+pred <- predict(bodyfat.glm, type="response")
+
+plot(bodyfat$DEXfat, pred, xlab="Observed Values", ylab="Predicted Values")
+abline(a=0, b=1)
+```
+
+##5.4 非线性回归
+
+
+#第六章 聚类
+
+##6.1 k-means聚类
+```{r,eval=FALSE}
+#从iris数据集中移除Species属性，然后对iris2调用函数kmeans()
+iris2 <- iris
+iris2$Species <- NULL
+(kmeans.result <- kmeans(iris2, 3)) 
+table(iris$Species, kmeans.result$cluster)
+sum(kmeans.result$cluster==as.numeric(iris$Species))/nrow(iris)#准确率
+
+#可视化
+plot(iris2[c("Sepal.Length", "Sepal.Width")], col = kmeans.result$cluster)
+#画出聚类中心
+points(kmeans.result$centers[,c("Sepal.Length", "Sepal.Width")], col = 1:3, 
+       pch = 8, cex=2)
+```
+
+##6.2 k-medoids聚类
+* cluster包的pam()实现PAM算法，clara()实现CLARA算法。均需要用户指定k，即聚类簇个数
+* fpc包的pamk()，不需要指定k，而是调用函数pam()或clara()根据最优平均阴影宽度估计的聚类簇个数来划分数据
+* 在含有离群点的情况下，相比k-means，k-medoids法有鲁棒性。
+```{r,eval=FALSE}
+library(fpc)
+pamk.result <- pamk(iris2)
+#生成簇的个数
+pamk.result$nc
+# check clustering against actual species
+table(pamk.result$pamobject$clustering, iris$Species)
+sum(pamk.result$pamobject$clustering==as.numeric(iris$Species))/nrow(iris)#准确率
+
+layout(matrix(c(1,2),1,2)) # 2 graphs per page 
+plot(pamk.result$pamobject)
+layout(matrix(1)) # change back to one graph per page 
+
+#下面使用pam()
+library(cluster)
+pam.result <- pam(iris2, 3)
+table(pam.result$clustering, iris$Species)
+sum(pam.result$clustering==as.numeric(iris$Species))/nrow(iris)#准确率
+
+#可视化
+layout(matrix(c(1,2),1,2)) # 2 graphs per page 
+plot(pam.result)
+layout(matrix(1)) # change back to one graph per page 
+```
+
+##6.3 层次聚类
+```{r,eval=FALSE}
+#抽样40条记录
+idx <- sample(1:dim(iris)[1], 40)
+irisSample <- iris[idx,]
+#属性清空
+
+hc <- hclust(dist(irisSample[,-5]), method="ave")
+
+
+plot(hc, hang = -1, labels=iris$Species[idx])
+# cut tree into 3 clusters
+rect.hclust(hc, k=3)
+groups <- cutree(hc, k=3)#对hclust()函数的聚类结果进行剪枝，即选择输出指定类别的系谱聚类结果
+
+#编码是按照出现的先后编码的这里转换一下
+groups[groups==1]="versicolor"
+groups[groups==2]="virginica"
+groups[groups==3]="setosa"
+sum(groups==irisSample$Species)/nrow(irisSample)#计算准确率
+```
+
+##6.4 基于密度的聚类
+* fpc包
+* DBSCAN算法，两个关键参数
+    * eps:可达距离，用于定义领域的大小
+    * MinPts：最小数目的对象点
+* 可视化
+    * plot(object,data)
+    * plotcluster(data,object$cluster)
+```{r,eval=FALSE}
+library(fpc)
+iris2 <- iris[-5] # remove class tags
+ds <- dbscan(iris2, eps=0.42, MinPts=5)
+# compare clusters with original class labels
+table(ds$cluster, iris$Species)#0表示噪声点，不属于任何簇的对象
+sum(ds$cluster==as.numeric(iris$Species))/nrow(iris)#计算准确率
+#可视化
+plot(ds, iris2)#噪声点用黑色小圆圈表示
+#显示第一列和第四列数据的聚类结果
+plot(ds, iris2[c(1,4)])
+
+#fpc包的可视化函数
+plotcluster(iris2, ds$cluster)#数据被投影到不同的簇中
+
+#预测
+set.seed(435) 
+idx <- sample(1:nrow(iris), 10)#抽取10个样本
+newData <- iris[idx,-5]
+newData <- newData + matrix(runif(10*4, min=0, max=0.2), nrow=10, ncol=4)#向样本中加入少量噪声数据用于标记新的数据集，每个数值均加了一些较小的数，震荡
+
+# 预测
+myPred <- predict(ds, iris2, newData)
+# plot result
+plot(iris2[c(1,4)], col=1+ds$cluster)
+points(newData[c(1,4)], pch="*", col=1+myPred, cex=3)
+# check cluster labels
+table(myPred, iris$Species[idx])
+#计算准确率
+mypred[myPred==1]="virginica"
+mypred[myPred==2]="versicolor"
+mypred[myPred==3]="setosa"
+sum(myPred==as.numeric(iris$Species[idx]))/nrow(iris[idx,])#准确率
+```
+
+#第七章 离群点检测
+
+##7.1 单变量的离群点检测
+* boxplot.stats()，该函数返回的统计信息用于画图。由该函数返回的结果中有一个“out”的组件，它存储了所有检测出的离群点，具体来说就是位于盒图两条触须线截止横线之外的数据点。参数coef可以控制触须线延伸的长度。
+```{r,eval=FALSE}
+set.seed(3147)
+x <- rnorm(100)
+summary(x)
+# outliers
+boxplot.stats(x)$out
+boxplot(x)
+
+#另一个例子
+y <- rnorm(100)
+df <- data.frame(x, y)
+rm(x, y)
+head(df)
+attach(df)
+# find the index of outliers from x
+(a <- which(x %in% boxplot.stats(x)$out))
+# find the index of outliers from y
+(b <- which(y %in% boxplot.stats(y)$out))
+detach(df)
+
+# outliers in both x and y
+(outlier.list1 <- intersect(a,b))
+plot(df)
+points(df[outlier.list1,], col="red", pch="+", cex=2.5)
+
+# outliers in either x or y
+(outlier.list2 <- union(a,b))
+plot(df)
+points(df[outlier.list2,], col="blue", pch="x", cex=2)
+```
+
+##7.2 局部离群点因子检测
+* 局部离群点因子（LOF）是一种识别基于密度的局部离群点算法
+* 使用局部离群点因子，将一个点的局部密度与其他邻域进行比较，如果前者远远小于后者（LOF值大于1），则该点相对于其邻域位于一个密度更稀疏的区域，判定改点为离群点。
+* LOF的缺点是只适用于数值型数据
+* lofactor()使用LOF算法计算局部离群点因子(参数k是邻域个数，用于计算局部离群点因子)，函数包DMwR和dprep
+```{r,eval=FALSE}
+library(DMwR)
+# remove "Species", which is a categorical column
+iris2 <- iris[,1:4]
+outlier.scores <- lofactor(iris2, k=5)
+plot(density(outlier.scores))#画出lof得分密度图
+
+outliers <- order(outlier.scores, decreasing=T)[1:5]#拿出前5个得分最高的值，返回index
+# who are outliers
+print(outliers)
+print(iris2[outliers,])#拿出具体值
+
+#基于前两个主成分回执一个双标图，x轴和y轴分别为第一个和第二个主成分
+n <- nrow(iris2)
+labels <- 1:n
+labels[-outliers] <- "."
+biplot(prcomp(iris2), cex=.8, xlabs=labels)
+
+#用以下配对散布图来展示离群点
+pch <- rep(".", n)
+pch[outliers] <- "+"
+col <- rep("black", n)
+col[outliers] <- "red"
+pairs(iris2, pch=pch, col=col)
+```
+
+* Rlof包的函数lof()实现了并行执行的LOF算法，用法与lofactor()一样，但是lof()函数有两个特性：
+    * k可以取多个不同的值
+    * 距离矩阵也有多个选择
+```{r,eval=FALSE}
+#这个包只能在MacOS X下运行
+library(Rlof)
+outlier.scores <- lof(iris2, k=5)
+#try with different number of neighbors (k = 5,6,7,8,9 and 10)
+outlier.scores <- lof(iris2, k=c(5:10))
+```
+
+##7.3 用聚类方法进行离群点检测
+* 将数据进行划分，那些没有被划分到任何簇的数据点即为离群点。
+    * DBSCAN算法：没有被划分到任何一个组的对象
+    * k-means：将数据划分成k组，每个数据点都划分到与之距离最小的组，然后计算每个对象与簇中心之间的距离（或相异度），并将距离最大的对象作为离群点
+```{r,eval=FALSE}
+# 移除属性列
+iris2 <- iris[,1:4]
+kmeans.result <- kmeans(iris2, centers=3)
+# 聚类中心
+kmeans.result$centers
+# 每个样本的聚类后的类别号
+kmeans.result$cluster
+# 计算样本与簇中心的距离
+centers <- kmeans.result$centers[kmeans.result$cluster, ]#按顺序记下每个样本所属的类的簇中心
+distances <- sqrt(rowSums((iris2 - centers)^2))
+# pick top 5 largest distances
+outliers <- order(distances, decreasing=T)[1:5]
+# who are outliers
+print(outliers)
+print(iris2[outliers,])
+
+# 画聚类
+plot(iris2[,c("Sepal.Length", "Sepal.Width")], pch="o", 
+     col=kmeans.result$cluster, cex=0.3)
+# 画聚类中心
+points(kmeans.result$centers[,c("Sepal.Length", "Sepal.Width")], col=1:3, 
+       pch=8, cex=1.5)
+# 画离群点
+points(iris2[outliers, c("Sepal.Length", "Sepal.Width")], pch="+", col=4, cex=1.5)
+```
+
+##7.4 时间序列数据的离群点检测
+* 首先用stl()根据稳健回归对时间序列数据进行分解，然后进行离群点识别
+* STL：基于局部加权回归的季节性趋势分解
+```{r,eval=FALSE}
+# 稳健回归
+f <- stl(AirPassengers, "periodic", robust=TRUE)
+(outliers <- which(f$weights<1e-8))
+# set layout
+op <- par(mar=c(0, 4, 0, 3), oma=c(5, 0, 4, 0), mfcol=c(4, 1))
+plot(f, set.pars=NULL)
+sts <- f$time.series
+# plot outliers
+points(time(sts)[outliers], 0.8*sts[,"remainder"][outliers], pch="x", col="red")
+par(op) # reset layout
+
+```
+
+#第八章 时间序列分析与挖掘
+
+##8.1 R种的时间序列数据
+* 类ts表示在平均间隔时间点上抽样得到的数据，频率为7表示时间序列是由每周的数据构成的，12和4分别表示以“月”和“季度”为时间间隔的序列。
+```{r,eval=FALSE}
+a <- ts(1:30, frequency=12, start=c(2011,3))
+print(a)
+str(a)
+attributes(a)
+```
+
+
+##8.2 时间序列分解
+* 时间序列分解就是分解为趋势，季节性，周期性以及不规则这几个成分。
+```{r,eval=FALSE}
+plot(AirPassengers)
+
+#下面使用decompose()将数据分解成不同成分
+apts <- ts(AirPassengers, frequency=12)
+f <- decompose(apts)
+# seasonal figures
+f$figure
+plot(f$figure, type="b", xaxt="n", xlab="")
+#在x周加标识
+# get names of 12 months in English words
+monthNames <- months(ISOdate(2011,1:12,1))
+# label x-axis with month names 
+# las is set to 2 for vertical label orientation
+axis(1, at=1:12, labels=monthNames, las=2) 
+
+#第一个图是原始时间序列图
+#第二图是数据的趋势图
+#第三个图为季节性因素图
+#第四个图是剔除了趋势和季节性因素之后的其他成分
+plot(f)
+```
+
+##8.3 时间序列预测
+* 两个常用模型：自回归移动平均模型（ARMA）和自回归综合移动平均模型（ARIMA）
+```{r,eval=FALSE}
+#以下使用ARMA模型拟合单变量时间序列，并用拟合模型进行预测
+fit <- arima(AirPassengers, order=c(1,0,0), list(order=c(2,1,0), period=12))
+fore <- predict(fit, n.ahead=24)
+# error bounds at 95% confidence level
+U <- fore$pred + 2*fore$se
+L <- fore$pred - 2*fore$se
+ts.plot(AirPassengers, fore$pred, U, L, col=c(1,2,4,4), lty = c(1,1,2,2))
+legend("topleft", c("Actual", "Forecast", "Error Bounds (95% Confidence)"),
+       col=c(1,2,4), lty=c(1,1,2))
+
+```
+
+
+##8.4 时间序列分类
+* 时间序列聚类是基于相似度或者距离将时间序列划分为不同的组，使得同一组中的时间序列是相似的
+* 距离或相异度的度量很多：如欧式距离，曼哈顿距离，最大范数，海明距离，两个向量之间的角度（内积），动态时间规整（DTW）距离
+
+###动态时间规整
+* 包dtw
+    * 函数btw(x,y,...)计算动态时间规整并找出时间序列x和y之间的最优配置
+    * 函数dtwDist(mx,my=mx,...)或dist(mx,my=mx,method="DTW",...)计算时间序列mx和my之间的距离
+* DTW就是要找出两个时间序列之间的最优配置
+```{r,eval=FALSE}
+library(dtw)
+idx <- seq(0, 2*pi, len=100)
+a <- sin(idx) + runif(100)/10
+b <- cos(idx)
+align <- dtw(a, b, step=asymmetricP1, keep=T)
+dtwPlotTwoWay(align)
+```
+
+###合成控制图的时间序列
+* 介绍合成控制图时间序列的例子
+* 每一个控制图都是一个包含了60个值得时间序列，分6类
+    * 1-100：常规
+    * 101-200:循环
+    * 201-300：递增趋势
+    * 301-400：递减趋势
+    * 401-500：向上偏移
+    * 501-600：向下偏移
+```{r,eval=FALSE}
+sc <- read.table("E:\\code\\R\\parctice\\Rdatamining\\Data-for-RDataMining-book\\data\\synthetic_control.data", header=F, sep="")
+# show one sample from each class
+idx <- c(1,101,201,301,401,501)
+sample1 <- t(sc[idx,])
+plot.ts(sample1, main="")
+```
+
+###基于欧式距离的层次聚类
+```{r,eval=FALSE}
+set.seed(6218)
+#从每一类的时间序列中抽取10个案例
+n <- 10
+s <- sample(1:100, n)
+idx <- c(s, 100+s, 200+s, 300+s, 400+s, 500+s)
+sample2 <- sc[idx,]
+observedLabels <- rep(1:6, each=n)
+# hierarchical clustering with Euclidean distance
+hc <- hclust(dist(sample2), method="average")
+plot(hc, labels=observedLabels, main="")
+# cut tree to get 6 clusters
+rect.hclust(hc, k=6)
+memb <- cutree(hc, k=6)
+table(observedLabels, memb)
+```
+
+###基于DTW距离的层次聚类
+```{r,eval=FALSE}
+library(dtw)
+distMatrix <- dist(sample2, method="DTW")
+hc <- hclust(distMatrix, method="average")
+plot(hc, labels=observedLabels, main="")
+# cut tree to get 6 clusters
+rect.hclust(hc, k=6)
+memb <- cutree(hc, k=6)
+table(observedLabels, memb)
+
+```
+
+##时间序列的分类
+* 时间序列分类是根据已标注的时间序列建立 一个分类模型，然后用分类模型预测为标记时间序列的类别。
+* 从时间序列中抽取新特征可能有助于提高分类模型的性能。
+    * 特征提取技术:奇异值分解（SVD），离散傅里叶变换（DFT），离散小波变换（DWT），分段积累近似法（PAA），连续重要点（PIP），分段线性表示，符号表示
+    
+###基于原始数据分类
+```{r,eval=FALSE}
+classId <- rep(as.character(1:6), each=100)
+newSc <- data.frame(cbind(classId, sc))
+library(party)
+ct <- ctree(classId ~ ., data=newSc, 
+            controls = ctree_control(minsplit=30, minbucket=10, maxdepth=5))
+pClassId <- predict(ct)
+table(classId, pClassId)
+# accuracy
+(sum(classId==pClassId)) / nrow(sc)
+plot(ct, ip_args=list(pval=FALSE), ep_args=list(digits=0))
+
+```
+
+###基于特征提取分类
+```{r,eval=FALSE}
+library(wavelets)
+wtData <- NULL
+for (i in 1:nrow(sc)) {
+  a <- t(sc[i,])
+  wt <- dwt(a, filter="haar", boundary="periodic")
+  wtData <- rbind(wtData, unlist(c(wt@W, wt@V[[wt@level]])))
+}
+wtData <- as.data.frame(wtData)
+wtSc <- data.frame(cbind(classId, wtData))
+```
+
+###k-NN分类
+```{r,eval=FALSE}
+
+k <- 20
+# create a new time series by adding noise to time series 501
+newTS <- sc[501,] + runif(100)*15
+distances <- dist(newTS, sc, method="DTW")
+s <- sort(as.vector(distances), index.return=TRUE)
+# class IDs of k nearest neighbors
+table(classId[s$ix[1:k]]))
+```
+
+
+#第九章 关联规则
+
+##Titanic数据集
+* 首先对数据集重构
+```{r,eval=FALSE}
+str(Titanic)
+df <- as.data.frame(Titanic)
+head(df)
+titanic.raw <- NULL
+for(i in 1:4) {
+   titanic.raw <- cbind(titanic.raw, rep(as.character(df[,i]), df$Freq))#as.character(df[,i])是一个长度为32的向量，df$Freq是一个长度为32的向量，分别对应重复的次数
+}
+titanic.raw <- as.data.frame(titanic.raw)
+names(titanic.raw) <- names(df)[1:4]
+dim(titanic.raw)
+str(titanic.raw)
+head(titanic.raw)
+summary(titanic.raw)
+#现在数据集中每一行代表了一位乘客信息（全部是因子变量）
+```
+
+##9.3关联规则挖掘
+* 包Arules
+    * 函数apriori()实现APRIORI算法，
+    * eclat()实现ECLAT算法，该算法不需要计数，而是依据等价类，深度优先搜索和集合交找出频繁集
+```{r,eval=FALSE}
+library(arules)
+# find association rules with default settings
+rules.all <- apriori(titanic.raw)
+rules.all
+inspect(rules.all)
+
+#只对乘客是否存货感兴趣，确保关联规则右侧rhs只出现“Survived=No”和“Survived=Yes”，设置appearance。
+#当设置default=lhs时，所有项集都出现在左侧lhs
+#注意到第一条关联规则为空，为剔除这种规则，设置minlen=2
+# 设置verbose=F可以压缩过程的细节
+# rules with rhs containing "Survived" only
+rules <- apriori(titanic.raw, control = list(verbose=F),
+                 parameter = list(minlen=2, supp=0.005, conf=0.8),
+                 appearance = list(rhs=c("Survived=No", "Survived=Yes"),
+                                   default="lhs"))
+quality(rules) <- round(quality(rules), digits=3)#对支持度，置信度，提升度小数控制（用法新）
+rules.sorted <- sort(rules, by="lift")#提升度排序
+inspect(rules.sorted)
+```
+
+##9.4 消除冗余
+* 下面修建冗余规则（现在规则已经按照提升度排序）
+```{r,eval=FALSE}
+# find redundant rules
+#把的项集的超集规则去掉
+subset.matrix <- is.subset(rules.sorted, rules.sorted)#行号是项集，列号也是项集，值是TRUE或FALSE。只有对角线是TRUE，其他是FALSE
+subset.matrix[lower.tri(subset.matrix, diag=T)] <- NA #lower.tri(subset.matrix, diag=T)表示下三角是TRUE，上三角是FALSE的矩阵，对角线是TRUE
+#subset.matrix下三角为NA,对角线TRUE，其余FALSE
+#lower.tri返回一个逻辑矩阵，其中下三角的元素为TRUE
+
+redundant <- colSums(subset.matrix, na.rm=T) >= 1 #注意这里列号是项集，行号也是项集，因此返回的是项集
+which(redundant)
+# remove redundant rules
+rules.pruned <- rules.sorted[!redundant] #注意这里操作
+inspect(rules.pruned)
+```
+
+##9.6 规则可视化
+```{r,eval=FALSE}
+library(arulesViz)
+plot(rules.all)
+
+plot(rules.all, method="grouped")
+
+plot(rules.all, method="graph")
+
+plot(rules.all, method="graph", control=list(type="items"))
+
+plot(rules.all, method="paracoord", control=list(reorder=TRUE))
+```
+
