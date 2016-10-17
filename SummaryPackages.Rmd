@@ -112,9 +112,12 @@ rpart、rpart.plot，maptree,RWeka,PWake包
         
         * maptree包: draw.tree()
         
-    * C4.5(successor of ID3)
+* C4.5(successor of ID3)
         
-        *RWeka包: J48(formula,data,subset,)
+    *RWeka包: J48(formula,data,subset,)
+    
+* party包：
+    * ctree(formula,data)
 
 ##集成学习
 adabag包
