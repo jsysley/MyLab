@@ -206,7 +206,7 @@ rate
 看出决策树所选变量个数为4时，模型误判率均值最低，因此选为4，下面进一部确定模型中决策树数量
 ```{r}
 set.seed(222)
-rf=randomForest(Species~.,data=iris,mtre=4,importance=(TRUE),ntree=1000)#构建随机森林模型
+rf=randomForest(Species~.,data=iris,mtry=4,importance=(TRUE),ntree=1000)#构建随机森林模型
 plot(rf,col=1:1)#绘制模型误差与决策树数量关系图,可以看到600之后稳定下来
 
 set.seed(222)

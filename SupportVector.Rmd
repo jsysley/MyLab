@@ -59,7 +59,7 @@ e1071：
 #数据集：iris
 
 #演示示例
-```{r}
+```{r,FALSE}
 library(e1071)
 #第一种使用格式
 sv=svm(Species~.,data=iris)#建立svm模型
@@ -69,7 +69,10 @@ x=iris[,-5]
 y=iris[,5]
 sv=svm(x,y,kernel = "radial",gamma=if(is.vector(x))1 else 1/ncol(x))#建立模型
 #gamma：如果特征向量是向量则gamma取1，否则取为特征向量个数的倒数
-
+#优化建模 选择错误率最小的gamma和cost
+tuned <- tune.svm(Species ~., data = iris, gamma = 10^(-10:-1), cost = 10^(0:10)) # tune
+summary(tuned)
+sv1=svm(x,y,kernel = "radial",gamma=1e-01,cost=1e+01)#建立模型
 #结果分析
 summary(sv)
 ```
@@ -89,6 +92,11 @@ pred[sample(1:150,8)]#随机挑选8个结果展示
 
 #模型精度展示
 table(pred,y)
+sum(pred==y)/length(y)
+
+pred1=predict(sv1,x)
+table(pred1,y)
+sum(pred1==y)/length(y)
 ```
 
 #综合建模
@@ -129,6 +137,7 @@ for(i in 1:3)#i影响的维度代表分类方式
 }
 dimnames(accuracy)=list(type,kernel)#确定模型精度变量的列名和行名
 accuracy#查看结果
+detach(iris)
 ```
 发现C-classification和高斯核函数radial结合的结果比较好
 

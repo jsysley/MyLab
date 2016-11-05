@@ -657,3 +657,649 @@ plot(rules.all, method="graph", control=list(type="items"))
 plot(rules.all, method="paracoord", control=list(reorder=TRUE))
 ```
 
+#第十章 文本挖掘
+
+##10.1 Twitter的文本探索
+* 使用twitteR包中的函数userTimeline()来抓取Twitter上的推文。
+```{r,eval=FALSE}
+library(twitteR)
+load("E:\\code\\R\\parctice\\Rdatamining\\Data-for-RDataMining-book\\data\\rdmTweets.rdata")
+
+```
+
+##10.2 转换文本
+* 首先需要将推文准换为数据框，然后转换为一个语料库，该语料库就是一个文本集合
+* 用tm包中的函数对该语料库进行处理
+```{r,eval=FALSE}
+df <- do.call("rbind", lapply(rdmTweets, as.data.frame))
+dim(df)
+
+library(tm)  
+# build a corpus, and specify the source to be character vectors
+#建立一个语料库
+myCorpus <- Corpus(VectorSource(df$text))
+
+#接下来对语料库做一些转换，包括将字母转换为小写字体，删除标点符号、数字和停用词。
+#这里通过添加“available”和“via”，并且删除“r”和“big”（针对大数据），建立一个通用的 英文停用词表。下面的例子还要删除超链接
+# 转换为小写  
+myCorpus <- tm_map(myCorpus, tolower)  
+# 移除符号  
+myCorpus <- tm_map(myCorpus, removePunctuation) 
+# 移除数字 
+myCorpus <- tm_map(myCorpus, removeNumbers)
+# 移除超链接，正则表达式：'[:alnum:]' 匹配任何字母 。至今去除符号，网址已经成为一个长字母串，所以可以这样匹配
+removeURL <- function(x) gsub("http[[:alnum:]]*", "", x)
+myCorpus <- tm_map(myCorpus, removeURL)
+# 添加两个英文停用词表: "available" 和 "via"
+myStopwords <- c(stopwords('english'), "available", "via")
+# 从英文停用表移除 "r" 和 "big" 
+myStopwords <- setdiff(myStopwords, c("r", "big"))
+# remove stopwords from corpus
+myCorpus <- tm_map(myCorpus, removeWords, myStopwords)  
+
+```
+
+##10.3 提取词干
+* 提取词干可以通过snowball词干提取器来完成，需要用到包Snowball，RWeka包，rJava包，RWekajars包。
+* 还可以对词干补笔将其还原为原始形式，词干补笔可以由函数stemCompletion()实现
+```{r,eval=FALSE}
+# keep a copy of corpus to use later as a dictionary for stem completion
+myCorpusCopy <- myCorpus
+# stem words
+myCorpus <- tm_map(myCorpus, stemDocument)
+# inspect documents (tweets) numbered 11 to 15
+# inspect(myCorpus[11:15])
+# The code below is used for to make text fit for paper width
+for (i in 11:15) {
+  cat(paste("[[", i, "]] ", sep=""))
+  writeLines(strwrap(myCorpus[[i]], width=73))
+}
+
+#接下来将未提取词干的语料库myCorpusCopy作为字典，使用函数stemCompletion()对词干进行补笔。默认的设置是使用字典中最频繁匹配的词作为相应的词干的补笔
+# stem completion？？
+myCorpus <- tm_map(myCorpus, stemCompletion, dictionary=myCorpusCopy)
+
+## inspect(myCorpus[11:15])
+
+for (i in 11:15) {
+  cat(paste("[[", i, "]] ", sep=""))
+  writeLines(strwrap(myCorpus[[i]], width=73))
+} 
+
+
+# count frequency of "mining"
+miningCases <- tm_map(myCorpusCopy, grep, pattern="\\<mining")
+sum(unlist(miningCases))
+# count frequency of "miners"
+minerCases <- tm_map(myCorpusCopy, grep, pattern="\\<miners")
+sum(unlist(minerCases))
+# replace "miners" with "mining"
+myCorpus <- tm_map(myCorpus, gsub, pattern="miners", replacement="mining")
+
+```
+
+##10.4 建立词项-文档矩阵
+* 一个词项-文档是一个词项和文档的关系矩阵，其中每一行代表一个词项，每一列代表一个文档，每一个元素是一个词项在文档中出现的次数。
+* 下面用TermDoucumentMatrix()对前面处理过的语料库建立一个词项-文档矩阵。默认参数下，出现少于3次的词项将会被舍弃。
+```{r,eval=FALSE}
+myTdm <- TermDocumentMatrix(myCorpus, control=list(wordLengths=c(1,Inf)))
+myTdm
+```
+
+
+#案例一：房价指数的分析与预测
+```{r,eval=FALSE}
+houseIndex <- read.csv(file="E:\\code\\R\\parctice\\Rdatamining\\Data-for-RDataMining-book\\data\\House-index-canberra.csv", header=FALSE)
+names(houseIndex) <- c("date", "index")
+n <- nrow(houseIndex)
+
+# check start date and end date
+cat(paste("HPI from", houseIndex$date[1], "to", houseIndex$date[n], "\n"))
+
+# extract year and month
+#dates <- strptime(houseIndex$date, format="%d-%b-%y")#用strptime()将数据转换为POSIXlt，以便抽取年份和月份
+dic <- c(Jan="01",Feb="02",Mar="03",Apr="04",May="05",Jun="06",Jul="07",Aug="08",Sep="09",Oct="10",Nov="11",Dec="12")
+dates <- strsplit(as.character(houseIndex$date),split="-")
+dates <- do.call(rbind,dates)#转换为data.frame
+dates[,2] <- dic[dates[,2]]#将缩写更新为数字
+#重新连接字符串
+dates2 <- vector()
+for(i in 1:nrow(dates))
+{
+    dates2[i] <-paste(dates[i,],collapse = "-")
+    
+}
+
+dates <- dates2
+rm(dates2)
+#抽取年和月
+dates <- strptime(dates,format = "%d-%m-%y")
+
+houseIndex$year <- dates$year + 1900
+houseIndex$month <- dates$mon + 1
+fromYear <- houseIndex$year[1]
+```
+
+##12.2 HPI数据探索
+```{r,eval=FALSE}
+#绘图展示1900年到2011年的HPI变化情况
+plot(houseIndex$index, pty=1, type="l", lty="solid", xaxt="n", xlab="",
+     ylab="Index", main=paste("HPI (Canberra) - Since ", fromYear, sep=""))
+# draw tick-marks at 31 Jan of every year
+nYear <- ceiling(n/12)
+posEveryYear <- 12 * (1:nYear) - 11 #找出每年的1月的样本号
+axis(1, labels=houseIndex$date[posEveryYear], las=3, at=posEveryYear)
+# add horizontal reference lines
+abline(h=1:4, col="gray", lty="dotted")
+# draw a vertical reference line every five years
+posEvery5years <- 12 * (5* 1:ceiling(nYear/5) - 4) - 11
+abline(v=posEvery5years, col="gray", lty="dotted")
+
+#查看每个月的HPI增长量
+houseIndex$delta <- houseIndex$index - c(1, houseIndex$index[-n])#实现后者减前者
+plot(houseIndex$delta, main="Increase in HPI", xaxt="n", xlab="")
+axis(1, labels=houseIndex$date[posEveryYear], las=3, at=posEveryYear)
+# add a reference line
+abline(h=0, lty="dotted")
+
+#进一步了解HPI波动，查看每个月的增长率
+houseIndex$rate <- houseIndex$index / c(1, houseIndex$index[-n]) - 1#后者除以前者减1
+# percentage of months having positive increases in HPI
+100 * sum(houseIndex$rate>0)/n#增长的月份的比例
+# use ifelse() to set positive values to green and and negative ones to red
+plot(houseIndex$rate, xaxt="n", xlab="", ylab="HPI Increase Rate",
+     col=ifelse(houseIndex$rate>0,"green","red"),
+     pch=ifelse(houseIndex$rate>0,"+","o"))
+axis(1, labels=houseIndex$date[posEveryYear], las=3, at=posEveryYear)
+abline(h=0, lty="dotted")
+
+
+#对HPI建立一个表格，其中每一行代表一个月份，每一列代表一个年份。
+rateMatrix <- xtabs(rate ~ month + year, data=houseIndex)
+# 展示前4年，因此对钱4年四舍五入
+round(rateMatrix[,1:4], digits=4)
+# plot a grouped barchart: 
+barplot(rateMatrix, beside=TRUE, space=c(0,2),
+        col=ifelse(rateMatrix>0,"lightgreen","lightpink"),
+        ylab="HPI Increase Rate", cex.names=1.2)
+
+#每年中HPI呈现递增的月份数
+numPositiveMonths <- colSums(rateMatrix>0)
+barplot(numPositiveMonths, xlab="Year", ylab="Number of Months with Increased HPI")
+
+#HPI的平均年增长率
+yearlyMean <- colMeans(rateMatrix)
+barplot(yearlyMean, main="Yearly Average Increase Rates of HPI", 
+        col=ifelse(yearlyMean>0,"lightgreen","lightpink"), xlab="Year")
+
+#HPI的平均月增长率
+monthlyMean <- rowMeans(rateMatrix)
+plot(names(monthlyMean), monthlyMean, type="b", xlab="Month",
+     main="Monthly Average Increase Rates of HPI")
+
+#HPI增长率的分布情况
+summary(houseIndex$rate)
+boxplot(houseIndex$rate, ylab="HPI Increase Rate")
+
+#查看每年HPI增长率的分布情况
+boxplot(rate ~ year, data=houseIndex, xlab="Year", ylab="HPI Increase Rate")
+
+#查看每月HPI增长率的分布情况
+boxplot(rate ~ month, data=houseIndex, xlab="Month", ylab="HPI Increase Rate")
+
+```
+
+##12.3 HPI趋势与季节性成分
+* 首先用ts()将指数转换为一个时间序列
+* 用函数stl()对该时间序列分解
+```{r,eval=FALSE}
+hpi <- ts(houseIndex$index, start=c(1990,1), frequency=12)
+f <- stl(hpi, "per")
+plot(f)
+
+#用decompose()函数分解
+ff <- decompose(hpi)
+ff$figure #季节指数
+plot(ff)
+
+#下面提取季节成分画图
+plot(f$time.series[1:12,"seasonal"],type="b",xlab = "Month",ylab = "Seasonal Components")
+
+plot(ff$figure,type="b",xlab = "Month",ylab = "Seasonal Components")
+```
+
+##12.4 HPI预测
+* 使用自回归综合移动平均(Autoregression Integrated Moving Average,ARIMA)
+```{r,eval=FALSE}
+startYear <- 1990
+endYear <- 2010
+# to forecast HPIs in the next four years
+nYearAhead <- 4
+
+fit <- arima(hpi, order=c(2,0,1), seasonal=list(order=c(2,1,0), period=12))
+fore <- predict(fit, n.ahead=12*nYearAhead)
+# error bounds at 95% confidence level
+U <- fore$pred + 2 * fore$se
+L <- fore$pred - 2 * fore$se
+# plot original and predicted data, as well as error bounds
+ts.plot(hpi, fore$pred, U, L, col=c("black", "blue","green","red"), 
+        lty=c(1,5,2,2), gpars=list(xaxt="n",xlab=""),
+        ylab="Index", main="House Price Trading Index Forecast (Canberra)")
+# add labels, reference grid and legend        
+years <- startYear:(endYear+nYearAhead+1)
+axis(1, labels=paste("Jan ", years, sep=""), las=3, at=years)
+grid()
+legend("topleft", col=c("black", "blue","green","red"), lty=c(1,5,2,2),
+       c("Actual Index", "Forecast", "Upper Bound (95% Confidence)", 
+         "Lower Bound (95% Confidence)"))
+
+#绘制单独从2011年起的HPI图标
+ts.plot(fore$pred, U, L, col=c("blue","green","red"), 
+        lty=c(5,2,2), gpars=list(xaxt="n",xlab=""),
+        ylab="Index", main="House Price Trading Index Forecast (Canberra)")
+years <- endYear + (1 : (nYearAhead+1))
+axis(1, labels=paste("Jan ", years, sep=""), las=3, at=years)
+grid(col = "gray", lty = "dotted")
+legend("topleft", col=c("blue","green","red"), lty=c(5,2,2),
+       c("Forecast", "Upper Bound (95% Confidence)", 
+         "Lower Bound (95% Confidence)"))
+```
+
+# 案例二：客户回复预测与效益最大化
+
+##13.2 KDD Cup 1998的数据
+```{r,eval=FALSE}
+cup98 <- read.csv(file = "E:\\code\\R\\parctice\\Rdatamining\\Data-for-RDataMining-book\\data\\KDDCup1998\\cup98LRN.txt",header = TRUE,sep = ",",na.strings = "NA",skipNul = TRUE)
+head(cup98[,1:30])
+#目标变量，TARGET_B，和TARGET_D，下面查看分布情况
+#先查看TARGET_B分布情况
+(response.percentage <- round(100 * prop.table(table(cup98$TARGET_B)), digits=1))#prop.table()
+
+mylabels <- paste("TARGET_B=", names(response.percentage) ,"\n",
+                  response.percentage, "%", sep=" ")
+pie(response.percentage, labels=mylabels)
+
+#查看TARGET_D的值大于0的所有记录
+cup98pos <- cup98[cup98$TARGET_D>0, ]
+targetPos <- cup98pos$TARGET_D
+summary(targetPos)
+boxplot(targetPos)
+
+# number of positive donations
+length(targetPos)
+# number of positive donations not in whole dollars
+sum(!(targetPos %in% 1:200))#捐款数在200以外的数
+targetPos <- round(targetPos)
+barplot(table(targetPos), las=2)
+
+#使用cut()将变量TARGET_D分解，并生成一个新的TARGET_D2，其中right=F表示区间左闭右开
+cup98$TARGET_D2 <- cut(cup98$TARGET_D, right=F,
+        breaks=c(0, 0.1, 10, 15, 20, 25, 30, 50, max(cup98$TARGET_D)))
+table(cup98$TARGET_D2)
+
+cup98pos$TARGET_D2 <- cut(cup98pos$TARGET_D, right=F,
+        breaks=c(0, 0.1, 10, 15, 20, 25, 30, 50, max(cup98pos$TARGET_D)))
+#删除RFA_2R、NOEXCH
+table(cup98$RFA_2R)
+round(100 * prop.table(table(cup98$NOEXCH)), digits=3)
+
+#重新选变量
+varSet <- c(
+   # demographics
+   "ODATEDW", "OSOURCE", "STATE", "ZIP", "PVASTATE", "DOB", "RECINHSE",
+   "MDMAUD", "DOMAIN", "CLUSTER", "AGE", "HOMEOWNR", "CHILD03", "CHILD07",
+   "CHILD12", "CHILD18", "NUMCHLD", "INCOME", "GENDER", "WEALTH1", "HIT", 
+   # donor interests
+   "COLLECT1", "VETERANS", "BIBLE", "CATLG", "HOMEE", "PETS", "CDPLAY",
+   "STEREO", "PCOWNERS", "PHOTO", "CRAFTS", "FISHER", "GARDENIN", "BOATS",
+   "WALKER", "KIDSTUFF", "CARDS", "PLATES",
+   # PEP star RFA status
+   "PEPSTRFL",
+   # summary variables of promotion history
+   "CARDPROM", "MAXADATE", "NUMPROM", "CARDPM12", "NUMPRM12",
+   # summary variables of giving history
+   "RAMNTALL", "NGIFTALL", "CARDGIFT", "MINRAMNT", "MAXRAMNT", "LASTGIFT",
+   "LASTDATE", "FISTDATE", "TIMELAG", "AVGGIFT",
+   # ID & targets
+   "CONTROLN", "TARGET_B", "TARGET_D", "TARGET_D2", "HPHONE_D",
+   # RFA (Recency/Frequency/Donation Amount)
+   "RFA_2F", "RFA_2A", "MDMAUD_R", "MDMAUD_F", "MDMAUD_A",
+   #others
+   "CLUSTER2", "GEOCODE2")
+cup98 <- cup98[, varSet]
+
+```
+
+##13.3 数据探索
+
+* 数据探索步骤
+    * 查看单个变量的分布情况,了解每一个变量的分布情况并找出缺失值和离群点
+    * 查看目标变量（因变量）与预测变量（自变量）之间的关系，可以用于特征选择
+    * 查看预测变量之间的关系
+```{r,eval=FALSE}
+# select numeric variables
+idx.num <- which(sapply(cup98, is.numeric))#查看变量的类型,选出数值型变量
+layout(matrix(c(1,2), 1, 2)) # 2 graphs per page 
+# histograms of numeric variables
+myHist <- function(x) {
+   hist(cup98[,x], main=NULL, xlab=x)
+}
+sapply(names(idx.num[4:5]), myHist)
+layout(matrix(1)) # change back to one graph per page
+
+#画箱线图(重构数据)
+layout(matrix(c(1,2),1,2)) # 2 graphs per page
+boxplot(cup98$HIT)#小部分的值与大部分的值离得远，进一步发现为240或241
+
+cup98$HIT[cup98$HIT>200]
+boxplot(cup98$HIT[cup98$HIT<200])
+layout(matrix(1)) # change back to one graph per page
+
+#查看不同年龄段的分布情况
+AGE2 <- cut(cup98pos$AGE, right=F, breaks=seq(0, 100, by=5))
+boxplot(cup98pos$TARGET_D ~ AGE2, ylim=c(0,40), las=3)
+
+#查看不同性别的分布情况
+attach(cup98pos)
+layout(matrix(c(1,2),1,2)) # 2 graphs per page
+boxplot(TARGET_D ~ GENDER, ylim=c(0,80))
+# density plot
+plot(density(TARGET_D[GENDER=="F"]), xlim=c(0,60), col=1, lty=1)
+lines(density(TARGET_D[GENDER=="M"]), col=2, lty=2)
+lines(density(TARGET_D[GENDER=="J"]), col=3, lty=3)
+legend("topright", c("Female", "Male", "Joint account"), col=1:3, lty=1:3)
+layout(matrix(1)) # change back to one graph per page
+detach(cup98pos)
+
+#查看目标变量与其他变量的相关关系，设置use="pairwise.complete.obs"
+correlation <- cor(cup98$TARGET_D, cup98[,idx.num], use="pairwise.complete.obs")
+correlation <- abs(correlation)
+(correlation <- correlation[order(correlation, decreasing=T)])
+
+#查看任意两个数值型变量之间的相关系数
+cor(cup98[,idx.num])
+pairs(cup98)
+
+#绘制数值变量散布图，并基于变量设置点的颜色，下面使用jitter()添加少量噪声数据，在存在大量重叠数据点的情况下有用
+color <- ifelse(cup98$TARGET_D>0, "blue", "black")
+pch <- ifelse(cup98$TARGET_D>0, "+", ".")
+plot(jitter(cup98$AGE), jitter(cup98$HIT), pch=pch, col=color, cex=0.7, 
+     ylim=c(0,70), xlab="AGE", ylab="HIT")
+legend("topleft", c("TARGET_D>0", "TARGET_D=0"), col=c("blue", "black"), 
+       pch=c("+", "."))
+
+
+#对分类变量 使用卡方检验来查看这些变量之间的关联
+myChisqTest <- function(x) {
+   t1 <- table(cup98pos[,x], cup98pos$TARGET_D2)
+   plot(t1, main=x, las=1)
+   print(x)
+   print(chisq.test(t1))
+}
+myChisqTest("GENDER")
+```
+
+##13.4 训练决策树
+```{r,eval=FALSE}
+nRec <- dim(cup98)[1] #样本数
+trainSize <- round(nRec * 0.7) #训练集样本数
+testSize <- nRec - trainSize  #测试集样本数
+# ctree parameters   
+MinSplit <- 1000 #每个节点中所含样本数的最小值
+MinBucket <- 400 #每个叶节点中所含样本数的最小值
+MaxSurrogate <- 4
+MaxDepth <- 10  #控制树的高度，即设置节点层次的最大值
+(strParameters <- paste(MinSplit, MinBucket, MaxSurrogate, MaxDepth, sep="-"))
+LoopNum <- 9 #对每一个擦书的设置，都重复分割、训练以及测试9次，然后将9次执行的结果与使用不同参数训练的决策树进行对比
+# The cost for each contact is $0.68.
+cost <- 0.68
+varSet2 <- c("AGE", "AVGGIFT", "CARDGIFT", "CARDPM12", "CARDPROM", "CLUSTER2",
+   "DOMAIN", "GENDER", "GEOCODE2", "HIT", "HOMEOWNR", "HPHONE_D", "INCOME",
+   "LASTGIFT", "MAXRAMNT", "MDMAUD_F", "MDMAUD_R", "MINRAMNT", "NGIFTALL",
+   "NUMPRM12", "PCOWNERS", "PEPSTRFL", "PETS", "RAMNTALL", "RECINHSE", 
+   "RFA_2A", "RFA_2F", "STATE", "TIMELAG")
+cup98 <- cup98[, c("TARGET_D", varSet2)]
+
+
+library(party) # for ctree
+#使用pdf设置图形区域和点大小
+pdf(paste("evaluation-tree-", strParameters, ".pdf", sep=""), 
+     width=12, height=9, paper="a4r", pointsize=6) #pdf命名
+cat(date(), "\n") # 输出迭代时的系统当前时间 
+cat(" trainSize=", trainSize, ", testSize=", testSize, "\n")
+cat(" MinSplit=", MinSplit, ", MinBucket=", MinBucket, 
+     ", MaxSurrogate=", MaxSurrogate, ", MaxDepth=", MaxDepth, "\n\n")
+ 
+# run for multiple times and get the average result   
+allTotalDonation <- matrix(0, nrow=testSize, ncol=LoopNum)#一列为一次训练的结果
+allAvgDonation <- matrix(0, nrow=testSize, ncol=LoopNum)#一列为一次循环的平均结果
+allDonationPercentile <- matrix(0, nrow=testSize, ncol=LoopNum) #
+for (loopCnt in 1:LoopNum) {
+    cat(date(), ":  iteration = ", loopCnt, "\n") #输出时间，迭代的序数
+    
+    # split into training data and testing data
+    trainIdx <- sample(1:nRec, trainSize) #抽样
+    trainData <- cup98[trainIdx,]  #拿出训练集
+    testData <- cup98[-trainIdx,]  #拿出测试集
+    
+    # train a decision tree
+    myCtree <- ctree(TARGET_D ~ ., data=trainData,
+          controls=ctree_control(minsplit=MinSplit, minbucket=MinBucket,
+                                 maxsurrogate=MaxSurrogate, maxdepth=MaxDepth))
+    # size of ctree
+    print(object.size(myCtree), units="auto") #输出决策树的大小
+    save(myCtree, file=paste("cup98-ctree-", strParameters, "-run-", 
+                             loopCnt, ".rdata", sep="")) #存储文件，决策树
+       
+    figTitle <- paste("Tree", loopCnt)#loopCnt为第i次循环的i
+    plot(myCtree, main=figTitle, type="simple", ip_args=list(pval=FALSE), 
+         ep_args=list(digits=0,abbreviate=TRUE), tp_args=list(digits=2))
+    #print(myCtree)
+   
+    # test
+    pred <- predict(myCtree, newdata=testData) #用测试集进行测试
+    plot(pred, testData$TARGET_D) #画出预测与真实
+    print(sum(testData$TARGET_D[pred > cost] - cost)) #输出预测值大于真实的所有绝对值误差
+    # quick sort is "unstable" for tie values, so it is used here to introduce 
+##    # a bit random for tie values
+    s1 <- sort(pred, decreasing=TRUE, method = "quick", index.return=TRUE)
+    #s1有两个值的列表，x是排序的值，ix是对应的index，从大到小排序
+    totalDonation <- cumsum(testData$TARGET_D[s1$ix]) # cumulative sum累加和(真实值)
+    avgDonation <- totalDonation / (1:testSize)   # 前1：testSize个人的均值（真实值）
+    donationPercentile <- 100 * totalDonation / sum(testData$TARGET_D) #前1:testSize的人的值占总体的百分比
+    allTotalDonation[,loopCnt] <- totalDonation #前1：testSize个人的值放入第loopCnt迭代的的矩阵（真实值）
+    allAvgDonation[,loopCnt] <- avgDonation #前1：testSize个人的均值放入矩阵（真实值）
+    allDonationPercentile[,loopCnt] <- donationPercentile##前1:testSize的人的值占总体的百分比放入矩阵（真实值）
+    plot(totalDonation, type="l")
+    grid()
+ }
+ graphics.off()
+ cat(date(), ":  Loop completed.\n\n\n")
+ 
+fnlTotalDonation <- rowMeans(allTotalDonation) #前1：testSize的累加总值的9次均值
+fnlAvgDonation <- rowMeans(allAvgDonation) # 前1：testSize个人的均值（真实值）的9次的均值
+fnlDonationPercentile <- rowMeans(allDonationPercentile)#前1:testSize的人的值占总体的百分比的9次均值
+
+rm(trainData, testData, pred)
+
+# save results into a CSV file
+results <- data.frame(cbind(allTotalDonation,fnlTotalDonation))
+names(results) <- c(paste("run",1:LoopNum), "Average")
+write.csv(results, paste("evaluation-TotalDonation-", strParameters, ".csv",
+                      sep=""))    
+```
+
+##13.5 模型评估
+* 在决策树模型中，按照预测的客户捐款数额的降序对其排序。
+```{r,eval=FALSE}
+result <- read.csv(file="E:\\git\\trial\\MyLab\\evaluation-TotalDonation-1000-400-4-10.csv")
+head(result)
+
+result[,2:11] <- result[,2:11] - cost * (1:testSize)#减去成本？
+
+# to reduce size of the file to save this chart
+#  对于每10个数据点只绘制一个点，以便缩减保存图表的文件的大小
+idx.pos <- c(seq(1, nrow(result), by=10), nrow(result))
+
+plot(result[idx.pos,12], type="l", lty=1, col=1, ylim=c(0,4500), 
+     xlab="Number of Mails", ylab="Amount of Donations ($)")
+for (fCnt in 1:LoopNum) {
+   lines(result[idx.pos,fCnt+1], pty=".", type="l", lty=1+fCnt, col=1+fCnt)
+}
+legend("bottomright", col=1:(LoopNum+1), lty=1:(LoopNum+1), 
+       legend=c("Average", paste("Run",1:LoopNum)))
+
+
+
+
+```
+
+#案例三： 内存受限的大数据预测模型
+
+##14.3 数据与变量
+```{r,eval=FALSE}
+cup98 <- read.csv(file = "E:\\code\\R\\parctice\\Rdatamining\\Data-for-RDataMining-book\\data\\KDDCup1998\\cup98LRN.txt",header = TRUE,sep = ",",na.strings = "NA",skipNul = TRUE)
+dim(cup98)
+n.missing <- rowSums(is.na(cup98))
+sum(n.missing>0)#每条样本都有缺失值
+varSet <- c(
+   # demographics
+   "ODATEDW", "OSOURCE", "STATE", "ZIP", "PVASTATE", "DOB", "RECINHSE", 
+   "MDMAUD", "DOMAIN", "CLUSTER", "AGE", "HOMEOWNR", "CHILD03", "CHILD07", 
+   "CHILD12", "CHILD18", "NUMCHLD", "INCOME", "GENDER", "WEALTH1", "HIT", 
+   # donor interests
+   "COLLECT1", "VETERANS", "BIBLE", "CATLG", "HOMEE", "PETS", "CDPLAY", 
+   "STEREO", "PCOWNERS", "PHOTO", "CRAFTS", "FISHER", "GARDENIN", "BOATS", 
+   "WALKER", "KIDSTUFF", "CARDS", "PLATES",
+   # PEP star RFA status
+   "PEPSTRFL",
+   # summary variables of promotion history
+   "CARDPROM", "MAXADATE", "NUMPROM", "CARDPM12", "NUMPRM12",
+   # summary variables of giving history
+   "RAMNTALL", "NGIFTALL", "CARDGIFT", "MINRAMNT", "MAXRAMNT", "LASTGIFT", 
+   "LASTDATE", "FISTDATE", "TIMELAG", "AVGGIFT",
+   # ID & targets
+   "CONTROLN", "TARGET_B", "TARGET_D", "HPHONE_D",
+   # RFA (Recency/Frequency/Donation Amount)
+   "RFA_2F", "RFA_2A", "MDMAUD_R", "MDMAUD_F", "MDMAUD_A",
+   #others
+   "CLUSTER2", "GEOCODE2")
+# remove ID & TARGET_D
+vars <- setdiff(varSet, c("CONTROLN", "TARGET_D"))
+cup98 <- cup98[,vars]
+```
+
+##14.4 随机森林
+* randomForest包无法处理包含缺失值或者拥有超过32个等级水平的分类变量。
+* 以下分类变量中有一部分可以通过分组的方式来减少等级水平
+```{r,eval=FALSE}
+
+#查看缺失值及分类变量超过10的数据
+n.missing <- rowSums(is.na(cup98)) #查看每个样本缺失值的变量数
+(tab.missing <- table(n.missing)) #表形式查看
+# percentage of records without missing values
+round(tab.missing["0"] / nrow(cup98), digits=2) # 无缺失值的样本数
+# check levels of categorical variables
+idx.cat <- which(sapply(cup98, is.factor)) #拿到因子变量的index
+all.levels <- sapply(names(idx.cat), function(x) nlevels(cup98[,x])) #统计每个因子变量的水平数
+all.levels[all.levels > 10] #查看水平数大于10的变量
+
+#下面划分训练集和测试集
+trainPercentage <- 80
+testPercentage <- 20
+ind <- sample(2, nrow(cup98), replace=TRUE, 
+              prob=c(trainPercentage, testPercentage))
+trainData <- cup98[ind==1,]
+testData <- cup98[ind==2,]
+
+#用party包中的函数cforest()创建随机森林。对于80%的数据集，创建一颗决策树需要2分钟，创建一颗含有50颗决策树的随机森林需要花费1.5小时。
+```
+
+##14.5 内存问题
+* 以下介绍party包中的函数ctree()创建决策树
+* memory.limit(4095)#对R设置内存限制
+* memory.size()只是当前R运行所占用的内存或者最大内存
+* memory.profile()用来查看使用了哪些内存空间
+* object.size()返回R对象占用的内存大小
+```{r,eval=FALSE}
+memory.limit(4000000)#对R设置内存限制
+library(party)
+
+```
+
+##14.6 样本数据的训练模型
+* 找出哪些变量用于建模：对需要创建的决策树重复10次，然后收集出现再说所有的决策树中的每一个变量，并将收集到的变量用于建立最终模型
+```{r,eval=FALSE}
+library(party) # for ctree
+trainPercentage <- 30# 30%训练集
+testPercentage <- 20 # 20%测试集
+restPrecentage <- 100 - trainPercentage - testPercentage #剩下数据
+fileName <- paste("cup98-ctree", trainPercentage, testPercentage, sep="-")
+vars <- setdiff(varSet, c("TARGET_D", "CONTROLN", "ZIP", "OSOURCE")) # 从varSet拿出不含第二个参数数据的数据
+# partition the data into training and test datasets
+ind <- sample(3, nrow(cup98), replace=T, 
+              prob=c(trainPercentage, testPercentage, restPrecentage))
+trainData <- cup98[ind==1, vars]
+testData <- cup98[ind==2, vars]
+
+
+# build ctree
+myCtree <- NULL 
+startTime <- Sys.time()
+myCtree <- ctree(TARGET_B ~ ., data = trainData)
+Sys.time() - startTime
+print(object.size(myCtree), units = "Mb")#输出一个数据对象的大小
+#print(myCtree)
+memory.size()
+
+# plot the tree and save it in a .PDF file
+#pdf(paste(fileName, ".pdf", sep=""), width=12, height=9,
+    paper="a4r", pointsize=6)
+plot(myCtree, type="simple", ip_args=list(pval=F), ep_args=list(digits=0), 
+     main=fileName)
+#graphics.off()
+
+```
+
+##14.7 使用已选择的变量建立模型
+* 建立了10颗决策树之后，选取其中包含的所有变量建立最后的模型。80%训练集，20%测试集
+```{r,eval=FALSE}
+vars.selected <- c("CARDS", "CARDGIFT", "CARDPM12", "CHILD12", "CLUSTER2", 
+                   "DOMAIN", "GENDER", "GEOCODE2", "HIT", "HOMEOWNR", 
+                   "INCOME", "LASTDATE", "MINRAMNT", "NGIFTALL", "PEPSTRFL", 
+                   "RECINHSE", "RFA_2A", "RFA_2F", "STATE", "WALKER")
+trainPercentage <- 80
+testPercentage <- 20
+fileName <- paste("cup98-ctree", trainPercentage, testPercentage, sep="-")
+vars <- c("TARGET_B", vars.selected)
+# partition the data into training and test subsets
+ind <- sample(2, nrow(cup98), replace=T, prob=c(trainPercentage, testPercentage))
+trainData <- cup98[ind==1, vars]
+testData <- cup98[ind==2, vars]
+# build a decision tree
+myCtree <- ctree(TARGET_B ~ ., data = trainData)
+print(object.size(myCtree), units = "Mb")
+memory.size()
+print(myCtree)
+
+
+#save(myCtree, file = paste(fileName, ".Rdata", sep=""))
+#pdf(paste(fileName, ".pdf", sep=""), width=12, height=9,
+    paper="a4r", pointsize=6)
+plot(myCtree, type="simple", ip_args=list(pval=F), ep_args=list(digits=0), 
+     main=fileName)
+plot(myCtree, terminal_panel=node_barplot(myCtree), ip_args=list(pval=F),
+     ep_args=list(digits=0), main=fileName)
+#graphics.off()
+
+#用测试集测试
+rm(trainData)
+myPrediction <- predict(myCtree, newdata=testData)
+# check predicted results
+testResult <- table(myPrediction, testData$TARGET_B)
+percentageOfOne <- round(100 * testResult[,2] / (testResult[,1] + testResult[,2]), 
+                         digits=1)
+testResult <- cbind(testResult, percentageOfOne)
+print(testResult)
+```
+

@@ -52,12 +52,38 @@ output: html_document
 
 * pam(x,k,diss=inherits(x,"dist"),metric="euclidean",medoids=NULL,stand=FASLE,cluster.only=FALSE,do.swap=TRUE,keep.diss=!diss&&!cluster.only&&n<100,keep.data=!diss&&cluster.only,pamonce=FALSE,trace.lev=0)
 
+    * 实现PAM算法
     * x于k分别表示待处理数据及类别数；
     * metric参数选择样本点间距离计算方式，可选euclidean于manhattan
     * medoids默认NULL，即由软件选择初始中心点样本，也可认为设定一个k维向量来指定初始点
     * stand选择对数据进行聚类前是否需要标准化
     * cluster.only选择是否获取各样本所属的类别（Cluster vector）这一项聚类结果，选择TRUE，则聚类过程效率更高。FALSE时，则除了个样本归属类别这一项之外，不再产生其他聚类相关信息
     * keep.data 选择是否在聚类结果中保留数据。FASLE时，数据集不再被保留在聚类结果中
+
+* clara()
+    * 实现CLARA算法
+    * x于k分别表示待处理数据及类别数；
+    * metric参数选择样本点间距离计算方式，可选euclidean于manhattan
+    * stand选择对数据进行聚类前是否需要标准化
+    * keep.data 选择是否在聚类结果中保留数据。FASLE时，数据集不再被保留在聚类结果中
+
+* fpc包的pamk()[不需要用户输入k的值]
+    * data为待聚类数据集或距离矩阵
+```{r,eval=FALSE}
+library(fpc)
+iris2 <- iris
+iris2$Species <- NULL
+
+pamk.result <- pamk(data=iris2) 
+#查看聚类数
+pamk.result$nc
+#查看准确率
+table(pamk.result$pamobject$clustering,iris$Species)
+#可视化
+layout(matrix(c(1,2),1,2))#分割
+plot(pamk.result$pamobject)
+layout(matrix(1))#回复分割
+```
 
 ##dbscan()
 

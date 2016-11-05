@@ -172,6 +172,37 @@ coef(lm.new)#取出新拟合模型的系数
 做logisti回归
 fm <- glm(formula,family = binomial(link=logit),data = data.frame)当不加link=logit时算出的值为概率，加了算出的值为logit值
 
+###留一交叉验证法
+* glm()
+* cv.glm()
+```{r,eval=FALSE}
+library(ISLR)
+glm.fit <- glm(mpg~horsepower,data=Auto)
+coef(glm.fit)
+##下面用cv.glm()来优化，用boot包
+library(boot)
+cv.err <- cv.glm(Auto,glm.fit)
+cv.err$delta#delta向量中的两个数字为交叉验证的结果，在这种情况下，两个数字一样，对应为LOOCV估计
+#下面优化建模，用循环，1到5次
+cv.error=rep(0,5)
+for(i in 1:5)
+{
+    glm.fit <- glm(mpg~poly(horsepower,i),data = Auto)
+    cv.error[i] <- cv.glm(Auto,glm.fit)$delta[1]
+}
+cv.error
+##k折交叉验证
+set.seed(17)
+cv.error.10 <- rep(0,10)
+for(i in 1:10)
+{
+    glm.fit=glm(mpg~poly(horsepower,i),data=Auto)
+    cv.error.10[i] <- cv.glm(Auto,glm.fit,K=10)$delta[1]
+}
+cv.error.10
+```
+
+
 #The Book
 
 ##Library

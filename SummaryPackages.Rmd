@@ -194,6 +194,7 @@ select(lm.ridge(y~.,data,seq(0,0.1,0.001)))#可以自动选择变量
 ##交叉验证
 * boot包的cv.glm()
     * 仅适用于glm模型
+    * 自动计算留一测试误差
     
 ##弹性网络
 * 正则化（regularization）:glmnet包的glmnet()
@@ -218,3 +219,17 @@ select(lm.ridge(y~.,data,seq(0,0.1,0.001)))#可以自动选择变量
 * 多元时间序列：vars包。
     * 拟合多元时间序列常用模型向量自回归模型VAR，函数ar()虽然可以拟合，但常会在AR阶数过高时出现奇异矩阵，所以最好用vars包的var()函数。为了检验数据是否要差分运算，用forecast包的ndiffs()确定差分次数
 * 广义自回归异方差模型（GARCH），包rugarch
+
+##自助法
+* boot包的boot()函数
+* boot(data,statistic,R=1000)#其中statistic可以是自己定义的函数，R是产生的自助样本
+```{r,eval=FALSE}
+library(ISLR)
+boot.fn <- function(data,index)return(coef(lm(mpg~horsepower,data=data,subset = index)))
+boot.fn(Auto,1:392)
+###
+set.seed(1)
+boot.fn(Auto,sample(392,392,replace = T))
+boot(Auto,boot.fn,1000)
+```
+
