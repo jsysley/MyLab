@@ -279,4 +279,264 @@ for(fn in c("file1","file2"))print(scan(fn))
         * sqrt():平方根
         * abs():绝对值
         * sin(),cos()等：三角函数
-        * 
+        * min(),max():向量的最小，最大值
+        * which.min(),which.max():向量的最小值，最大值的索引
+        * pmin(),pmax():把多个等长度的向量按元素逐个对比，返回所有向量的第k个元素中最小（最大）值
+        * sum(),prod():把多个一个向量的所有元素累计求和（求积）
+        * cumsum(),cumprod():把一个向量的前k个元素累计求和（求积）
+        * round(),floor(),ceilling():分别是四舍五入取整，向下取整和向上取整
+        * factorial():阶乘
+        * 求函数的最小值，最大值用nlm(),optim()
+```{r,eval=FALSE}
+##求函数x^2-sin(x)的最小值
+nlm(function(x)return(x^2-sin(x)),8)#次数求根用Newton-Raphson方法，第二个参数设置初始值
+optim(function(x)return(-x^2+2*x-9),par = 1)#乱来
+```
+        * 微积分:R的odesolve包可以处理违反方程；ryacas包提供了R与Yacas符号数学系统接口
+```{r,eval=FALSE}
+##微分
+D(expression(exp(x^2)),"x")
+##积分
+integrate(function(x)x^2,0,1)
+```
+* 8.2 统计分布函数
+    * d：概率密度函数或概率质量函数
+    * p: 累计分布函数
+    * q: 分位数
+    * r：随机数的生成
+* 8.3 排序
+    * 对向量进行普通数值排序，sort(),注意此时x本身没有改变
+    * 得到排序后的值在原向量中的索引，order(),还函数还可以对字符排序
+    * rank()，返回向量中每一个元素的排位
+* 8.4 向量和矩阵的线性代数运算
+    * 计算两个向量的内积：crossprod(x,y)
+    * 数学意义上的矩阵乘法：% *%
+    * solve()可以解线性方程组，还可以求矩阵的逆，solve(a,b)#其中a是方程组的稀疏矩阵，b是列向量，求矩阵的逆直接solve(a)
+    * 其他一些线性代数运算：
+        * t():矩阵的转置
+        * qr():QR分解
+        * chol():Cholesky分解
+        * det():矩阵行列式的值
+        * eigen():矩阵的特征值和特征向量
+        * diag(): 从方阵中提出对角矩阵（有利于从协方差矩阵中得到方差和构建对角矩阵）。如果参数是矩阵，则返回值为矩阵，若参数是一个标量，返回值是方阵
+        * sweep():数值分析批量运算符
+```{r,eval=FALSE}
+#sweep()函数的示例，取一个矩阵，第一行都加1，第二行都加4，第三行都加7
+m <- matrix(1:9,nrow = 3,byrow = TRUE)
+sweep(m,1,c(1,4,7),"+")#1表示对行操作，第四个参数是要使用的函数，第三个参数是要使用的额函数的参数
+```
+* 8.5 集合运算
+    * union(x,y):集合x和y的并集
+    * intersect(x,y):集合x和y的交集
+    * setdiff(x,y):集合x和y的差集
+    * setequal(x,y):检验集合x和y是否相等
+    * c %in% y:检验c是否为集合y中的元素
+    * choose(n,k):从含有n个元素的集合中选取含有k个元素的自己的数目
+    * combn():用于产生集合元素的组合，例如找出集合{1,3,2}中含有2个元素的子集，返回值是矩阵，一行是一种情况;也允许用户指定一个函数，作用于挑选出的每个组合，例如计算每个子集里元素的总和：combn(1:3,2,sum)
+
+##第九章 面向对象的编程
+* 9.1 S3类
+    * 一个S3类包含一个列表，再附加上一个类名属性和调度(dispatch)的功能
+    1. S3泛型函数
+        * R是多态的，同一个函数可以针对不同的类的调用不同的操作。具有多态性的函数称为"泛型函数"
+    * 寻找泛型函数的实现方法：methods(function),例如methods(print)
+        * 星号标注的是不可见函数（nonbisible fnction），即不在默认命名空间中的函数。可以通过getAnywhere()找到这些函数，然后使用命名空间限定符访问(:::)
+    4. 编写S3类
+        * 类的属性可以通过attr()或者class()函数手动设置，然后再定义各种泛型函数的实现方法
+```{r,eval=FALSE}
+#雇员数据的例子
+j <- list(name="Joe",salary=55000,union=T)
+class(j) <- "employee"
+attributes(j)
+j#查看默认打印
+####本质上，j在打印时被当做一个列表，下面编写自己的打印方法：
+print.employee <- function(wrkr)
+{
+    cat(wrkr$name,"\n")
+    cat("salary",wrkr$salary,"\n")
+    cat("union member",wrkr$union,"\n")
+}
+###这样在对employee类打印时调用print()，会定向到print.employee
+methods(,"employee")
+```
+    5. 使用继承
+        * 在以上雇员的例子上创建小时工"hrlyemployee",作为"employee"的子类
+```{r,eval=FALSE}
+k <- list(name="Kate",salary=68000,union=F,hrsthismonth=2)
+class(k) <- c("hrlyemployee","employee")#新类和类原有的类
+###print.employee()仍然适用于新的类
+```
+        * 小技巧：通过把整个赋值语句放在括号内就能打印出来
+* 9.2 S4类
+    * 定义类：setcalss(S3类是在构造函数的代码中隐义)
+    * 创建对象：new(S3类是创建列表，设置类属性)
+    * 引用成员变量：@(S3是$)
+    * 实现泛型函数：setMethod(S3类是定义f.classname())
+    * 声明泛型函数：setGeneric(S3类是UseMethod())
+    1. 编写S4类
+```{r,eval=FALSE}
+setClass("employee",
+         representation(
+             name="character",
+             salary="numeric",
+             union="logical")
+         )
+"employee"
+###用内置new()为此类创建一个示例
+Joe <- new("employee",name="Joe",salary=55000,union=T)
+Joe
+###访问成员：slot()函数或者@
+Joe@salary
+slot(Joe,"salary")
+```
+    2. 在S4类上实现泛型函数
+        * setMethod()函数，下面实现show()（与S3类中的print()函数类似）
+```{r,eval=FALSE}
+###一下两种打印方法等价
+Joe
+show(Joe)
+###下面用代码重写：
+setMethod("show","employee",
+          function(object)
+              {
+                inorout <- ifelse(object@union,"is","is not")
+                cat(object@name,"has a salary of",object@salary,
+                    "and",inorout,"in the union","\n")
+              })
+```
+
+* 9.4 对象的管理
+    1. 用ls()函数列出所有对象
+```{r,eval=FALSE}
+ls()#列出所有对象
+ls(pattern = "p")#列出所有名称中含有字符串"p"的对象
+
+```
+    2. 用rm()函数删除特定对象
+        * rm(object1,object2,...)
+        * 删除所有的对象：rm(ls())
+        * 删除所有名称含p的对象：rm(ls(pattern="p"))
+    3. browseEnv():在另一个界面显示所有全局变量
+    4. 用save()函数保存对象集合
+        * 在若干个对象上调用save()可以把这些对象写入硬盘中，下次使用可以用load()恢复
+    5. 查看对象内部结构
+        * class(),mode()
+        * name(),attributes()
+        * unclass(),str()
+            * unclass()非常有用，比如如果仅仅打印一个对象，print()，则结果就完全由与该类相关联的print()的版本决定，这样往往隐藏或扭曲了一些有价值的信息。用unclass()来打印结果可以解决这个问题
+        * edit()可以在文本编辑器查看对象
+    6. exists()函数
+        * 根据其参数是否存在返回TRUE或者FALSE,注意要把参数放在引号里面
+    
+
+##第十章 输入与输出
+* 10.1 连接键盘与显示器
+    1. 使用scan()函数
+        * scan()函数可以从文件中读取或者用键盘输入一个向量，它可以是数值型或字符型向量
+            * what参数用来设定变量的模式(mode),默认double模式，字符模式可以为what=""
+            * 默认空白字符作为分隔，空白字符包括空格、回车、换行符和水平制表符，其他分隔符用参数sep设定
+            * 从键盘读取数据：scan("")
+            * 如果不希望scan()报告已读取的项目数，可以设置参数quiet=TRUE
+    2. 用readline()函数
+        * 从键盘输入单行数据：w <- readline()
+        * 可以指定提示语,w <- readline("type it: ")
+    3. 输出到显示器
+        * print(object)#输出内容待编号，且只能输出一个表达式
+        * cat("str")#该函数输出内容不带编号。调用cat()时需要一个结束字符"\n"，如果没有，下一次调用cat()函数还会在同一行输出内容
+        * cat()函数打印的各个内容是空白符为分隔，不想分隔用参数sep=""
+* 10.2 读写文件
+    1. 从文件中读取数据框或矩阵
+        * read.table()##当有表头的data.frame用scan读取会出错，因为文件中数值和字符混杂（表头），一个简单的方法是用scan()逐行读取
+    2. 读取文本文件
+        * 文本文件(text file)和二进制文件(binary file)之间通常会有区别
+        * readlines("file")，可以一次性读取整个文件
+    3. 连接的介绍
+        * 连接一般通过函数file(),url()或其他R函数创建
+        * 连接用close()关闭
+```{r,eval=FALSE}
+###逐行读取一个文件
+c <- file("file","r")
+readlines(c,n=1)#n=1表示使程序一次只读取文件的一行，当R遇到文件结束符（EOF），就返回一个空值。下面设置一个连接，让R跟踪读取文件的进程
+
+c <- file("file","r")
+while(TRUE)
+{
+    rl <- readLines(c,n=1)
+    if(length(rl)==0)
+    {
+        print("reached the end")
+        break
+    }else
+    {
+        print(rl)
+    }
+}
+###如果想要“倒带”，从文件处重新读取，用seek()
+seek(con=c,where=0)#此时c已经在开头，该函数返回值为执行命令前文件指针位于的地方
+```
+    6. 写文件
+        * write.table(data,file="str")函数把数据写入文件
+        * 把矩阵写入文件，只需声明不要列名和行名：write.table(data,file="str",row.names=F,col.names=F)
+        * cat()函数也可以用来写入文件，一次写入一部分
+```{r,eval=FALSE}
+cat("abc\n",file="u")#第一次调用时创建文件u，包含第一行内容”abc"
+cat("de\n",file="u",append=TRUE)#第二次调用追加了第二行
+###cat()函数里的内容会成为一行
+```
+        * writelines()
+```{r,eval=FALSE}
+c <- file("file","w")
+writeLines(c("a","b","c"),c)
+close(c)#abc三个元素各占一行
+```
+    7. 获取文件和目录信息
+        * file.info():参数是表示文件名称的字符向量，函数给出每个文件的大小、创建时间，是否为目录等信息
+        * dir():返回一个字符向量，列出在其第一个参数指定的目录中所有文件的名称。当recursive=TRUE时，结果将把第一个参数下面整个目录的树都显示出来
+        * file.exists():返回一个布尔向量，表示作为第一个参数的字符串向量中给定的每个文件名是否存在
+        * getwd()和setwd()：用于确定和改变工作目录
+```{r,eval=FALSE}
+sumtree <- function(drtr)
+{
+    tot <- 0
+    fls <- dir(drtr,recursive = TRUE)
+    for(f in fls)
+    {
+        #f是否为目录
+        f <- file.path(drtr,f)#以路径的形式拼接字符串
+        if(!file.info(f)$isdir)
+        {
+            tot <- tot+sum(scan(f,quiet = TRUE))
+        }
+    }
+    return(drtr)
+}
+```
+
+        
+##第十一章 字符串操作
+* 11.1 字符串操作函数概述
+    * grep(patten,x):在字符串向量x里搜索给定的子字符串pattern。如果x含有n个元素，即包含n个字符串，则grep(pattern,x)会返回一个长度不超过n的向量。这个向量的每个元素是x的索引，表示匹配的子字符串。当找不到时，返回integer(0)
+    * nchar(str):返回字符串的长度
+    * paste(...):把若干个字符串拼接起来，返回一个长字符串，sep,pattern,collapse等可以设置分隔符
+    * sprintf(...):按一定格式把若干组件组合成字符串
+```{r,eval=FALSE}
+i=8
+s <- sprintf("the square of %d is %d",i,i^2)
+s
+```
+    * substr(x,start,stop)函数返回给定字符串x中指定位置范围start:stop上的字符串
+```{r,eval=FALSE}
+substr("Equator",3,5)
+substring("Equator",3,5)
+```
+    * strsplit(x,split):根据x中的字符串split把字符串x拆分成若干子字符串，返回列表
+    * regexpr(pattern,text):在字符串text中寻找pattern，返回与pattern匹配的第一个子字符串的起始字符位置
+```{r,eval=FALSE}
+regexpr("uat","Equator")
+```
+    * gregexpr(pattern,text):与regexpr()一样，不过他会寻找与pattern匹配的全部子字符串的其实位置
+```{r,eval=FALSE}
+gregexpr("iss","Mississippi")
+```
+* 11.2 正则表达式
+
