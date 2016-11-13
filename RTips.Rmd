@@ -222,6 +222,9 @@ plotcorr(cor_matrix,col=rep(c("white","black"),5))#对如上相关系数矩阵�
     * aggregate(data,list(f),g)#data是数据，f是因子，g是函数
     * cut(x,b,labels=FALSE)#x是数据，b是一列数，对应组成左开右闭区间，返回对应数据落入的区间的index，
     * findInterval()
+* 列出包的所有文件
+    * library(help=mvtnorm)
+    * help(package=mvnorm)
 
 ##第七章 R语言编程结构
 * 7.1控制语句
@@ -539,4 +542,120 @@ regexpr("uat","Equator")
 gregexpr("iss","Mississippi")
 ```
 * 11.2 正则表达式
+    * [au]:表示含有字母a或u的字符串
+    * .:表示任意一个字符
+    * 查找句点".":\\.
+```{r,eval=FALSE}
+dbgsendeditcmd <- function(cmd)
+{
+    syscmd <- paste("vim --remote-send",cmd," --severname ",vimsever,sep="")
+    system(syscmd)
+}
+```
 
+##第十二章 绘图
+* 精确定位函数：locator(1)函数，其中1表示返回1个坐标
+```{r,eval=FALSE}
+hist(c(12,5,13,25,16))
+#精确显示图例
+text(locator(1),"nv=75")
+```
+* 保存图形：
+    * R没有"撤销"的命令。当认为绘图室下一步可能会撤销时，则需要函数recordPlot()将当前图像保存，之后用replayPlot()恢复
+    * 另一种做法：将你画图的命令保存为一个文件，然后用source()或"剪切-粘贴"的办法来运行代码
+```{r,eval=FALSE}
+hist(c(12,5,13,25,16))
+gg <- recordPlot()
+#精确显示图例
+text(locator(1),"nv=75")
+replayPlot(gg)
+```
+* 添加多边形：polygon(x,y)##用不了
+    * 该函数可用来绘制任意形状的多边形
+    * 第一个参数设置多边形各定点的横坐标，第二个参数是相应的纵坐标
+```{r,eval=FALSE}
+f <- function(x)return(1-exp(-x))
+curve(f,0,1)##画曲线的函数，其中0，1表示x轴的范围
+polygon(c(1.2,1.4,1.4,1.2),c(0,0,f(1.3),f(1.3)),col = "red")
+```
+* 平滑散点
+    * lowess()
+    * loess()
+```{r,eval=FALSE}
+x=seq(0,100,length=30)+rnorm(30,0,10)
+plot(x)
+lines(lowess(x))#对数据拟合一条平滑的非参数回归曲线
+```
+* 绘制具有显式表达式的函数
+    * 法一：
+```{r,eval=FALSE}
+g <- function(t){return(t^2+1)^0.5}
+x <- seq(0,5,length=1000)
+y <- g(x)
+plot(x,y,type = "l")
+```
+    * 法二：其中可选参数默认n=101，表示会在给定的x范围内等距离计算101个点的函数值
+```{r,eval=FALSE}
+curve((x^2+1)^0.5,0,5)#后面两个参数是x的范围
+###如果想在现有的图中添加这条曲线，用add参数
+curve((x^2+1)^0.5,0,5,add=TRUE)
+```
+
+* 保存图形
+    * 打开一个图形文件：pdf("d12.pdf")
+    * 查看已有的图像：dev.list()
+    * 查看当前活动的设备：dev.cur()
+    * 保存已显示的图像：将当前屏幕重新设置为活动设备，然后将内容复制到PDF
+```{r,eval=FALSE}
+dev.set(2)
+dev.copy(which=3)#此处3是pdf设备编号，在dev.list()会显示图像的编号，还有对应的pdf设备编号
+```
+* 关闭R图形设备
+    * 之前创建的PDF文件必须在关闭设备后才能正常使用
+```{r,eval=FALSE}
+dev.set(3)
+dev.off(3)
+```
+
+##第十三章 调试
+* 13.1 调试的基本原则
+    1. 调试的本质：确认原则
+    2. 从小处着手
+    3.模块化、自顶向下的调试风格
+        * 第一层代码不应该超过12行，主要包含一系列的函数调用
+        * 同时每个函数也不应该太长
+    4. 反漏洞 
+        * 假设在某段代码中变量x应该为正，那么可以插入以下语句stopifnot(x>0)
+* 13.2 为什么要用调试工具
+    * 检查if等语句是否执行可在里面加入print()语句来确认，但当代码长时则乏味
+* 13.3 使用R的调试工具
+    1. 利用debug()和browser()函数进行逐步调试
+        * R的核心调试工具由浏览器（browser）构成，它可以让你逐行运行代码，并在运行过程中进行检查。可以调用debug()或browser()函数来打开这一浏览器
+        * R的debug()是针对单个函数，如对f()函数调试，则debug(f)来设置函数f()的调试状态。这意味着在每次调用函数f()，将自动在函数入口处进入浏览器。undebug(f)取消函数的调试状态。
+        * 如果在f()中的某一行加入一条browser()语句，那么浏览器只会在程序执行到这一行时被打开，接下来可以调试代码，知道退出这一函数。如果你认为漏洞的位置离函数开始部分比较远，不想从头开始调试，可以用这种插入browser()的办法。
+        * 如果只想对f()进行一次调试会话，用debugonce(f),会在f()第一次被执行时对其设置调试状态，在f()退出时立刻将调试状态取消
+    2. 使用浏览器命令
+        * 进入调试时，>变成Browser[d]>（此处d表示函数调用链的深度），在命令提示符之后可以输入：
+            * n(代表next):执行下一行，然后暂停，直接键入enter有一样的效果
+            * c(代表continue)：与n类似，但在下次暂停前可能会执行若干条语句。如果在循环中，则会执行剩余的循环，知道退出循环才暂停；如果在函数但不在循环中，那么下一次暂停前函数的剩余部分会被执行
+            * 任意的R命令：可以任意的查看变量取值。如想查看x的取值，键入x，如果有某个变量与浏览器的命令同名，那么必须显示使用print()等输出语句
+            * where:会输出一份栈跟踪路径（stack trace），即显示到达当前位置过程中函数的调用序列。
+            * Q：退出浏览器
+    3. 设置断点
+        * 设置断点：在代码关键部分设置断点，让程序暂停的地方，可以用browser()函数，或者使用setBreakpoint()函数
+        1. 直接使用brower()函数
+            * 还可以设置一些条件，使得浏览器只在特定的条件下被打开，定义这些条件的方法是使用expr参数。例如认为只在变量s大于1时会出现漏洞：browser(s>1),或者if(s>1)browser;例如某些大型循环，认为漏洞在第50次迭代之后才会出现，循环索引i，可以使用：if(i>49)browser()
+        2. 使用setBreakpoint():与browser()函数类似，但避免了使用编辑器修改代码的麻烦
+            * setBreakpoint(filename,linenumber):在源文件filename的第linenumber行调用browser()。可以在调试中设置，而不用退出调试在函数里面设置完再重新进入调试
+            * 假设在函数g中某一行调用了setBreakpoint(),那么要去下断点，untrace(g)
+    4. 使用trace()函数进行追踪
+        * trace(f,t):在R每次进入函数f时自动调用函数t()。
+        * trace(gy,browser),例如想在源码中插入一条browser()，此时可以达成效果。但它更方便，使用这种方法，不必再源码中插入一行，保存文件，然后重新运行。调用trace()不会修改源文件，尽管它确实修改了由R生成该文件的一个临时拷贝
+        * 取消追踪：untrace(gy)
+        * 全局地打开或关闭追踪功能，可以使用tracingState()函数，将参数设为TRUE表示打开追踪，设为FALSE表示关闭追踪
+    5. 使用traceback()和debugger()函数对崩溃的程序进行检查
+        * 当R程序崩溃时，但当前没有运行调试器时，依然可以在程序奔溃后使用一项调试工具，即调用traceback()函数。该函数会告诉你问题发生在哪个函数中，还能告诉你程序是通过怎样的函数调用链到那个函数的
+        * 想获取更多错误信息：可以设置options(error=dump.frames);这样设置后可以在发生奔溃后运行下面：debugger();接下来可以选择浏览那个层级的函数的调用。浏览之后，可以输入N来返回到debugger()的主菜单
+        * 选在在发生错误后自动进入调试器：options(error=recover)；关闭这项设置options(NULL)
+        * options(warn=2):将warnings转化为错误，从而能知道warnings在哪里出现
+        
