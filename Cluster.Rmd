@@ -356,3 +356,5 @@ names(countries.BICsum)#查看countries.BICsum可以获得的结果
 #mclust2Dplot(countries[,-1],classification=countries.BICsum$classification,parameters=countries.BICsum$parameters,col="black")#绘制分类图
 ```
 
+* 确定聚类数
+    * Nbclust(data,min.nc,max.nc,method)
