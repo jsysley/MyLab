@@ -356,5 +356,10 @@ names(countries.BICsum)#查看countries.BICsum可以获得的结果
 #mclust2Dplot(countries[,-1],classification=countries.BICsum$classification,parameters=countries.BICsum$parameters,col="black")#绘制分类图
 ```
 
+###2017，1，21
 * 确定聚类数
-    * Nbclust(data,min.nc,max.nc,method)
+    * nc <- Nbclust(data,min.nc,max.nc,method)
+    * nc$best.partition:最佳分类数的聚类结果
+
+* 比k-means更好的一个聚类方法：k-mediods（PAM算法）
+    * pam(data,k,stand=TRUE):stand表示是否标准化
