@@ -1,0 +1,235 @@
+---
+title: "Summary"
+author: "jsysley_mac"
+date: "2016年9月18日"
+output: html_document
+---
+
+#Summary
+
+##数据分析
+Hmisc()包：describe()
+fBasics包的basicStats()
+
+##Linear Regression
+不用包，用lm()函数，glm()函数
+
+
+##聚类分析
+
+* stats包: 包含基本的统计函数，如用于统计计算和随机数生成
+
+    * K-均值聚类（K-Means）： kmeans(data,k,iter.max)
+        * 对k选最优值，循环，目标函数聚类优度，（聚类优度）组间差/总离差 最大
+        * data的类别变量要去掉
+        * 可视化：useful包的plot.kmeans(object,data)，plot.kmeans(object,data,class="列名")，class为真正的分类
+        * 如何选择类数：
+            * Hartigan准则，useful包的FitKMeans()，如果分k类的值大于10，则选择k+1类
+            * Gap统计值，通过对数据bootstrap抽样来比较聚类的内差异性，cluster包的clusGap()计算（仅仅适合于数值型数据），它需要一点时间，因为需要大量模拟
+            
+        
+    * 系谱聚类（HC）: hclust(d)、cutree(tree,k)(k为类别)、rect.hclust(tree,k)(在系谱图圈出来)
+        * 对k选最优值，
+        * 求距离阵dist()时data的类别变量要去掉
+* cluster包： 用于聚类分析，含有很多聚类相关的函数及数据集
+
+数据集均要剔除因变量
+    * K-中心点聚类（K-Medoids）：  pam(data,k)
+        * data的类别变量要去掉
+    
+* fpc包： 含有若干聚类算法函数，如固定点聚类，线性回归聚类，DBSCAN聚类等
+
+    * 密度聚类（DBSCAN）： dbscan(data,eps,MinPts)#半径，密度阈值
+        * 要看各个样本点的距离大概在什么区间，然后循环eps的值（范围就是0-距离区间），然后内层循环密度阈值1-10
+        * data的类别变量要去掉
+    
+* mclust包： 主要用来处理基于高斯混合模型，通过EM算法实现的聚类、分类及密度估计等问题
+
+    * 期望最大化聚类（EM）： Mclust(data)、clustBIC()、mclust2Dplot()、densityMclust()
+        * data的类别变量要去掉
+        * summary(object)查看结果
+    
+
+##关联分析
+Arules、arulesViz包
+apriori()、eclat()
+* rules0=apriori(data,parameter = list(support=0.001,confidence=0.5))#支持度，置信度
+
+* 可视化：
+arulesViz包的plot(object)
+##聚类分析
+Cluster、mclust、stats包
+
+##判别分析
+MASS、klaR、class、kknn包
+
+MASS包：
+    * 线性判别分析(LDA)
+        * lda(formula,data,subset,na.action)
+        * 预测：predict(object,data)
+        * 此处data可有多余变量，包括类别
+    
+    * 二次判别分析(QDA)
+        * qda(formula,data,subset,na.action)
+        * 预测：predict(object,data)
+        * 此处data可有多余变量，包括类别
+
+klaR包：
+    * 朴素贝叶斯分类
+        * NaiveBayes(formula,data,subset,na.action=na.pass)
+        * 预测：predict(object,data)
+        * 此处data可有多余变量，包括类别
+        
+class包：
+    * k最近邻kNN
+        *knn(train,test,k=1,cl,)#k为近邻数，train,test数据集均要去掉类别，cl为train被别向量
+        * 选取最优值看，循环找错误率最小的
+        * 预测：predict(object,data)
+        * 此处data可有多余变量，包括类别
+        
+kknn包：
+    * 有权重的k最近邻
+        * kknn(formula,train,test,na.action,=na.omit(),k=7,distance=2)#distance为闵氏距离中的参数，1为曼哈顿距离，2为欧氏距离
+        * train是完整的数据包括x和y，test是仅有x的数据
+        * 预测： fitted(object)
+
+
+##决策树
+rpart、rpart.plot，maptree,RWeka,PWake包
+
+* CART(Classification and Regression Trees)
+    
+        * rpart包：
+            * rpart(formula,data,method=c("anova","poisson","class","exp"),control=rpart.control(minsplit=20,minbucket=round(minsplit/3),cp=0.01,maxdepth=4)    
+            * rpart(formula,data,method,minsplit，maxdepth)#y为连续型数值则用avova，离散型则用class
+                * 输出结果：print(tree)
+                * 输出各节点cp值：printcp(tree)
+                * 详细信息：Summary(tree)
+                * 预测：predict(tree,data)#此处data可带多变量
+            * prune.rpart(tree,cp)、post()
+        
+        * rpart.plot包: rpart.plot(tree)#树的可视化
+        
+        * maptree包: draw.tree()
+        
+* C4.5(successor of ID3)
+        
+    *RWeka包: J48(formula,data,subset,)
+    
+* party包：
+    * ctree(formula,data)
+
+##集成学习
+adabag包
+
+* bagging(formula,data,mfinal=100)#基分类器数量 
+    * 预测：predict(object,data)#data可以包含多余向量
+        * 预测对象中：
+            * pre.bag$confusion#测试集结果的混淆矩阵
+            * pre.bag$error#测试集预测错误率
+
+* boosting(formula,data,mfinal=100)
+
+##随机森林
+randomForest包
+
+* importance(object,scale=TRUE)#提取随机森林模型的重要值
+* MDSplot(object,factors)#产生建立随机森林模型过程中产生的临近矩阵经过标准化的坐标图
+* rflmpute()#对缺失值进行插值
+    * rfImpute(x,y,iter=5,ntree=300,...)
+    
+    * rfImpute(formula ,data,...,subset)
+* treesize(x,terminal=TRUE)#查看随机森林中每一颗树的节点数，TRUE只计算最终根节点的数；FALSE则计算全部全部节点个数
+* randomForest(formula,data,ntree)
+* 可视化：plot()
+
+
+##支持向量机
+e1071包
+    * svm(formula,data=NULL,subset,na.action=na.omit,scale=TRUE,kernel=c("radial","linear","polynomial","sigmoid"),type=c("C-classification","nu-classification","one-classification","eps-regression","nu-regression"")，weights=c())#type前3种针对字符型结果变量的分类方式，其中第3种方式是逻辑判别,kernel是核函数,weights为各类样本的数量比例，提高分错样本的数量可以提高准确率
+
+可视化：
+plot(object,data,formula)#formula指用来观察任意两个特征维度对模型分类的相互影响，复杂，见原文
+
+预测：predict(object,data)#
+
+优化：两层循环，分类方式，核函数，寻找最优，计算错误率
+
+##神经网络
+nnet包
+
+* model1=nnet(quality~.,data = wine,subset = samp,size=4,rang=r,decay=5e-4,maxit=200)#samp为训练集行号向量，size为隐藏层中节点个数，decay为迭代精度，maxit为迭代最大次数
+
+* model2=nnet(x,y,decay=5e-4,maxit=200,size=4,rang=r)#此时x，y要分开，且y要经过class.ind()处理
+
+* 预测函数：
+    * 第一种建模方式：predict(model1,x,type="class"),x是数据矩阵(可包含多余变量数据)，直接给出预测结果
+    * 第二种建模方式：pred=predict(model2,xt)#根据模型对xt预测(不能有多余变量数据)，给出分别属于各类的概率
+    
+优化：对隐藏层节点数size循环寻找最优，看模型误判率，对迭代次数循环寻找最优（maxit）
+    
+    
+##glmnet包进行LASSO变量选择
+glmnet()
+
+##lars包最小角回归变量选择，
+data=as.matrix(data)
+laa <- lars(x=,y=)
+laa#这里标出几号变量在第几步选择
+plot(laa)
+summary(laa)
+
+
+##岭回归：MASS包
+lm.ridge(y~.,data,seq(0,0.1,0.001))#后面的seq是lambda选择范围
+select(lm.ridge(y~.,data,seq(0,0.1,0.001)))#可以自动选择变量
+
+##对日期和时间进行操作处理
+* lubridate
+* chron
+
+##相关系数矩阵可视化分析
+* GGally包，ggpairs(data)
+
+##交叉验证
+* boot包的cv.glm()
+    * 仅适用于glm模型
+    * 自动计算留一测试误差
+    
+##弹性网络
+* 正则化（regularization）:glmnet包的glmnet()
+* 压缩（shrinkage）:arm包的bayesglm()
+
+* glmnet包的glmnet()
+    * lambda控制压缩的程度。glmnet()默认的在100个不同的lambda值上进行路径拟合。最优路径的选择依赖于使用者，交叉验证往往是一个不错的方法。glmnet包有一个函数cv.glmnet()可以自动的计算交叉验证的值。 
+        * coef(object,lambda="lambda.1se")查看选择变量结果
+        * lasso回归模型拟合用lars包
+
+* useful包的build.x(y~x1+x2...,contrasts=FALSE)#FALSE时不编码成示性变量，仅普通的0-1编码，build.y()函数用法同上。
+
+## 广义相加模型（GAMs）
+* 包mgcv，函数gam()
+
+##时间序列
+* 将数据转化为时间序列：ts(data,start=min(year),end=max(year))#data仅为一列数据，与时间对应
+* 查看其自相关系数（ACF）和偏自相关系数（PACF），R中函数acf(),pacf()
+* 寻找差分包：forecast,函数ndiffs(data)#data为一列时间序列数据
+* 时间序列：ar(),ma(),arima(),
+    * forecast包的auto.arima(data)有能自动确定模型结构的功能
+* 多元时间序列：vars包。
+    * 拟合多元时间序列常用模型向量自回归模型VAR，函数ar()虽然可以拟合，但常会在AR阶数过高时出现奇异矩阵，所以最好用vars包的var()函数。为了检验数据是否要差分运算，用forecast包的ndiffs()确定差分次数
+* 广义自回归异方差模型（GARCH），包rugarch
+
+##自助法
+* boot包的boot()函数
+* boot(data,statistic,R=1000)#其中statistic可以是自己定义的函数，R是产生的自助样本
+```{r,eval=FALSE}
+library(ISLR)
+boot.fn <- function(data,index)return(coef(lm(mpg~horsepower,data=data,subset = index)))
+boot.fn(Auto,1:392)
+###
+set.seed(1)
+boot.fn(Auto,sample(392,392,replace = T))
+boot(Auto,boot.fn,1000)
+```
+

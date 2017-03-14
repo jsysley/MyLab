@@ -1,0 +1,171 @@
+---
+title: "DecisionTree"
+author: "jsysley"
+date: "2016年9月19日"
+output: html_document
+---
+
+#概述
+
+*用到的包：
+
+    * rpart、rpart.plot、maptree、RWeka
+
+* 算法
+
+    * CART(Classification and Regression Trees)
+    
+        * rpart：rpart()、prune.rpart()、post()
+        
+        * rpart.plot: rpart.plot()
+        
+        * maptree: draw.tree()
+        
+    * C4.5(successor of ID3)
+        
+        *RWeka: J48()
+        
+#核心函数
+
+##rpart()
+
+* rpart(formula,data,weights,subset,na.action=na.rpart,method,model=FALSE,x=FALSE,y=TRUE,parms,control,cost,...)
+    * formula: 想要建立模型的公式
+    * data: 训练集，其中subset可以选择出data中若干行样本来建立模型
+    * na.action: 处理缺失值，默认na.rpart，即仅剔除缺失y值，或缺失所有输入变量值的样本数据
+    * method： 选择决策树的类型，有anova、poisson、class、exp等4种类型，默认情况下程序自动决定，比如y为因子变量时取class型。其中anova为回归树，class为分类树
+    * control： 参照rpart.control
+
+##rpart.control()
+
+* rpart.control(minsplit=20,minbucket=round(monsplit/3),cp=0.01,maxcompete=4,maxsurrogate=5,usesurrogate=2,xval=10,surrogatestyle=0,maxdepth=30,...)
+    * minsplit: 每个节点中所含样本数的最小值，默认20
+    * minbucket: 每个叶节点中所含样本数的最小值，默认1/3的minsplit的四舍五入值
+    * cp： 指2复杂度参数，如cp=0.03，则仅保留可以使得模型拟合度提升0.03及以上的节点。该参数用于通过剪去对模型贡献不大的分支，提高算法效率
+    * maxdepth: 控制树的高度，即设置节点层次的最大值，根节点高度为0，以此类推
+    
+    
+##prune.rpart()
+* 可根据cp值对决策树剪枝，即剪去cp值较小的不重要的分支
+* prune(tree,cp,...),放入决策树即cp值即可
+
+##rpart.plot()、draw.tree()
+* 都是用来绘制分类树/回归树的制图函数
+
+##J48()
+* 实现C4.5算法的核心函数
+
+* J48(formula,data,subset,na.action,control=Weka_control(),options=NULL)
+    * formula: 构建模型的公式
+    * data: 数据集
+    * na.action： 用于处理缺失数据
+    * control: 对树的复杂度进行控制的参数，设置形式为control=Weka_control()，取值如下：
+        * U： 不对树剪枝，默认TRUE
+        * C： 对剪枝过程设置置信阈值，默认0.25
+        * M： 对每个叶节点设置最小观测样本量，默认值2
+        * R： 按照错误率递减方式剪枝，默认TRUE
+        * N： 设置按照错误率递减方式剪枝，交互验证的折叠次数，默认3
+        * B： 每个节点仅分为2个分支，即构建二叉树，默认TRUE
+        
+
+##数据集
+```{r}
+library(MASS)
+str(Boston)
+summary(Boston)
+max(Boston$medv)
+min(Boston$medv)
+```
+
+##数据预处理
+以medv为目标变量,将其分组3组，5-20，20-35，35-50，成为3个水平ABC的因子变量
+```{r}
+Group.Mileage=matrix(0,506,1)#矩阵Group.Mileage存放新因子变量
+Group.Mileage[which(Boston$medv>=35)]="A"#35-50的为A
+Group.Mileage[which(Boston$medv<=20)]="C"#5-20的为C
+Group.Mileage[which(Group.Mileage==0)]="B"#不在以上的为B
+Boston$Group.Mileage=Group.Mileage#数据集中Boston中添加新的分组变量
+
+Boston[1:5,c(14,15)]#查看分组结果
+```
+
+* 通过抽样将数据集分为训练集(3/4)和测试集(1/4)
+* 为保持数据集的分布，实用sampling包的strata()分层抽样
+```{r}
+a1=round(1/4*sum(Boston$Group.Mileage=="A"))
+b1=round(1/4*sum(Boston$Group.Mileage=="B"))
+c1=round(1/4*sum(Boston$Group.Mileage=="C"))
+size1=c(a1,b1,c1)
+library(sampling)
+
+
+
+sub=strata(Boston[order(Boston$Group.Mileage),],stratanames = "Group.Mileage",size = size1,method = "srswor")#使用strata()函数对数据集分层抽样
+train.bos=Boston[-sub$ID_unit,]#生成训练集
+test.bos=Boston[sub$ID_unit,]#生成测试集
+nrow(train.bos)
+nrow(test.bos)
+
+```
+
+
+##应用
+
+###CART
+
+```{r}
+library(rpart)
+formula.bos=medv~crim+zn+indus+chas+nox+rm+age+dis+rad+tax+ptratio+black+lstat#设定模型公式
+rp.bos=rpart(formula.bos,train.bos,method = "anova")#建立回归树
+
+print(rp.bos)#输出结果
+printcp(rp.bos)#导出回归树cp表格，各节点的CP值，节点序号nsplit，错误率rel error，交互验证错误率xerror等被列出
+summary(rp.bos)#回归树详细信息
+#画图
+library(rpart.plot)
+rpart.plot(rp.bos)
+
+#将分支包含最小样本数minsplit从默认值20改为10，生成新的回归树
+rp.bos1=rpart(formula.bos,train.bos,method = "anova",minsplit=10)
+print(rp.bos1)
+printcp(rp.bos1)
+library(rpart.plot)
+rpart.plot(rp.bos1)
+
+```
+
+* 当输树的分支较多时，我们可以选择设置分支参数branch=1，来获得垂直枝干形状的决策树以减少图形所占空间；进一步，当树的叶节点繁多，又想从树中看清目标变量在所有分支下的预测结果时，可以将参数fallen.leaves设置为TRUE，即表示将所有叶节点一致的摆放在树的最下端
+
+###预测
+
+
+```{r}
+library(rpart)
+formula.bos=Group.Mileage~crim+zn+indus+chas+nox+rm+age+dis+rad+tax+ptratio+black+lstat#设定模型公式
+rp.bos2=rpart(formula.bos,train.bos,method = "class",minsplit=5)#建立回归树
+pre.bos=predict(rp.bos2,test.bos,type = "class")
+pre.bos
+table(test.bos$Group.Mileage,pre.bos)
+```
+
+##C4.5
+用到包RWeka
+
+```{r}
+#library(RWeka)
+#formula.bos1=Group.Mileage~crim+zn+indus+chas+nox+rm+age+dis+rad+ta#x+ptratio+black+lstat#设定模型公式
+#c45.0=J48(formula.bos1,train.bos)
+#c45.0
+#summary(c45.0)
+
+#可以通过对每个叶节点设置最小观测样本量来对树剪枝，对control参数取值之一M，其默认值为2，现取值为3来剪去若干所含样本量较小的分支
+
+#c45.1=J484(formula.bos1,train.bos,control=Weka_control(M=3))
+#c45.1
+
+#画图
+#plot(c45.1)
+```
+
+
+

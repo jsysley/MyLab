@@ -1,0 +1,338 @@
+---
+title: "ML_EXAMPLE"
+author: "jsysley_mac"
+date: "2016年10月8日"
+output: html_document
+---
+
+#第一章 R语言
+* read.delim()函数
+    * sep:制表符
+    * 默认把字符串转换成factor类型，可以设置stringsAsFactors=FASLE来防止转换
+    * 当表格没有表头时，要header=FALSE
+    
+```{r,eval=FALSE}
+?read.delim#读取一个函数的帮助文档
+??base::delim#在base包的帮助文档搜索
+help.search("delimited")#在所有的帮助文档中搜索”delimited“
+RSiteSearch("parsing text")#在R官方网站上搜索“parsing text”
+```
+
+```{r,eval=FALSE}
+ufo <- read.delim(file = "/Users/jsysley/Documents/R/ML_for_Hackers-master/01-Introduction/data/ufo/ufo_awesome.tsv",sep="\t",stringsAsFactors = FALSE,header = FALSE,na.strings = "")
+str(ufo)
+View(ufo)
+head(ufo)
+tail(ufo)
+#给每一列有意义的标签
+names(ufo) <- c("DateOccurred","DateReported","Location","ShortDescription","Duration","LongDescription")
+
+#数据前两列是日期，需要用到as.Date()
+ufo$DateOccurred <- as.Date(ufo$DateOccurred,format = "%Y%m%d")
+#出现问题，有些数据集是畸形的，下面要处理畸形数据
+```
+
+* 转换日期字符串及处理畸形数据
+正确的字符串一定是8个字符，即“YYYYMMDD”这样格式的，因此有问题的数据行，只需要找出长度在8个字符串以上的。
+```{r,eval=FALSE}
+bad <- ufo[which(nchar(ufo$DateOccurred)!=8 | nchar(ufo$DateReported)!=8),]
+nrow(bad)
+head(bad)
+
+#挑选
+good.rows <- ifelse(nchar(ufo$DateOccurred)!=8 | nchar(ufo$DateReported)!=8,FALSE,TRUE)
+length(which(!good.rows))#长度：FALSE的样本的数量
+ufo.good <- ufo[good.rows,]
+
+#因为数据多，所以简单的忽略畸形数据，继续转换
+ufo.good$DateOccurred <- as.Date(ufo.good$DateOccurred,format="%Y%m%d")
+
+ufo.good$DateReported <- as.Date(ufo.good$DateReported,format="%Y%m%d")
+```
+
+* 组织目击地点数据
+    * 接下来清洗组织目击地点数据，地点数据形式“City,State”（城市，州），可以通过R中集成的正则表达式，将字符串拆分成两列，并识别出不规范的数据行。其中识别出不规范数据尤为重要。
+    * 下面定义一个输入为字符串的函数，然后执行数据清洗。
+        * 并非所有数据都是“City,State”（城市，州）这种格式，甚至有的数据连逗号也没有，strsplit函数遇到不符合格式的数据会抛出一个异常，因此需要catch。
+        * 对不包含逗号的数据，我们会返回一个NA向量来表明这个数据无效。
+        * 原始数据开头都有一个空格，因此用gsub函数（R的正则表达式相关函数之一）来移除每个字符串开头的空格
+        * 最后检查，确保每个数据的返回向量都是长度为2（2个单词）
+    * 定义好函数之后，用lapply（即list-apply）（应用后返回链表）的简写，用来对Location列的每一条字符串循环迭代地应用我们定义的函数
+```{r,eval=FALSE}
+get.location <- function(l)
+{
+    split.location <- tryCatch(strsplit(l,",")[[1]],error=function(e) return(c(NA,NA)))# 拿出第一个，由于是列表，1个字符串是一个列表
+    clean.location <- gsub("^ ","",split.location) #数据集split.location,把开头的空格取消掉
+    if(length(clean.location)>2)
+    {
+        return(c(NA,NA))
+    }#将有两个单词以上的，全部变为NA
+    else 
+    {
+        return(clean.location)
+    }
+}
+
+city.state <- lapply(ufo.good$Location,get.location)#其数据是一个列表，每列是每个样本的拆分单词组成
+head(city.state)
+```
+    
+    * 下面要把城市和州的信息作为不同的两列加入到数据框中，为此把list转换成一个两列的矩阵，其中city（城市）作为其首列
+        * do.call()函数，与apply()函数类似，do.call()函数是在一个list上执行一个函数调用。传入函数rbind，这个函数把city.state列表中的所有向量一行一行的地合并起来，从而创建一个矩阵。
+        * 要把这个矩阵并入数据框中，还要用transform函数。分别用location.matrix的第一列和第二列创建两个新列：USCity和USState。
+        * 由于州的名字缩写形式不一致，有的采用大写、有的采用小写形式，因此用tolower函数把所有州名字缩写变成小写形式。
+```{r,eval=FALSE}
+location.matrix <- do.call(rbind,city.state)
+
+ufo.good <- transform(ufo.good,USCity=location.matrix[,1],USState=tolower(location.matrix[,2]),stringAsFactors=FALSE)
+```
+
+* 处理非美国境内的数据
+    * 数据清洗解决的最后一个问题是处理那些形式上符合“City State”,但是实际上并不在美国境内的数据。具体的说有的目击地点在加拿大，而这些数据同样符合这样的形式，利用加拿大各省缩写和美国缩写不匹配，可以构造一个美国各州缩写的向量，让USState来匹配这个向量，从而过滤。
+    * matchh()函数，有两个参数，一个待匹配值，一个用于匹配的数据，函数返回值是一个长度与第一个参数从长度相同的向量，向量中的值是其在第二个参数中所匹配的值的索引，如果第二个参数中没有匹配的值，函数默认返回NA。将USState列中的值重置，用is.na把USCity中的对应位置也重置。
+    * 对数据处理完毕，可以从中只抽取感兴趣的数据
+```{r,eval=FALSE}
+us.states <- c("ak","al","ar","az","ca","co","ct","de","fl","ga","hi","ia","il","in","ks","ky","la","ma","md","me","mi","mn","mo","ms","mt","nc","nd","ne","nh","nj","nm","nv","ny","oh","ok","or","pa","ri","sc","sd","tn","tx","ut","va","vt","wa","wi","wv","wy")
+
+ufo.good$USState <- us.states[match(ufo.good$USState,us.states)]
+ufo.good$USCity[is.na(ufo.good$USState)] <- NA
+
+ufo.us <- subset(ufo.good,!is.na(USState))
+head(ufo.us)
+```
+
+* 聚合并组织数据
+    * 目前为止，数据已经可以分析了。继续探索数据，以进一步缩小我们需要关注的范围。
+    * 数据有两个维度，一个维度是空间，一个是时间。
+    * 首先对DateOccurred这列数据summary()概括:时间跨度长，想知道分布，是否值得分析整个时间序列。下面画直方图:
+        * x轴为DateOccurred列，ggplot2对象必须是数据框；
+        * 接着用geom_histgram函数添加一个直方图层，用到该函数的默认参数；
+        * 由于时间跨度大，用  scale_x_date函数将x轴标签的时间周期该为50年
+    * 画图发现绝大部分目击时间在1960-2010年，而其中最主要的又发生在过去20年，只关注1990-2010年的数据即可。
+    
+```{r,eval=FALSE}
+summary(ufo.us$DateOccurred)
+
+library(ggplot2)
+quick.hist <- ggplot(ufo.us,aes(x=DateOccurred))+geom_histogram()#+scale_x_date(major="50 years")
+
+ufo.us <- subset(ufo.us,DateOccurred>=as.Date("1990-01-01"))
+nrow(ufo.us)
+```
+    * 发现按year-month（年-月）的聚合方式是最佳选择，比较能看出周期变化。需要统计1990-2010年每个州每年-月的UFO目击次数
+        * 数据中新建一个列，保存当前数据中一样的年和月
+        * strftime()函数把日期对象转换成“YYYY-MM”格式的字符串
+        * 这里没有用transform()函数给数据框添加列，两种方法均可
+        * 下面需要统计每个州在每年-月期间目击UFO次数，用到ddply函数，是plyr库中的函数。我们要做的是用“州名缩写”和“年-月”这一新增加的列来给数据分组。数据按照这个方式分组之后，对每个组进行数据统计，并把结果以一个新列方式返回。这里仅简单地用nrow函数按照行数来化简每组数据。
+        * sightings.counts得到每个州在每个“年-月”里的UFO目击次数。但存在一些问题，其中有大量缺失值，因此得把这些时间记录加上，目击次数0
+            * 需要一个覆盖整个数据集的“年-月”向量，用这个向量检查哪些“年-月”已经存在于数据集中，如果不存在就补上，并设置次数为0，用seq.Date函数创建一个日子序列
+            
+```{r,eval=FALSE}
+ufo.us$YearMonth <- strftime(ufo.us$DateOccurred,format = "%Y-%m")
+
+library(plyr)
+sightings.counts <- ddply(ufo.us,.(USState,YearMonth),nrow)
+
+date.range <- seq.Date(from=as.Date(min(ufo.us$DateOccurred)),to=as.Date(max(ufo.us$DateOccurred)),by="month")
+
+date.strings <- strftime(date.range,"%Y-%m")
+``` 
+    * 有了date.strings这个向量，还需要新建一个包含所有年-月和州的数据框，然后用这个数据框去匹配UFO目击数据。用lapply函数创建，用do.call函数将其转换成矩阵并转换成数据库
+    
+```{r,eval=FALSE}
+states.dates <- lapply(us.states,function(s) cbind(s,date.strings))#返回列表，每个us.states一个列表
+
+states.dates <- data.frame(do.call(rbind,states.dates),stringsAsFactors = FALSE)#每个列表的第一个元素拿出来形成1列，第二个元素形成第2列，以此类推。现在数据库包含了每一年，每个月，每个州的所有组合的所有目击记录。
+```
+    * 需要将这个新数据框与原来数据框合并
+        * merge函数，给这个函数输入两个有序数据框，然后它将数据框中相同的列合并。      * 两个数据框是按州的名字顺序及年-月的时间顺序排列的。
+        * 告诉函数将数据框那些列合并，给by.x和by.y指定每个数据框中对应的列名。
+        * all=TRUE，把没匹配的数据也包含进来填充NA
+```{r,eval=FALSE}
+all.sightings <- merge(states.dates,sightings.counts,by.x = c("s","date.strings"),by.y = c("USState","YearMonth"),all = TRUE)
+head(all.sightings)
+```
+    * 数据聚合最后一步简单的修补
+        * 把all.sightings数据框列名改成有意义的名称
+        * 把NA值改为0
+        * 把YearMonth和State列的数据转换为合适的类型。用前面的data.range（包括所有时间）向量和rep函数创建一个和data.range一抹一样的向量，并把年-月字符串转换为Date对象
+        * 州名缩写用分类变量表示，转换为factor
+```{r,eval=FALSE}
+names(all.sightings) <- c("State","YearMonth","sightings")
+
+all.sightings$sightings[is.na(all.sightings$sightings)] <- 0
+
+all.sightings$YearMonth <- as.Date(rep(date.range,length(us.states)))
+#简单来说是直接用新向量覆盖
+
+all.sightings$State <- as.factor(toupper(all.sightings$State))
+
+```
+
+* 分析数据
+    * 本利仅介绍R编程的核心范例，仅可视化分析.
+    * 以下操作暂时不可行
+    
+    
+```{r,eval=FALSE}
+library(ggplot2)
+state.plot <- ggplot(all.sightings, aes(x = YearMonth,y = Sightings)) +
+  geom_line(aes(color = "darkblue")) +
+  facet_wrap(~State, nrow = 10, ncol = 5) + 
+  theme_bw() + 
+  scale_color_manual(values = c("darkblue" = "darkblue"), legend=FALSE) +
+  scale_x_date(breaks = "10 years") +
+  xlab("Time")
+  ylab("Number of Sightings") +
+  opts(title="Number of UFO sightings by Month-Year and U.S. State (1990-2010)")
+```
+
+
+# 第2章 数据分析
+* 数据
+    * 均假设已经是一张表的形式
+    * 数据验证的两种方法：
+        1. 交叉验证：用另一批数据来测试这个模型
+        2. 假设检验：利用概率论来测试你在原始数据集上发现的额模式是否是巧合
+
+* 数据处理
+    * 将每列摘要成一个数字
+    * 将一列数据画成图
+    * 将两列数据变成一个数字：相关性
+    * 将多列数据变成少列数据：降维
+    
+* 推断数据类型
+    * is.numeric
+    * is.character
+    * is.factor
+    
+* 推断数据含义
+
+* 数值摘要表
+    * 最好的方法之一就是计算所有列的数值摘要：summary()
+    
+* 均值、中位数、众数
+    * 均值：mean(x)
+```{r,eval=FALSE}
+my.mean <- function(x)
+{
+  return(sum(x) / length(x))
+}
+```
+
+    * 中位数：median(x)
+```{r,eval=FALSE}
+my.median <- function(x)
+{
+  sorted.x <- sort(x)
+  if (length(x) %% 2 == 0)
+  {
+    indices <- c(length(x) / 2, length(x) / 2 + 1)
+    return(mean(sorted.x[indices]))
+  }
+  else
+  {
+    index <- ceiling(length(x) / 2)
+    return(sorted.x[index])
+  }
+}
+```
+
+* 分位数
+    * 最大值：max(x)
+    * 最小值：min(x)
+    * 范围：range()
+    * 5数：quantile(x),quantile(x,probs=seq(0,1,by=0.2))#产生各个百分位数，单个数时产生单个百分位数
+        * 产生一个覆盖95%的数据的范围：
+```{r,,eval=FALSE}
+c(quantile(x,probs=0.025),quantile(x,probs=0.975)
+```
+
+* 方差与标准差
+    * 方差：var()
+```{r,eval=FALSE}
+my.var <- function(x)
+{
+  m <- mean(x)
+  return(sum((x - m) ^ 2) / length(x))
+}
+```
+    * 看看数据散步程度：
+```{r,eval=FALSE}
+c(mean(x) - var(x), mean(x) + var(x))
+
+range(x)
+```
+
+    * 标准差：sd(x)
+```{r,eval=FALSE}
+my.sd <- function(x)
+{
+  return(sqrt(my.var(x)))
+}
+```
+    * 看看数据范围：
+```{r,eval=FALSE}
+c(mean(heights) - sd(heights), mean(heights) + sd(heights))
+```
+
+* 可视化分析
+```{r,eval=FALSE}
+library(ggplot2)
+library(labeling)
+heights.weights <- read.csv(file='/Users/jsysley/Documents/R/ML_for_Hackers-master/02-Exploration/data/01_heights_weights_genders.csv',header=TRUE,sep=',')
+ggplot(heights.weights, aes(x = Height)) +geom_histogram(binwidth = 1)
+```
+
+    * 发现数据呈钟形。大部分数据处于中间，与均值和中位数接近，但这只是因所选的直方图类型造成的假象。检验是否存在假象的方法之一就是尝试不同的区间宽度。直方图中，区间宽度是你强加给数据的一个外部结构，但他同事揭示了数据的内部结构。下面画区间宽度5英寸的直方图。
+```{r,eval=FALSE}
+ggplot(heights.weights, aes(x = Height)) +geom_histogram(binwidth = 5)
+```
+    * 当采用一个较大的区间宽度时，数据的很多结构不见了，虽然还有顶峰，但之前的 对称性已经几乎不在了，叫做过平滑。与之相反的问题是欠平滑。
+```{r,eval=FALSE}
+ggplot(heights.weights, aes(x = Height)) +geom_histogram(binwidth = 0.01)
+```
+    * 选择区间宽度值：倾向于选择一种和直方图类似的方法来可视化，即核密度估计（Kernel Density Estimate，KDE）或者叫密度曲线图。
+```{r,eval=FALSE}
+ggplot(heights.weights, aes(x = Height)) +geom_density()
+```
+    * 你觉得数据结构有缺失时，可以根据任意一个定性变量将曲线分开
+```{r,eval=FALSE}
+ggplot(heights.weights, aes(x = Height, fill = Gender)) +geom_density()
+```
+    * 发现机构，正态分布，进一步观察，把之前的密度曲线分片
+```{r,eval=FALSE}
+ggplot(heights.weights, aes(x = Weight, fill = Gender)) +geom_density()
+
+ggplot(heights.weights, aes(x = Weight, fill = Gender)) + geom_density() + facet_grid(Gender ~ .)
+```
+
+
+* 列相关可视化
+    * 绘制散点图
+```{r,eval=FALSE}
+ggplot(heights.weights, aes(x = Height, y = Weight)) +geom_point()
+```
+    * 用ggplot2中的平滑方法把所看到的线性模式描绘出来。ggplot_smooth函数可以预测，曲线周围的阴影区域就是预测值
+```{r,eval=FALSE}
+ggplot(heights.weights, aes(x = Height, y = Weight)) +geom_point() + geom_smooth()
+
+ggplot(heights.weights[1:20, ], aes(x = Height, y = Weight)) +geom_point() +
+geom_smooth()
+
+ggplot(heights.weights[1:200, ], aes(x = Height, y = Weight)) +geom_point() + geom_smooth()
+
+ggplot(heights.weights[1:2000, ], aes(x = Height, y = Weight)) +geom_point() + geom_smooth()
+
+```
+    * 简单的回归
+```{r,eval=FALSE}
+heights.weights <- transform(heights.weights, Male = ifelse(Gender == 'Male', 1, 0))
+
+logit.model <- glm(Male ~ Weight + Height,data = heights.weights,family = binomial(link = 'logit'))
+
+ggplot(heights.weights, aes(x = Height, y = Weight)) +geom_point(aes(color = Gender, alpha = 0.25)) +scale_alpha(guide = "none") + scale_color_manual(values = c("Male" = "black", "Female" = "gray")) +theme_bw() +stat_abline(intercept = -coef(logit.model)[1] / coef(logit.model)[2],slope = - coef(logit.model)[3] / coef(logit.model)[2],geom = 'abline',color = 'black')
+```
+
+
+# 第3章 分类：垃圾过滤

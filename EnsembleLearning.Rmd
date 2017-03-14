@@ -1,0 +1,119 @@
+---
+title: "EnsembleLearning"
+author: "jsysley"
+date: "2016年9月19日"
+output: html_document
+---
+
+#概述
+* Bagging算法
+
+* Bagging是Bootstrap Aggregating的缩写，简单来说，就是通过使用bootstrap抽样得到若干不同训练集，以这些训练集建立模型，得到一系列分类器，这些分类器由于来自不同的训练样本，他们对同意测试集预测不一。Bagging算法就是随后对基分类器的一系列预测结果进行投票(分类问题)或平均(回归问题)，从而得到结果。
+
+* AdaBoost算法
+
+* 对于Bagging算法更加巧妙，且一般来说更优的算法。尤其在数据集分布不平衡的情况下，其优势更为显著。
+
+* AdaBoost同样是在若干基分类器基础上的一种集成算法，但不同于Bagging对一系列预测结果简单的综合，该算法在一次构建基分类器的过程中，会根据上一个基分类器对各训练集样本的预测结果，自行调整在本次基分类器构造时，各样本被抽中的概率。
+
+#软件包
+
+* adabag
+
+#核心函数
+
+* bagging(formula,data,mfinal=100,control)
+
+    * foumula: 构建模型的公式
+    * data： 训练集
+    * mfinal： 算法迭代次数，即基分类器的个数，可以设置为任意整数，缺失值100
+    * control： 与rpart()函数中的相同，控制基分类器的参数
+    
+* boosting(formula,data,boos=TRUE,mfinal=100,coeflearn="Breiman",control)
+    * boos: 选择在当下迭代过程中，是否用各观测样本的权重来抽取boostrap样本，默认TRUE，当为FALSE时则每个观测样本都以其相应权重在迭代过程中被使用
+    * coeflearn: 选择权重更新系数alpha的计算方式，默认Breiman，即alpha=1/2ln((1-err)/err),也可以改为Freund,Zhu
+
+
+#数据集
+```{r}
+data1=read.csv(file="E:\\code\\R\\parctice\\bank\\bank.csv",head=TRUE,sep=";")
+dim(data1)
+str(data1)
+```
+
+#数据预处理
+仅使用1/4作为测试集
+
+```{r}
+sub=sample(1:nrow(data1),round(nrow(data1)/4))
+length(sub)
+data.train=data1[-sub,]
+data.test=data1[sub,]
+```
+
+#演示
+
+##Bagging算法
+```{r}
+library(adabag)
+library(rpart)
+
+bag=bagging(y~.,data.train,mfinal = 5)#用bagging()函数建模
+names(bag)
+bag$formula#查看公式
+bag$trees[2]#迭代过程中每颗决策树的具体情况，树的个数为mfinal的值，这里查看第二颗树的构成
+bag$votes[105:115,]#查看其对105-115个观测样本的两个类别yes，no的投票情况，由于共有5颗树，总票数为5
+bag$prob[105:115,]#查看其对105-115个观测样本的两个类别yes，no的预测概率
+bag$class[105:115]#查看其对105-115个观测样本的最终判断
+bag$samples[105:115,]#5次迭代过程中使用的boostrap样本，这里查看第105-115个样本在5次迭代过程中的抽样情况
+bag$importance#模型bag中各输入变量的相对重要性
+
+#下面解决之前查看bag模型的trees输出项时，得到子树过于茂盛的问题，通过control参数中深度maxdepth来控制基分类树的大小，这里设置3
+
+bag1=bagging(y~.,data.train,mfinal = 5,control = rpart.control(maxdepth = 3))
+bag1$trees[2]#查看第二颗子树的具体结构
+
+#预测
+pre.bag=predict(bag,data.test)
+names(pre.bag)
+pre.bag$confusion#测试集结果的混淆矩阵
+pre.bag$error#测试集预测错误率
+
+#查看测试集中少数类yes和多数类no的样本数各位多少，并计算过程中的变量用于后去两类别各自错误率的计算
+
+sub.minor=which(data.test$y=="yes")#取少数类yes在测试集的编号
+sub.major=which(data.test$y=="no")#取多数类no在测试集的编号
+length(sub.minor)
+length(sub.major)
+
+#下面分别计算测试集总体的预测错误率，以及两类别各自的正确率
+err.bag=sum(pre.bag$class!=data.test$y)/nrow(data.test)#计算总体错误率
+err.minor.bag=sum(pre.bag$class[sub.minor]!=data.test$y[sub.minor])/length(sub.minor)#计算少数类yes的错误率
+
+err.major.bag=sum(pre.bag$class[sub.major]!=data.test$y[sub.major])/length(sub.major)#计算多数类no的错误率
+
+err.bag
+err.minor.bag
+err.major.bag
+```
+
+
+##Adaboost算法
+
+```{r}
+library(adabag)
+library(rpart)
+boo=boosting(y~.,data.train,mfinal = 5)#建立Adaboost模型
+pre.boo=predict(boo,data.test)
+err.boo=sum(pre.boo$class!=data.test$y)/nrow(data.test)#计算总体错误率
+
+
+err.minor.boo=sum(pre.boo$class[sub.minor]!=data.test$y[sub.minor])/length(sub.minor)#计算少数类yes的错误率
+
+err.major.boo=sum(pre.boo$class[sub.major]!=data.test$y[sub.major])/length(sub.major)#计算多数类no的错误率
+
+err.boo
+err.minor.boo
+err.major.boo
+```
+

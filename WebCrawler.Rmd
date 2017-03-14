@@ -1,0 +1,338 @@
+---
+title: "WebCrawler"
+author: "jsysley"
+date: "2016年9月23日"
+output: html_document
+---
+
+#FishC
+
+
+##第一课
+* URL的一般格式:protocol://hostname[:port]/path/[;parameters][?query]#fragment 
+
+* URL由三部分组成：
+    * 第一部分是协议：http,https,ftp,file,ed2k
+    * 第二部分是存放资源的服务器的域名系统或IP地址(有时候要包含端口号，各种传输协议都有默认的端口号，如http的默认端口号为80)
+    * 第三部分是资源的具体地址，如目录或文件名
+    
+* 包：urllib
+
+```{}
+import urllib.request
+response=urllib.request.urlopen("http://www.fishc.com")#将返回对象存于response，当data这个参数被赋值说明是post方法，否则是get方法，data的对象用urllib.parse.urlencode()转换
+html=response.read()
+print(html)#读出来的字符串 b开头说明是二进制的文件
+html=html.decode("utf-8")#解码
+print(html)#可打印
+```
+
+##第二课
+
+```{}
+#有道词典翻译
+import urllib.request
+import urllib.parse
+import json
+
+content=input('清输入要翻译的内容： ')
+url='http://fanyi.youdao.com/translate?smartresult=dict&smartresult=rule&smartresult=ugc&sessionFrom=https://www.baidu.com/link'
+
+#post方法，因此data要赋值
+data={}
+data['type']='AUTO'
+data['i']=content
+data['doctype']='json'
+data['xmlVersion']='1.8'
+data['keyfrom']='fanyi.web'
+data['ue']='UTF-8'
+data['action']='FY_BY_CLICKBUTTON'
+data['typoResult']='true'
+
+#对data编码
+data=urllib.parse.urlencode(data).encode('utf-8')#encode()把Unicode文件编码成其他形式
+
+response=urllib.request.urlopen(url,data)
+ 
+html=response.read().decode('utf-8')#decode()把其他文件变成Unicode编码形式
+
+#print(html)
+
+#以上为json结构，下面载入
+#import json
+target=json.loads(html)#此时target为字典格式
+#下面访问翻译：
+print(target['translateResult'][0][0]['tgt'])
+```
+
+
+   
+
+
+
+###实战一
+
+```{}
+import urllib.request
+response=urllib.request.urlopen("http://placekitten.com/g/500/600")#将返回对象存于response
+cat_img=response.read()
+
+with open('cat_500_600.jpg','wb') as f: #wb表示二进制文件写入
+    f.write(cat_img)
+    
+    
+##以上也可以：
+req=urllib.request.Request("http://placekitten.com/g/500/600")
+response=urllib.request.urlopen(req)
+
+response.geturl()#得到访问的具体地址
+print(response.info())#返回远程服务器的Head信息
+response.getcode()#xxx的状态，200表示正常响应
+```
+
+* 审查元素解析
+    * Remote Address: 服务器的IP地址，端口号
+    * Request URL: 真实地址
+    * Request Method: 请求方法
+    * Status Code: 状态码，200为正常响应，404为页面找不到
+    * Request Header: 客户端，可判断是认为访问还是机器访问。User-Agent可以看出访问的客户端
+    * From Data:post方法提交的主要内容
+
+
+##第三课：隐藏
+    
+* 修改header
+    * 通过Request的headers参数修改
+    * 通过Request.add_header()方法修改
+
+改变User—Agent的参数实现隐藏
+
+* 法一：Requests的headers参数，通过字典形式改变
+```{}
+head['User-Agent']='Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.116 Safari/537.36'
+
+#此时只能以第二种方法才能：
+req=urllib.request.Request(url,data,head)
+response=urllib.request.urlopen(req)
+```
+
+* 法二：生成req=urllib.request.Request(url,data）之后用req.add_header()
+```{}
+req.add_header('User-Agent','Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.116 Safari/537.36')
+```
+
+
+* 延迟提交时间：time模块
+```{}
+import time
+
+time.sleep(5)#睡5秒
+```
+
+
+```{}
+import urllib.request#爬虫
+import urllib.parse#编码
+import json#因为target的解读
+import time#延迟时间
+
+
+while True:
+    
+    content=input('请输入要翻译的内容(输入q()退出程序)： ')
+    if content=='q()':
+        break
+    
+    url='http://fanyi.youdao.com/translate?smartresult=dict&smartresult=rule&smartresult=ugc&sessionFrom=https://www.baidu.com/link'
+    #设置隐藏 设置访问客户端名字
+    head={}
+    head['User-Agent']=' '
+    
+    data={}    
+    data['type']='AUTO'
+    data['i']=content
+    data['doctype']='json'
+    data['xmlVersion']='1.8'
+    data['keyfrom']='fanyi.web'
+    data['ue']='UTF-8'
+    data['action']='FY_BY_CLICKBUTTON'
+    data['typoResult']='true'    
+    
+    data=urllib.parse.urlencode(data).encode('utf-8')
+    
+    req=urllib.request.Request(url,data,head)
+    response=urllib.request.urlopen(req)
+    html=response.read().decode('utf-8')
+    
+    target=json.loads(html)
+    target=target['translateResult'][0][0]['tgt']
+    print('翻译结果： %s' % target)
+    
+    time.sleep(5)
+```
+
+
+* 使用代理
+    1. 参数是一个字典{‘类型’：‘代理ip：端口号’}，proxy_support=urllib.request.ProxyHandler({})
+    2. 定制、创建一个opener，opener=urllib.request.build_opener(proxy_support)
+    3a. 安装 opener，urllib.request.install_opener(opener),此时以后在系统使用urlopen等函数时就会自动使用该定制的opener
+    3b. 调用opener，opener.open(url)，此时仅该次使用，下次使用时用回默认的urlopen
+    
+代理ip只需百度'代理ip'即可查找
+
+```{}
+import urllib.request
+import random
+
+#url='http://www.whatismyip.com.tw/'#一个网站，访问时就会返回你访问时的ip
+url='https://s.taobao.com/search?q=%E8%8A%B1%E8%8C%B6&refpid=430268_1006&source=tbsy&style=grid&tab=all&pvid=41dfe4c9c624bbc4215e02e627ec50a7&clk1=b98d6146ca538d1897cf3f9a17632eeb&spm=a21bo.50862.201856-sline.3.5XWz4o'
+iplist=['119.6.144.73:81','183.203.208.166:8118','111.1.32.28:81']#创建ip列表，下面随机用ip
+
+proxy_support=urllib.request.ProxyHandler({'http':random.choice(iplist)})
+
+opener=urllib.request.build_opener(proxy_support)#生成opener
+
+#伪装访问客户端
+opener.addheaders=[('User-Agent','Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/53.0.2785.116 Safari/537.36')]
+
+urllib.request.install_opener(opener)#安装opener
+
+#response=opener.open(url)
+
+response=urllib.request.urlopen(url)
+html=response.read().decode('utf-8')
+
+print(html) 
+```
+
+#第四课:正则表达式
+
+* search()方法用于在字符串中搜索正则表达式模式第一次出现的位置
+
+```{}
+import re
+re.search(r'FishC','I love FishC.com!')
+```
+    * 第一个字符串，即正则表达式模式（要搜索的规则）使用原始字符串
+    * 匹配的第二个字符串是从0开始标的，因此这里匹配到7：12，且第12是不用纳入的 
+
+通配符：*或者?,如想查找word文档可以用 *.docx来查找。
+* 正则表达式的通配符的是“ . ”，可以匹配除换行符的任何一个字符，但代表一个字符。匹配“ . ”本身用“ \. ”。
+
+* \d 表示任何一个数字，\d\d\d则匹配3个数字
+
+* [aeios] 表示匹配aeios中其中一个字符就算匹配到，并且不再往下匹配；[a-z]表示abcd...xyz一共26个字母，数字也可以这样用
+
+* ab{3} 表示匹配abbbc，大括号里面表示前一个字符重复次数，ab{3,10}表示b可以重复3-10次的任何一次
+
+* [0-255]表示 *55，其中 *是0-2的任一个数,[01]{0,1}表示这个位置可有数字或者1个数字，这个数字是0或1
+
+例子：匹配255以内的数
+[01]\d\d | 2[0-4]\d | 25[0-5]
+
+例子：匹配一个ip地址
+(([01]{0,1}\d{0,1}\d | 2[0-4]\d | 25[0-5])\.){3} ([01]{0,1}\d{0,1}\d | 2[0-4]\d | 25[0-5]))
+
+
+# 第五课 正则表达式2
+* [.]里面的“ . ”仅仅表示一个字符“ . ”，但“\”不行
+
+* ^Fish表示Fish要开头，Fish$表示Fish要在结尾
+
+* [^a-z] 取反，表示除了小写字母a-z
+
+* {M，N} 跟在字符串后面表示重复次数，其中M和N为非负整数，M<=N，表示前面的re匹配M~N
+    * {M，}表示至少匹配M次
+    * {，N}等价于{0，N}
+    * {N}表示需要匹配N次
+
+* " * "表示匹配0次或多次，等价于{0，}。用" *? "启用非贪婪模式
+
+* " + "表示匹配一次或多次，等价于{1，}。用" +? "启用非贪婪模式
+* " ? "表示匹配0次或一次，等价于{0，1}。用" ?? "启用非贪婪模式
+
+* re.findall(r"[a-z]","FishC.com") 表示找到所有匹配的，结果为一个列表['i','s','h','c','o','m']
+
+
+#第六课 正则表达式3
+
+* \A 匹配输入字符串的开始位置
+
+* \Z 匹配输入字符串的结束为止
+
+* \b 匹配一个单词边界，单词被定义为字母数字或下横线
+
+* \B 匹配非单词边界
+
+* \d 匹配数字
+
+* \D 匹配非数字
+
+* \s 匹配空白字符，包括[\t\n\r\f\v]
+
+* \S 匹配非空白字符
+
+* \w 匹配单词字符，基本上所有语言的字符都可匹配
+
+* \W 匹配非单词字符
+
+编译正则表达式
+```{}
+p=re.compile(r"[A-Z]")
+p.search("I love FishC.com!")#可以实现匹配，第一个参数相当于省略了
+p.findall("I love FishC.com!")#可以实现匹配 
+```
+
+#爬虫教学视频
+    
+#第二课
+
+##使用python原件
+* requests：网络资源URLs
+    
+```{}
+import requests
+```
+
+    
+* beautifulsoup4： HTML剖析
+    
+```{}
+from bs4 import BeautifulSoup
+```
+
+---
+
+#第三课
+
+```{}
+import requests
+res=requests.get("http://www.zhihu.com/question/37709992")
+print(res.text)#读取网页原始码
+```
+
+    
+    
+---
+
+#第四课
+```{}
+from bs4 import BeautifulSoup
+    
+html_sample=' \
+<html> \
+ <body> \
+   <h1 id="title">Hello World</h1> \
+   <a href="#" class ="link"> This is link1</a> \
+   <a href="#" link2 class="link"> This is link2</a> \
+ <body> \
+<html>'
+
+soup = BeautifulSoup(html_sample)
+
+print(soup.text)#打印不含caked的内容
+
+print(soup.contents)#打印包含caked的内容
+```
+
+    

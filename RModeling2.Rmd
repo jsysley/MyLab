@@ -1,0 +1,1365 @@
+---
+title: "RModeling2"
+author: "jsysley_mac"
+date: "2016年9月30日"
+output: html_document
+---
+#第六章 回归分析
+
+* 一元线性回归
+
+    * >summary(object)
+        * call: 回归模型的公式
+        * Residuals： 残差的各个分位点
+        * Coefficients：
+            * Estimate： 回归方程参数估计
+            * Std.Error： 回归参数标准差
+        * Residual standard error： 残差的标准差
+        * Multiple R-Squared： 相关系数的平方
+        * F-statistic： F统计量
+        * p-value： p-值，即P{f>|F|}
+
+    * >predict(object,newdata,interval="prediction",level)
+            * nterval="prediction"表示给出相应预测区间
+        
+    * >lm(formula,data,subset,weights,na.action,method="qr",model=TRUE,x=FAlSE,y=FALSE,qr=TRUE,singular.ok=TRUE,contrasts=NULL,offset,...)
+        * formula: 模型公式
+        * data： 数据框
+        * subset：可选择向量，观察值的子集
+        * weights： 可选择向量，数据拟合的权重
+        
+* 提取模型信息的通用函数
+        
+    * >anova(object,...)
+        * object是lm()或glm()得到的对象，返回值是模型的方差分析表
+        
+    * >coefficients(object,...)/coef(object,...)
+        * object是由模型构成的对象，其返回值是模型的稀疏
+            
+    * >deviance(object,...)
+        * object是由模型构成的对象，其返回值是模型的残差平方和
+            
+    * >formula(object)
+        * object是由模型构成的对象,其返回值是模型公式
+            
+    * >plot(object)
+        * object是由模型构成的对象,绘制模型诊断的几种图形
+            
+    * >predict(object,newdata=data.frame)
+        * object是由模型构成的对象,newdata是预测点的数据，由数据框组成
+            
+    * >print(object,...)
+        * object是由模型构成的对象,其返回值是显示模型拟合的结果，可以直接输入对象的名称来查看
+            
+    * >residuals(object,type=c("working","response","deciance","pearson","partial"))
+        * object: 由lm()或glm()构成的对象
+        * type: 返回值类型
+        * 其返回值是模型的残差，简单命令形式resid(object)
+            
+    * >step(object,...)
+        * object: 由lm()或glm()构成的对象,其返回值是逐步回归，根据AIC的最小值选择模型
+            
+    * >summary(object,...)
+        * object: 由lm构成的对象，返回值是显示较为详细的模型拟合结果
+            
+* 多元线性回归分析
+    * >拟合模型：lm(formula,data)
+    
+    * >预测模型：predict(object,newdata,interval="prediction",level=0.95)
+    
+    * >修正拟合模型update(object,new.formula)
+        * fm5 <- lm(y~x1+x2+x3+x4+x5,data=production)
+        * fm6 <- update(fm5,.~.+x6)
+        * smf6 <- updata(fm6,sqrt(.)~.)
+        
+* 逐步回归
+    * >step(object,scope,scale=0,direction=c("both","backward","forward"),trace=1,keep=NULL,steps=1000,k=2,...)
+        * object是回归模型
+        * scope确定逐步搜索的区域
+        * scale用于AIC统计量
+        * direction确定逐步搜索的方向
+    
+    * >还有两个函数做逐步回归，add1(),drop1()
+        * add1(object,scope,...)
+        * drop1(object,scopr,...)
+        
+        * add1(object,scope,scale=0,test=c("none","Chisq"),k=2,trace=FASLE,...)
+        * drop1(object,scopr,scale=0,test=c("none","Chisq"),k=2,trace=FASLE,...)
+        
+        * add1(object,scope,scale=0,all.cols=TRUE,test=c("none","Chisq"),k=2,...)
+        * drop1(object,scopr,scale=0,all.cols=TRUE,test=c("none","Chisq"),k=2,...)
+            * object 是由拟合模型构成的对象
+            * scope是模型考虑增加或去掉项构成的公式
+            * scale是用于计算Cp的残差的均方估计值，缺省值或NULL
+            
+* 回归诊断
+    * > 残差
+        * 得到残差：residuals(object)或resid(object)
+        * 残差正态性检验：shapiro.test(obj)#obj是residuals()的返回值
+        
+        * 标准化(内学生化)残差： 
+            * rstandard(model,infl=lm.influence(model,do.coef=FALSE),sd=sqrt(deviance(model)/df.residual(model)),...)
+                * model是由lm或glm生成的对象
+                * infl是由lm.influence返回值得到的影响结构
+                * sd是模型标准差
+        
+        * 外学生化残差(删除第i个样本数据后，由余下的n-1个数据样本求得)
+            * rstudent(model,infl=lm.influence(model,do.coef=FALSE),res=infl$wt.res,...)
+                * model是由lm或glm生成的对象
+                * infl是由lm.influence返回值得到的影响结构
+                * res是模型残差
+                
+    * 残差图
+        * 残差图：plot(resid(object)~predict(object))
+        
+        * 标准化残差图：plot(rstandard(lm.sol)~predict(object))
+            
+        * 残差Q-Q图：plot(model,2) #其中model是lm()生成的对象
+            
+        * 以自变量为横坐标的残差图
+            * plot(resid(object)~x)
+                
+            * plot(object,which=1:4,caption=c("Residuals vs Fitted","Normal Q-Q plot","Scale-Location plot","Cook's distance plot"),panel=points,sub.caption=deparse(x$call),main="",ask=prod(par("mfcol"))<length(which)&&dev.interactive(),...,id.n=3,labels.id=names(residuals(x)),cex.id=0.75)
+                * object: 线性回归模型
+                * which是1至4的全部或某个子集，1表示普通残差与拟合值的残差图；2表示正态Q-Q图；3表示标准化残差的开放与拟合值的残差图；4表示Cook统计量残差图
+                * caption是图题的内容
+                    
+        * 影响分析
+            * 帽子矩阵(投影矩阵)H的对角线上元素hii的计算：
+                * hatvalues(model,infl=lm.influence(model,do.coef=FALSE),...)
+                * hat(x,intercept=TRUE)
+                    * model是回归模型
+                    * x是设计矩阵
+                
+            * DFFITS准则
+                * DFFITS准则计算函数dffits(model,infl= ,res= )
+                    * model是回归模型
+                        
+            * Cook统计量
+                * cooks.distance(model,infl=lm.influence(model,do.coef=FALSE),res=weighted.residuals(model),sd=sqrt(deviance(model)/df.residual(model)),hat=infl$hat,...)
+                
+            * COVRATIO准则  
+                 * covratio(model,infl=lm.influence(model,do.coef=FALSE),res=weighted.residuals(model))
+        
+            * 回归诊断的总括：influence.measures(model)
+            
+        * 多重共线性
+            * kappa(z,exact=FALSE,...)，计算矩阵的条件数
+                * z是矩阵: t(X) *X,或者直接把所有X连接成一个X=data.frame，然后XX=cor(X)即可
+                * exact为TRUE时精确计算条件数
+            
+            * 找出哪些变量是多重共线性的，计算矩阵的特征值和相应的特征向量
+                * eigen(XX),除去特征值为0的对应变量，剩下的变量就是相关的
+                
+
+* 广义线性回归模型
+    
+    * 与广义线性模型相关的R函数
+        * glm(formula,family=family.generator,data=data.frame)
+            * family是拟合公式
+            * family是分布族
+        
+        * 族与相关的连接函数
+            * binomial：相应连接函数有logit,probit,cloglog
+            * gaussian: 相应连接函数有identity
+            * Gamma: 相应连接函数有identity,inverse,log
+            * inverse.gaussian:相应连接函数有1/mu^2
+            * poisson:相应连接函数有identity,log,sqrt
+            * quasi:相应连接函数有logit,probit,cloglog,identity,inverse,log,1/mu^2,sqrt
+            
+        * 正态分布族
+            * glm(formula,family=guassian(link=identity),data=data.frame)
+                * link=identity可以不写，正态分布族的连接函数缺省值是恒等identity 
+                * family可以不写，分布族的缺省为正态分布
+                * 以上结果与线性模型是相同的，但效率低很多
+                
+        * 二项分布族（logistic回归模型）
+            * glm(formula,family=binomial(link=logit),data=data.frame)
+                * link=logit可以不写，logit为二项分布族连接函数的缺省值
+                * 两种用法:
+                    * 一种x是自变量，y是矩阵，一列是成功次数，一列是失败次数，然后y~x做logistic回归:glm(Ymat~x,family=binomial,data)
+                        * 预测：pre <-  predict(object,data.frame) #注意这里得到的不是概率，还要 p <- exp(pre)/(1+exp(pre))
+                    
+                    * 第二种是正常输入，x自变量，y是因变量（即0，1），glm(Y~x1+x2+x3,family=binomial,data)
+                        * 预测：pre <-  predict(object,data.frame) #注意这里得到的不是概率，还要 p <- exp(pre)/(1+exp(pre))
+                        
+                    * 全模型得到之后，glm.new=step(object)可以逐步回归变量筛选,summary(glm.new)查看模型的细节
+                    * influence.measures(object)做回归诊断
+            
+            * Poisson分布族和拟Poisson分布族
+                * glm(formula,family=poisson(link=log),data=data.frame)
+                * glm(formula,family=quasipoisson(link-log),data=data.frame)
+                * 直观概念：ln(E(Y))=f(X)
+                * Poisson分布族模型要求响应变量Y是整数，拟Poisson分布族模型则没有这要求
+                
+            * Gamma分布族
+                * glm(formula,family=gamma(link=inverse),data=data.frame)
+                * 直观概念： 1/E(Y)=f(X)
+                * glm(formula,family=quasi(link=Gamma,data=data.frame))
+                
+            * quasi分布族
+                * glm(formula,family=quasi(link=link.fun,variance=var.val),data=data.frame)
+                    * link.fun: 连接函数，有logit,probit,cloglog,identity,inverse,log,1/mu^2,sqrt
+                    * var.val:方差值
+                    
+
+* 非线性回归模型
+
+    * 多项式回归模型
+        * lm(y~1+x+I(x^2),data) #次方项要用I()
+        * 正交多项式回归：
+            * 计算正交多项式函数poly(x,...,degree=1,coefs=NULL)
+                * x是数值向量
+                * degree是正交多项式的阶数，并且要求degree<length(x)
+                * 该函数的返回值是一矩阵，矩阵各列是正交向量
+            * lm.pol <- lm(y~1+poly(x,2),data) #用正交多项式回归
+    
+    * (内在)非线性回归模型
+        * 求解非线性最小二乘问题：nls(formula, data=parent.frame(), start, control=nls.control(), algorithm="default", trace=FALSE, subset, weights, na.action, model=FALSE)
+            * formula: 包括变量和参数的非线性拟合公式
+            * data是可选择的数据框
+            * start是参数初始值，用列表(list)形式给出
+            * summary(object)$sigma： 误差项标准差的估计值
+            
+    * 非线性模型的参数估计
+        * 求解非线性最小二乘问题：nlm(f, p, hessian=FALSE, typsize=rep(1,length(p)), fscale=1, print.level=0, ndigit=12, gradtol=1e-6, stepmax=max(1000 *sqrt(sum((p/typsize)^2)),1000), steptol=1e-6,iterlim=100, check.analyticals=TRUE,...)
+            * f是求极小的目标函数，如果f的属性包含梯度('gradient')或梯度('gradient')和Hesse矩阵('hessian')，则在算法求极小时会直接用到梯度或Hesse矩阵，否则，用数值方法求导数
+            * p是参数的初值(函数参数)
+            * hessian为TRUE时其结果给出相应的Hesse矩阵
+            * 计算结果：
+                * minimum是目标函数在最优点处的最小值，也就是残差平方和
+                * estimate是参数的估计值
+                * gradient是目标函数在最优点处梯度值
+                * hessan是目标函数在最优点处的Hesse矩阵，作为t(D) *D的近似值
+                * iterations是迭代次数
+
+---
+
+#第七章 方差分析
+
+* 单因素方差分析
+    
+    * 方差分析表的计算
+        * aov(formula,data=NULL,projections=FALSE,qr=TRUE,contrasts=NULL,...)
+            * formula=X~A,其中X是数据，A为对应的因子水平，A1，A2，A3，A4，X仅是一列数据
+            * data是数据框，包括X和A
+            * summary()结果中：Df表示自由度；Sum Sq表示平方和；Mean Sq表示均方；F value表示F值，即F比；Pr(>F）表示P值；Residuals是残差
+        
+        * summary(object)可以查看方差分析表的详细信息
+        
+        * plot(X $ 数据，X$水平)函数描述各因素的差异
+        
+    
+    * 多重t检验方法（比较相互两组的均值是否相等）
+        * P-值修正（可以克服多重t检验方法的缺点）
+            * p.adjust(p,method=p.adjust.methods,n=length(p))
+                * p是由P-值构成的向量
+                * method是修正方法，缺省是"holm",其余还有"boferroni","hochberg","hommel","BH","BY"
+        * 多重比较
+            * pairwise.t.test(x,g,p.adjust.method=p.adjust.methods,pool.sd=TRUE)
+                * x是响应变量(要比较的均值)
+                * g是因子变量(分组的依据)
+                * p.adjust.methods是p值的调整方法，其方法由函数p.adjust()给出
+                * p.adjust.methods="none"表示p-值计算不作任何调整，缺省值"Holm"调整
+    
+    *方差的齐次性检验（方差分析三个条件：可加性（线性模型）、试验误差独立正态性、试验误差方差齐性）
+    
+        * 误差的正态性检验
+            * shapiro.test(X)
+                * 分别对每个因子的每组数据Y[A==i]检验
+        
+        * 方差齐性检验：Bartlett检验
+            * bartlett.test(x,g,...)  # 这里的x是对应g下的均值
+            * bartlett.test(formula,data,subset,na.action,...)
+                * x是由数据构成的向量或列表
+                * g是由因子构成的向量（x是列表时，此项无效）
+                * formula是方差分析的公式
+                * data是数据框
+                
+    * Kruskal-Wallis秩和检验（对两个以上样本进行比较的非参数检验方法），原假设：各处理方法的效果无差异
+        * kruskal.test(x,g,...) # 这里的x是对应g下的均值
+        * kruskal.test(formula,data,subset,na.action,...)
+            * x是由数据构成的向量或列表
+            * g是由因子构成的向量（x是列表时，此项无效）
+            * formula是方差分析的公式
+            * data是数据框
+    
+    * Friedman秩和检验（原假设：各方法的处理效果无差异）
+        
+        * friedman.text(y,...)
+            * 将y存成矩阵，每列的数据对应一种处理水平
+        
+        * friedman.text(y,gropus,blocks,...)
+            * x是数据的向量（一列）
+            * groups是 gl(水平数，每种水平数据数)
+            * blocks是 gl(每种水平数据数，1，总数据数)
+            
+        * friedman.text(formula,data,subset,na.action,...)
+            * formula=y~groups|blocks
+            * groups是与y有同样长度的向量，其内容是y的分组情况
+            * blocks与y有同样长度的向量，其内容表示y的水平，当y时矩阵时，blocks与groups无效
+            * data是data.frame,包括x，groups，blocks
+
+* 双因素方差分析
+
+    * 不考虑交互作用
+        * aov(Y~A+B,data)
+            * Y是向量数据
+            * A=gl(水平数，每种水平数的数据数)
+            * B=gl(水平数，1，总数据数)
+        * 用anova.tab()得到方差分析表
+    
+    * 考虑交互作用
+        * ov(Y~A+B+A:B,data)
+            * Y是向量数据
+            * A=gl(水平数，每种水平数的数据数)
+            * B=gl(水平数，1，总数据数)
+            
+    * 正态性检验
+        * shapiro.test(x)
+            * 分别对每个因子的每组数据Y[A==i]检验
+            
+---
+
+#第八章 应用多元分析
+
+* 判别分析
+    * 判别分析（包括协方差相等与不等）
+        * mahalanobis(x,center,cov,inverted=FALSE,...)
+            * x是由样本数据构成的向量或矩阵（p维）
+            * center为样本中心
+            * cov为样本协方差矩阵
+            
+**二分类判别分析**
+```{r}
+discriminiant.distance <- function(TrnX1,TrnX2,TstX=NULL,var.equal=FALSE)
+{
+    if(is.matrix(TrnX1)!=TRUE) TnX1 <- as.matrix(TrnX1)
+    if(is.matrix(TrnX2)!=TRUE) TnX2 <- as.matrix(TrnX2)
+    
+    if(is.null(TstX)==TRUE) TstX <- rbind(TnX1,TnX2)#当测试集空，两个训练集当作测试集
+    
+    if(is.vector(TstX)==TRUE) TstX <- t(as.matrix(TstX))#当测试集是向量时，转换成矩阵（行向量变矩阵时会变成列），并转置,实际变成行
+    else if (is.matrix(TstX)!=TRUE)
+        TstX <- as.matrix(TstX)
+    
+    
+    #下面进行判别分析
+    
+    nx <- nrow(TstX)#测试集的样本数
+    #存储测试集归类后的标号，1行的矩阵，初始化全部为0
+    blong <- matrix(rep(0,nx),nrow=1,byrow = TRUE,dimnames = list("blong",1:nx))
+    
+    #计算均值
+    mu1 <- colMeans(TnX1)
+    mu2 <- colMeans(TnX2)
+    
+    #协方差相等计算距离
+    if(var.equal==TRUE||var.equal==T)
+    {
+        S <- var(rbind(TnX1,TnX2))
+        w <- mahalanobis(TstX,mu2,S)-mahalanobis(TstX,mu1,S)
+    }
+    #协方差不等时计算距离
+    else
+    {
+        S1 <- var(TnX1)
+        S2 <- var(TnX2)
+        w <- mahalanobis(TstX,mu2,S2)-mahalanobis(TstX,mu1,S1)
+    }
+    
+    for(i in 1:nx)
+    {
+        if(w[i]>0) blong[i] <- 1
+        else blong[i] <- 2
+    }
+    blong
+}
+```
+
+            
+**多分类问题判别分析**
+
+```{r}
+distinguish.distance <- function(TrnX,TrnG,TstX=NULL,var.equal=FALSE)
+{
+    if(is.matrix(TrnX)!=TRUE) TrnX <- as.matrix(TrnX)
+    
+    #当没有给分类时，把TrnX,TrnG看成两类样本，进行二分类
+    if(is.factor(TrnG)==FALSE)
+    {
+        mx <- nrow(TrnX)
+        mg <- nrow(TrnG)
+        if(is.matrix(TrnG)!=TRUE) TrnG <- as.matrix(TrnG)
+        TrnX <- rbind(TrnX,TrnG)
+        TrnG <- factor(rep(1:2,c(mx,mg)))
+    }
+    
+    if(is.null(TstX)==TRUE) TstX <- TrnX #当没有测试集时，把训练集当做测试集
+    
+    if(is.vector(TstX)==TRUE) TstX <- t(as.matrix(TstX))#当测试集是向量时，转换成矩阵（行向量变矩阵时会变成列），并转置,实际变成行
+    else if (is.matrix(TstX)!=TRUE) TstX <- as.matrix(TstX)
+    
+    
+    
+    #下面进行判别分析
+    nx <- nrow(TstX) #测试集样本数
+    #存储测试集归类后的标号，1行的矩阵，初始化全部为0
+    blong <- matrix(rep(0,nx),nrow = 1,dimnames = list("blong",1:nx))
+    g <- length(levels(TrnG))#levels()得出各个类别标号，组成一个向量,g为类别数
+    
+    mu <- matrix(0,nrow = g,ncol = ncol(TrnX))#行数为类别数，列数为变量数
+    
+    for(i in 1:g)
+        mu[i,] <- colMeans(TrnX[TrnG==i,]) #类别为i的，各变量的mu值
+    
+    D <- matrix(0,nrow = g,ncol = nx) #行数为类别数，列数为测试集样本数，存放样本到各个类别的距离
+    if(var.equal==TRUE||var.equal==T)
+    {
+        for(i in 1:g)
+            D[i,] <- mahalanobis(TstX,mu[i,],var(TrnX))
+    }
+    else 
+    {
+        for(i in 1:g)
+            D[i,] <- mahalanobis(TstX,mu[i,],var(TrnX[TrnG==i,]))
+    }
+    
+    #进行距离判别
+    for (j in 1: nx)
+    {
+        dmin <- Inf#存放距离最小值
+    
+        for(i in 1:g)
+        {
+            if (D[i,j]<dmin)
+            {
+                dmin <- D[i,j]
+                blong[j] <- i
+            }
+            
+        }
+    }
+    blong  
+}
+```
+
+    * Bayes判别
+
+**二分类Bayes分析**   
+```{r}
+discriminiant.bayes <- function(TrnX1,TrnX2,rate=1,TstX=NULL,var.equal=FALSE)
+{
+    if(is.matrix(TrnX1)!=TRUE) TrnX1 <- as.matrix(TrnX1)
+    if(is.matrix(TrnX2)!=TRUE) TrnX2 <- as.matrix(TrnX2)
+    
+    #没有测试集时，训练集当作测试集
+    if(is.null(TstX)==TRUE) TstX <- rbind(TrnX1,TrnX2)
+    #对测试集做处理
+    if(is.vector(TstX)==TRUE) TstX <- t(as.matrix(TstX))
+    else if (is.matrix(TstX)!=TRUE) TstX <- as.matrix(TstX)
+    
+    
+    
+    #下面开始bayes判别
+    nx <- nrow(TstX)#存储测试集样本数
+    #存储测试集归类后的标号，1行的矩阵，初始化全部为0
+    blong <- matrix(rep(0,nx),nrow=1,byrow=TRUE,dimnames = list("blong",1:nx))
+    #计算均值
+    mu1 <- colMeans(TrnX1)
+    mu2 <- colMeans(TrnX2)
+    if(var.equal==TRUE||var.equal==T)
+    {
+        S <- var(rbind(TrnX1,TrnX2))
+        beta <- 2*log(rate)
+        w <- mahalanobis(TstX,mu2,S)-mahalanobis(TstX,mu1,S)
+    }
+    else 
+    {
+        S1 <- var(TrnX1)
+        S2 <- var(TrnX2)
+        beta <- 2*log(rate)+log(det(S1)/det(S2))
+        w <- mahalanobis(TstX,mu2,S2)-mahalanobis(TstX,mu1,S1)
+    }
+    
+    for(i in 1:nx)
+    {
+        if(w[i]>beta) blong[i] <- 1
+        else blong[i] <- 2
+    }
+    blong
+}
+```
+
+**多分类Bayes分析**
+```{r}
+distinguish.bayes <- function(TrnX,TrnG,p=rep(1,length(levels(TrnG))),TstX=NULL,var.equal=FALSE)
+{
+    if(is.matrix(TrnX)!=TRUE) TrnX <- as.matrix(TrnX)
+    
+    #当没有给分类时，把TrnX,TrnG看成两类样本，进行二分类
+    if(is.factor(TrnG)==FALSE)
+    {
+        mx <- nrow(TrnX)
+        mg <- nrow(TrnG)
+        if(is.matrix(TrnG)!=TRUE) TrnG <- as.matrix(TrnG)
+        TrnX <- rbind(TrnX,TrnG)
+        TrnG <- factor(rep(1:2,c(mx,mg)))
+    }
+    
+    if(is.null(TstX)==TRUE) TstX <- TrnX #当没有测试集时，把训练集当做测试集
+    
+    if(is.vector(TstX)==TRUE) TstX <- t(as.matrix(TstX))#当测试集是向量时，转换成矩阵（行向量变矩阵时会变成列），并转置,实际变成行
+    else if (is.matrix(TstX)!=TRUE) TstX <- as.matrix(TstX)
+    
+    
+    
+    #下面进行判别分析
+    nx <- nrow(TstX) #测试集样本数
+    #存储测试集归类后的标号，1行的矩阵，初始化全部为0
+    blong <- matrix(rep(0,nx),nrow = 1,dimnames = list("blong",1:nx))
+    g <- length(levels(TrnG))#levels()得出各个类别标号，组成一个向量,g为类别数
+    
+    mu <- matrix(0,nrow = g,ncol = ncol(TrnX))#行数为类别数，列数为变量数
+    
+    for(i in 1:g)
+        mu[i,] <- colMeans(TrnX[TrnG==i,]) #类别为i的，各变量的mu值
+    
+    D <- matrix(0,nrow = g,ncol = nx) #行数为类别数，列数为测试集样本数，存放样本到各个类别的距离
+    if(var.equal==TRUE||var.equal==T)
+    {
+        for(i in 1:g)
+        {
+            d2 <- mahalanobis(TstX,mu[i,],var(TrnX))
+            D[i,] <- d2-2*log(p[i])
+        }   
+    }
+    else 
+    {
+        for(i in 1:g)
+        {    
+            S <- var(TrnX[TrnG==i,])
+            d2 <- mahalanobis(TstX,mu[i,],S)
+            D[i,] <- d2-2*log(p[i])-log(det(S))
+        }
+    }
+    
+    #进行距离判别
+    for (j in 1: nx)
+    {
+        dmin <- Inf#存放距离最小值
+    
+        for(i in 1:g)
+        {
+            if (D[i,j]<dmin)
+            {
+                dmin <- D[i,j]
+                blong[j] <- i
+            }
+            
+        }
+    }
+    blong  
+}
+```
+
+
+    * Fisher判别
+```{r}
+discriminiant.fisher <- function(TrnX1,TrnX2,TstX=NULL)
+{
+    if(is.matrix(TrnX1)!=TRUE) TnX1 <- as.matrix(TrnX1)
+    if(is.matrix(TrnX2)!=TRUE) TnX2 <- as.matrix(TrnX2)
+    
+    if(is.null(TstX)==TRUE) TstX <- rbind(TnX1,TnX2)#当测试集空，两个训练集当作测试集
+    
+    if(is.vector(TstX)==TRUE) TstX <- t(as.matrix(TstX))#当测试集是向量时，转换成矩阵（行向量变矩阵时会变成列），并转置,实际变成行
+    else if (is.matrix(TstX)!=TRUE)
+        TstX <- as.matrix(TstX)
+    
+    
+    #下面进行判别分析
+    
+    nx <- nrow(TstX)#测试集的样本数
+    #存储测试集归类后的标号，1行的矩阵，初始化全部为0
+    blong <- matrix(rep(0,nx),nrow=1,byrow = TRUE,dimnames = list("blong",1:nx))
+    
+    #计算均值
+    mu1 <- colMeans(TnX1)
+    mu2 <- colMeans(TnX2)
+    
+    n1 <- nrow(TrnX1)
+    n2 <- nrow(TrnX2)
+    
+    S <- (n1-1)*var(TrnX1)+(n2-1)*var(TrnX2)
+    mu <- n1/(n1+n2)*mu1+n2/(n1+n2)*mu2
+    w <- (TstX-rep(1,nx) %o% mu) %*% solve(S,mu2-mu1)
+    #协方差相等计算距离
+   
+    for(i in 1:nx)
+    {
+        if(w[i]<=0) blong[i] <- 1
+        else blong[i] <- 2
+    }
+    
+    
+    blong
+}
+```
+
+
+* 聚类分析
+    * 计算距离函数
+        * dist(x,method="euclidean",diag=FALSE,upper=FALSE,p=2)
+            * x是由样本构成的数据矩阵（或数据框）
+            * method表示计算距离的方法，缺省为Ecuild距离；"maximum"为Chebyshev距离,"manhattan"为绝对值距离,"canberra"为Lance距离，"minkowski"为Minkowski距离，其中参数p是Minkowski距离的阶数，"binary"是定性变量距离
+            * diag为TRUE时给出对角线上距离
+            * upper为TRUE时给出上三角矩阵的距离
+            
+    * 数据中心化与标准化变换
+        * scale(x,center=TRUE,scale=TRUE)
+            * x是由样本构成的数据矩阵
+            * center为TRUE时表示对数据做中心化变换
+            * scale为TRUE时表示对数据做标准化变换
+        
+        * sweep(x,MARGIN,STATS,FUN="-",...)
+            * x是由样本构成的数据矩阵
+            * MARGIN是运算的区域，对矩阵来说，1是行，2是列
+            * STATS是统计量，如apply(x,2,mean)表示各列均值
+            * FUN表示函数的运算，缺省为减法
+```{}
+#极差化变换
+center <- sweep(x,2,apply(x,2,mean)) #将数据中心化
+R <- apply(x,2,max)-apply(x,2,min) #计算极差
+x_star <- sweep(center,2,R,"/") #将中心化的数据除以极差
+```
+
+
+    * 系统聚类
+        * hclust(d,method="complete",members=NULL)
+            * d是由"dist"构成的结构
+            * method是系统聚类的方法，"single"是最短距离法；"complete"是最长距离法；"median"是中间距离法；"mcquitty"是Mcquitty相似法；"average"是类平均法；"centroid"是重心法；"ward"是离差平方和法
+        
+        *可视化：plot(x,labels=NULL,hang=0.1,axes=TRUE,frame.plot=FALSE,ann=TRUE,main="Cluster Dendrogram",sub=NULL,xlab=NULL,ylab="Height",...)
+            * x是hclust()函数生成的对象
+            * hang是表明谱系图中各类所在位置，当hang去负值时，谱系图中的类从底部画起
+        
+        * 类的个数的确定
+            * rect.hclust(tree,k= NULL,which=NULL,x=NULL,h=NULL,border=2,cluster=NULL)
+                * tree是hclust生成的结构
+                * k是类的个数
+                * h是谱系图的阈值，要求分成的各类的距离大于h.border是数或向量
+        
+        * 另一个画谱系图函数plclust(tree,hang=0.1,unit=FALSE,level=FALSE,hmin=0,square=TRUE,labels=NULL,plot.=TRUE,axes=TRUE,frame.plot=FALSE,ann=TRUE,main="",sub=NULL,xlab=NULL,ylab="Height")
+            * tree是hclust()生成的对象
+            * 其余参数与plot一致
+            
+    * 动态聚类
+        * kmeans(x,centers,iter.max=10,nstart=1,algorithm=c("Hartigan-Wong","Lloyd","Forgy","MacQueen"))
+            * x由数据构成的矩阵或数据框
+            * centers是聚类的个数或初始类的中心
+            * iter.max是最大迭代次数
+            * nstart随机集合的个数（当centers为聚类的个数时）
+            * algorithm为动态聚类的算法
+            
+#第九章 应用多元分析(II)
+
+* 主成分分析
+    * princomp(formula,data=NULL,subset,na.action,...)
+        * formula是没有响应变量的公式
+        * data是数据框
+        
+    * princomp(x,cor=FALSE,scores=TRUE,covmat=NULL,subset=rep(TRUE,nrow(as.matrix(x))),...)
+        * x是用于主成分分析的数据，以数值矩阵或数据框形式给出
+        * cor为TRUE时表示用样本相关矩阵R做主成分分析，FALSE时表示用协方差阵S做主成分分析
+        * covmat是协方差阵，若数据不用x提供，可有协方差阵提供
+        
+    * prcomp()函数同princomp()函数
+    
+    * summary(object,loadings=FALSE,cutoff=0.1,...)
+        * object是由princopm()得到的对象
+        * loadings为TRUE时显示loadings内容
+        
+    * loadings(x)
+        * 显示主成分分析或因子分析中loadings(载荷)的内容，主成分分析中该内容实际上是主成分对应的各列
+        * x是由princomp()或factanal()得到的对象
+        
+    * predict(object,newdata,...)
+        * 预测主成分的值
+        * object是princomp()得到的对象
+        
+    * screeplot(x,npcs=min(10,length(x$sdev)),type=c("barplot","lines"),main=deparse(substitute(x)),...)
+        * 画主成分的碎石图
+        * x是由princomp()得到的对象
+        * npcs画出主成分的个数
+        * type描述画出的碎石图的类型，"barplot"是直方图类型，"lines"是直线图类型
+        
+    * biplot(x,choices=1:2,scale=1,pc.biplot=FALSE,...)
+        * 画出数据关于主成分的散点图和原坐标在主成分下的方向
+        * x是princomp()得到的对象
+        * choices是选择的主成分，缺省前2个主成分
+        * pc.biplot为TRUE时用Gabriel提出的画图方法
+        * newdata是由预测值构成的数据框，缺省时预测已有数据的主成分
+        
+* 因子分析
+
+    * **主成分法**
+
+```{r}
+factor.analy1 <- function(S,m)#m为取得主成分个数
+{
+    #常常先对变量标准化，此时协方差阵就是样本相关阵R，用R代替S
+    p <- nrow(S)
+    diag_S <- diag(S)#得到对角元素
+    sum_rank <- sum(diag_S)#求迹
+    #初始化矩阵A(loadings)
+    rowname <- paste("X",1:p,sep="")
+    colname <- paste("Factor",1:m,sep="")
+    A <- matrix(0,nrow = p,ncol = m,dimnames=list(rowname,colname))
+    #求特征根
+    eig <- eigen(S)
+    for(i in 1:m)
+        A[,i] <- sqrt(eig$values[i])*eig$vectors[,i]
+    h <- diag(A%*%t(A)) #得出hi平方
+    
+    rowname <- c("SS loadings","Proportion Var","Cumulative Var")
+    B <- matrix(0,nrow=3,ncol=m,dimnames=list(rowname,colname))
+    
+    for(i in 1:m)
+    {
+        B[1,i] <- sum(A[,i]^2)# 第i个主成分共性方差和，因子F对变量X的贡献
+        B[2,i] <- B[1,i]/sum_rank #第i个主成分共性方差和的比例，因子F对变量X的贡献率
+        B[3,i] <- sum(B[1,1:i])/sum_rank #m个主成分共性方差和的比例，因子F对变量X的累积贡献率
+    }
+    method <- c("Principal Component Method")
+    list(method=method,loadings=A,var=cbind(common=h,specific=diag_S-h),B=B)
+}
+```
+
+    * **主因子法**
+```{}
+factor.analy2 <- function(R,m,d)
+{
+    p <- nrow(R)
+    diag_R <- diag(R)
+    sum_rank <- sum(diag_R)
+    rowname <- paste("X",1:p,sep="")
+    colname <- paste("Factor",1:m,sep="")
+    A <- matrix(0,nrow=p,ncol=m,dimnames=list(rowname,colname))
+    kmax=20
+    k <- 1 
+    h <- diag_R-d
+    repeat
+    {
+        diag(R) <- h
+        h1 <- h
+        eig <- eigen(R)
+        for(i in 1:m)
+            A[,i] <- sqrt(eig$values[i])*eig$vectors[,i]
+        h <- diag(A %*%t(A))
+        if((sqrt(sum((h-h1)^2))<1e-4)|k==kmax) break
+        k <- k+1
+    }
+    rowname <- c("SS loadings","proportion Var","Cumulative Var")
+    B <- matrix(0,nrow=3,ncol=m,dimnames=list(rowname,colname))
+    for(i in 1:m)
+    {
+        B[1,i] <- sum(A[,i]^2)
+        B[2,i] <- B[1,i]/sum_rank
+        B[3,i] <- sum(B[1,1:i])/sum_rank
+    }
+    method <- c("Principal Factor Method")
+    list(method=method,loadings=A,var=cbind(common=h,specific=diag_R-h),B=B,iterative=k)
+}
+```
+
+    * **极大似然法**
+```{}
+factor.analy3 <- function(S,m,d)
+{
+    p <- nrow(S)
+    diag_S <- diag(S)
+    sum_rank <- sum(diag_S)
+    rowname <- paste("X",1:p,sep="")
+    colname <- paste("Factor",1:m,sep="")
+    A <- matrix(0,nrow=p,ncol=m,dimnames=list(rowname,colname))
+    kmax=20
+    k <- 1 
+    
+    repeat
+    {
+        d1 <- d
+        d2 <- 1/sqrt(d)
+        eig <- eigen(S*(d2 %o% d2))
+        for(i in 1:m)
+            A[,i] <- sqrt(eig$values[i]-1)*eig$vectors[,i]
+        A <- diag(sqrt(d))%*%A
+        d <- diag(S-A%*%t(A))
+        if((sqrt(sum((d-d1)^2))<1e-4)|k==kmax) break
+        k <- k+1
+    }
+    
+    rowname <- c("SS loadings","proportion Var","Cumulative Var")
+    B <- matrix(0,nrow=3,ncol=m,dimnames=list(rowname,colname))
+    for(i in 1:m)
+    {
+        B[1,i] <- sum(A[,i]^2)
+        B[2,i] <- B[1,i]/sum_rank
+        B[3,i] <- sum(B[1,1:i])/sum_rank
+    }
+    method <- c("Maximum Likelihood Method")
+    list(method=method,loadings=A,var=cbind(common=diag_S-d,specific=d),B=B,iterative=k)
+}
+```
+
+    * **将以上三种方法结合在一起**
+```{r}
+factor.analy <- function(S,m=0,d=1/diag(solve(S)),method="likelihood")
+{
+    if(m==0)
+    {
+        p <- nrow(S)
+        eig <- eigen(S)
+        sum_eig <- sum(diag(S))
+        for(i in 1:p)
+        {
+            if (sum(eig$values[1:i])/sum_eig>0.7)
+            {
+                m <- i
+                break
+            }
+        }
+    }
+    #source("factor.analy1.R")
+    #source("factor.analy2.R")
+    #source("factor.analy3.R")
+    switch(method,princomp=factor.analy1(S,m),
+                  factor=factor.analy2(S,m,d),
+                  likelihood =factor.analy3(S,m,d))
+}
+```
+    
+    * 方差最大正交旋转
+        * varimax(x,normalize=TRUE,eps=1e-5)
+            * x是因子载荷矩阵
+            * normalize是逻辑变量，是否对变量进行Kaiser正则化
+            * eps是迭代终止精度
+    
+    * 因子分析的计算函数
+        * factanal(x,factors,data <- NULL,covmat=NULL,n.obs=NA,subset,na.action,start=NULL,scores=c("none","regression","Bartlett"),rotation="varimax",control=NULL,...)
+            * 从样本数据、样本的方差矩阵和相关矩阵出发对数据因子分析，并可直接给出方差最大的载荷因子矩阵
+            * x是数据的公式，或是由数据（每个样本按行输入）构成的矩阵，或是数据框
+            * factors是因子的个数
+            * covmat是样本的协方差矩阵或样本的相关阵，此时不必输入变量x
+            * scores表示因子得分方法
+            * rotation表示旋转，"none"时不作旋转
+            * data是数据框，当x由公式形式给出时使用 
+            * 返回的结果call表示调用函数的方法
+            * 返回的结果uniquenesses是特殊方差
+            * 返回的结果loadings是因子载荷矩阵
+            * 返回的结果SS loadings是各个公共因子对各个变量的方差贡献率
+            * 返回的结果Cumulative Var是累积方差贡献率
+            
+
+* 典型相关分析
+    * cancor(x,y,xcenter=TRUE,ycenter=TRUE)
+        * x,y是相应的数据矩阵
+        * xcenter，ycenter是逻辑变量，TRUE时（缺省值）将数据中心化，FALSE则不中心化
+        * 返回的结果cor是典型相关系数
+        * 返回的结果xcoef是对应于数据X的系数，也称为关于数据X的典型载荷，即样本典型变量U系数矩阵A的转置
+        * 返回的结果ycoef是对应于数据Y的系数，也称为关于数据Y的典型载荷，即样本典型变量V系数矩阵B的转置
+        * 返回的结果xcenter是数据X的中心，即数据X的样本均值（已中心化则为0）
+        * 返回的结果ycenter是数据Y的中心，即数据Y的样本均值（已中心化则为0）
+        * 返回的结果中，U=AX计算得分，as.matrix(样本集)% *% 结果.xcoef，同理V=BY计算Y得分
+        
+    * 相关系数检验的R程序
+        
+        
+```{r}
+corcoef.test <- function(r,n,p,q,alpha=0.1)
+{
+    m <- length(r)#相关系数r
+    Q <- rep(0,m)#样本个数n
+    #两个随机向量维数p，q
+    lambda <- 1
+    for(k in m:1)
+    {
+        lambda <- lambda*(1-r[k]^2)#似然比检验统计量
+        Q[k] <- -log(lambda)#为下面计算卡方统计量准备
+    }
+    s <- 0
+    i <- m
+    for(k in 1:m)
+    {
+        Q[k] <- (n-k+1-1/2*(p+q+3)+s)*Q[k]#H0下检验统计量，服从自由度pq的卡方分布
+        chi <- 1-pchisq(Q[k],(p-k+1)*(q-k+1))
+        if(chi>alpha)
+        {
+            i <- k-1
+            break
+        }
+        s <- s+1/r[k]^2
+    }
+    i
+}
+```
+
+
+# 计算机模拟
+
+* 概率分析与Monte Carlo方法
+    * 随机投点法
+    * 平均值法
+    * 精度计算（方差）
+
+* 随机数的产生
+    * 均匀分布随机数的产生
+        * 乘同余法
+            * 产生(0,1)均匀分布随机数的递推公式：x[i]=lamuda *x[i-1](mod M)
+            * lamuda是乘因子（简称乘子）
+            * M是模数
+            * 给定初始x[0]后，可以用上述递推公式计算序列x[n]，再取r[i]=x[i]/M，则r[i]就是均匀分布的第i个随机数
+        
+        * 混合同余法
+            * 递推公式：x[i]=(lamuda *x[i]) *(mod M)  
+                        r[i]=x[i]/M
+            * 通过适当选取参数可以改善伪随机数的统计性质。如c取正整数，M=2^k，lamuda=4q+1，x[0]去任意非负整数，可产生随机性好，且有最大周期L=2^k的序列{r[i]}
+            
+    
+    * 均匀随机数的检验
+        * 参数检验
+            * 对均值，平方的均值用中心极限定理构造假设检验
+        * 均匀性检验
+            * 又称频率检验，用来检验经验频率和理论频率是否有显著性差异
+        * 独立性检验
+            * 检验随机数r[1],r[2],...r[n]中前后的统计相关性是否显著
+            
+    * 任意分布随机数的产生
+        * 离散型随机变量情形
+            * 每产生(0,1)区间上的一个随机数r，若P(i-1)<r<=p(i),则X=x[i]
+        
+        * 连续型随机变量的情形
+            * 一个分布的分布函数是F(X),r为(0,1)区间上均匀分布的随机变量，则F(X)=r服从(0,1)上的均匀分布，反解出x即得所需随机变量。
+            
+    
+    * 正态分布随机数的产生
+        * 极限近似法
+            * x=sum(r[i]-n/2)/sqrt(n/12),即对生成的(0,1)上的均匀分布随机数标准化，中心极限定理得x服从正态分布N(0,1)
+            * y=sigma *x+mu则得到任意参数的正态分布
+            
+        * 坐标变换法
+            * r1，r2是两个相互独立的(0,1)区间上均匀分布随机数
+            * x1=sqrt(-2 *ln(r1) *cos(2 *pi *r2));x2=sqrt(-2 *ln(r1) *sin(2 *pi *r2))。则x1，x2是两个独立的标准正太分布N(0,1)随机数
+            
+        * 用R生成随机数：r开头的内置函数
+        
+
+* 排队论
+
+* 等待制排队模型的模拟
+    
+    * (M/M/1/∞)，即顾客到达系统的相继到达时间间隔独立，且服从参数为lamuda的指数分布（即输入过程为Poisson过程），服务台的服务时间也独立同分布，且服从参数mu的指数分布，且系统空间无限，允许永远排队
+```{r}
+queue1 <- function(lambda,mu,T)
+{
+    k <- 0#系统状态
+    wt <- 0# 事件发生事件
+    wn <- 0# 记录系统中顾客数
+    ws <- 0# 上一事件到下一事件的间隔
+    tp <- 0# 状态变量，记录是否跳出循环
+    nA <- 0#t时刻到达系统的顾客总数
+    n <- 0#t时刻当前达系统的顾客数
+    t <- 0# 事件变量
+    
+    #产生指数分布的随机数，第一个到达顾客
+    r <- runif(1)
+    tA <- -1/lambda*log(r)#顾客到达时间
+    tD <- Inf#顾客离开时间
+    
+    repeat
+    {
+        #记录系统状态
+        k <- k+1
+        wt[k] <- t
+        wn[k] <- n
+        
+        if(tA<T)
+        {
+            ws[k] <- min(tA,tD)-t
+            
+            if(tA<tD)#tA<tD
+            {
+                t <- tA
+                n <- n+1
+                nA <- nA+1
+                
+                r <- runif(1)
+                tA <- t-1/lambda*log(r)#下一顾客到来时间
+                
+                if(n==1)
+                {
+                    r <- runif(1)
+                    tD <- t-1/mu*log(r)#服务台上顾客离开时间
+                }
+            }
+            else#tA>=tD
+            {
+                t <- tD
+                n <- n-1
+                if(n==0)
+                {
+                    tD <- Inf
+                }
+                else
+                {
+                    r <- runif(1)
+                    tD <- t-1/mu*log(r)
+                }
+            }
+        }
+        
+        
+        
+        else #tA>T
+        {
+            ws[k] <- if(tD==Inf) 0 else tD-t
+            if(n>0)
+            {
+                t <- tD
+                n <- n-1
+                if(n>0)
+                {
+                    r <- runif(1)
+                    tD <- t-1/mu*log(r)
+                }
+            }
+            #n不大于o
+            else tp <- 1
+            
+            
+        }
+    if(tp==1) break
+    }
+    data.frame(Ls=sum(ws*wn)/t,Ws=sum(ws*wn)/nA,Pwait=sum(ws[wn>=1])/t)
+}
+
+```  
+    * (M/M/S/∞)，即顾客到达系统的相继到达时间间隔独立，且服从参数为lamuda的指数分布（即输入过程为Poisson过程），服务台的服务时间也独立同分布，且服从参数mu的指数分布，且系统空间无限，允许永远排队
+```{r}
+queue2 <- function(lambda,mu,T,S=2)
+{
+    k <- 0
+    wt <- 0
+    wn <- 0
+    ws <- 0
+    tp <- 0
+    nA <- 0
+    t <- 0
+    
+    r <- runif(1)
+    tA <- -1/lambda*log(r)
+    tD <- rep(Inf,S)
+    SS <- rep(0,S+1)
+    
+    repeat
+    {
+        t1 <- if(SS[1]==0) Inf else min(tD)
+        i1 <- if(SS[1]==0) 1 else which.min(tD)
+        
+        k <- k+1
+        wt[k] <- t
+        wn[k] <- SS[1]
+        
+        if(tA<T)
+        {
+            ws[k] <- min(tA,t1)-t
+            if(tA<t1)
+            {
+                t <- tA
+                nA <- nA+1
+                
+                r <- runif(1)
+                tA <- t-1/lambda*log(r)
+                n <- SS[1]
+                SS[1] <- n+1
+                
+                for(i in 1:S)
+                {
+                    if(SS[1+i]==0)
+                    {
+                        SS[1+i] <- 1
+                        r <- runif(1)
+                        tD[i] <- t-1/mu*log(r)
+                        break
+                    }
+                }
+            }
+            else
+            {
+                t <- t1
+                n <- SS[1]
+                SS[1] <- n-1
+                if(n==1)
+                {
+                    SS[2:(S+1)] <- 0
+                    tD[1:S] <- Inf
+                }
+                else if (n<=S)
+                {
+                    SS[1+i1] <- 0
+                    tD[i1] <- Inf
+                }
+                else 
+                {
+                    r <- runif(1)
+                    tD[i1] <- t-1/mu*log(r)
+                }
+            }
+        }
+        
+        
+        
+        
+        else
+        {
+          ws[k] <- if(t1==Inf) 0 else t1-t
+          n <- SS[1]
+          if(n>0)
+          {
+              t <- t1
+              SS[1] <- n-1
+              if(n==1)
+              {
+                  SS[2:(S+1)] <- 0
+                  tD[1:S] <- Inf
+              }
+              else if (n<=S)
+              {
+                  SS[1+i1] <- 0
+                  tD[i1] <- Inf
+              }
+              else 
+              {
+                  r <- runif(1)
+                  tD[i1] <- t-1/mu*log(r)
+              }
+              
+          }
+          else tp <- 1
+        }
+        if(tp==1) break
+    }
+    data.frame(Ls=sum(ws*wn)/t,Ws=sum(ws*wn)/nA,Pwait=sum(ws[wn>=S])/t)
+}
+```
+
+
+* 损失制与混合排队模型
+    
+    * (M/M/1/K)，即有1个服务台，系统空间容量为K（K>=S），当K个位置已经被顾客占用时，新到的顾客自动离去，当系统中有空位时，新到的顾客进入系统排队，当K=S时，混合制排队系统退化成损失制排队系统
+    
+    
+```{r}
+queue3 <- function(lambda,mu,T,K=1)
+{
+    k <- 0
+    wt <- 0
+    wn <- 0
+    ws <- 0
+    tp <- 0
+    nA <- 0
+    n <- 0
+    t <- 0
+    
+    r <- runif(1)
+    tA <- -1/lambda*log(r)
+    tD <- Inf
+    
+    repeat
+    {
+        k <- k+1
+        wt[k] <- t
+        wn[k] <- n
+        if(tA<T)
+        {
+            ws[k] <- min(tA,tD)-t
+            if(tA<=tD)
+            {
+                t <- tA
+                n <- n+1
+                nA <- nA+1
+                r <- runif(1)
+                tA <- tA-1/lambda*log(r)
+                if(n==1)
+                {
+                    r <- runif(1)
+                    tD <- t-1/mu*log(r)
+                }
+                if(n==K)
+                {
+                    while(tA<tD)
+                    {
+                        r <- runif(1)
+                        tA <- tA -1/lambda*log(r)
+                    }
+                }
+            }
+            else
+            {
+                t <- tD
+                n <- n-1
+                if(n==0)
+                {
+                    tD <- Inf
+                }
+                else
+                {
+                    r <- runif(1)
+                    tD <- t-1/mu*log(r)
+                }
+            }
+        }
+        
+        
+        
+        else
+        {
+            ws[k] <- if(tD==Inf) 0 else tD-t
+            if(n>0)
+            {
+                t <- tD
+                n <- n-1
+                if(n>0)
+                {
+                    r <- runif(1)
+                    tD <- t-1/mu*log(r)
+                }
+            }
+            else tp <- 1
+        }
+        if(tp==1) break
+    }
+    data.frame(Ls=sum(ws*wn)/t,Ws=sum(ws*wn)/nA,Plost=sum(ws[wn>=K])/t)
+}
+```
+
+    * (M/M/S/K)，即有1个服务台，系统空间容量为K（K>=S），当K个位置已经被顾客占用时，新到的顾客自动离去，当系统中有空位时，新到的顾客进入系统排队，当K=S时，混合制排队系统退化成损失制排队系统
+```{r}
+queue4 <- function(lambda,mu,T,S=1,K=1)
+{
+    if(K<S) K <- S
+    
+    k <- 0
+    wt <- 0
+    wn <- 0
+    ws <- 0
+    tp <- 0
+    nA <- 0
+    t <- 0
+    
+    r <- runif(1)
+    tA <- -1/lambda*log(r)
+    tD <- rep(Inf,S)
+    SS <- rep(0,S+1)
+    
+    repeat
+    {
+        t1 <- if(SS[1]==0) Inf else min(tD)
+        i1 <- if(SS[1]==0) 1 else which.min(tD)
+        
+        k <- k+1
+        wt[k] <- t
+        wn[k] <- SS[1]
+        
+        if(tA<T)
+        {
+            ws[k] <- min(tA,t1)-t
+            if(tA<t1)
+            {
+                t <- tA
+                nA <- nA+1
+                
+                r <- runif(1)
+                tA <- t-1/lambda*log(r)
+                n <- SS[1]
+                SS[1] <- n+1
+                
+                for(i in 1:S)
+                {
+                    if(SS[1+i]==0)
+                    {
+                        SS[1+i] <- 1
+                        r <- runif(1)
+                        tD[i] <- t-1/mu*log(r)
+                        break
+                    }
+                }
+                if(SS[1]==K)
+                {
+                    t1 <- min(tD)
+                    while(tA<t1)
+                    {
+                        r <- runif(1)
+                        tA <- tA-1/lambda*log(r)
+                    }
+                }
+            }
+            else
+            {
+                t <- t1
+                n <- SS[1]
+                SS[1] <- n-1
+                if(n==1)
+                {
+                    SS[2:(S+1)] <- 0
+                    tD[1:S] <- Inf
+                }
+                else if (n<=S)
+                {
+                    SS[1+i1] <- 0
+                    tD[i1] <- Inf
+                }
+                else 
+                {
+                    r <- runif(1)
+                    tD[i1] <- t-1/mu*log(r)
+                }
+            }
+        }
+        
+        
+        
+        
+        else
+        {
+          ws[k] <- if(t1==Inf) 0 else t1-t
+          n <- SS[1]
+          if(n>0)
+          {
+              t <- t1
+              SS[1] <- n-1
+              if(n==1)
+              {
+                  SS[2:(S+1)] <- 0
+                  tD[1:S] <- Inf
+              }
+              else if (n<=S)
+              {
+                  SS[1+i1] <- 0
+                  tD[i1] <- Inf
+              }
+              else 
+              {
+                  r <- runif(1)
+                  tD[i1] <- t-1/mu*log(r)
+              }
+              
+          }
+          else tp <- 1
+        }
+        if(tp==1) break
+    }
+    data.frame(Ls=sum(ws*wn)/t,Ws=sum(ws*wn)/nA,Plost=sum(ws[wn>=K])/t)
+}
+```
+

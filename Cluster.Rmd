@@ -1,0 +1,365 @@
+---
+title: "Cluster"
+author: "jsysley"
+date: "2016年9月18日"
+output: html_document
+---
+
+#概述
+* K-均值聚类（K-Means）
+
+* K-中心点聚类（K-Medoids）
+
+* 密度聚类（Density-based Spatial Clustering of Application with Noise,DBSCAN）
+
+* 系谱聚类（Hierarchical Clustering,HC)
+
+* 期望最大化聚类（Expectation Maximization,EM）
+
+#library
+
+* stats: 包含基本的统计函数，如用于统计计算和随机数生成
+
+    * K-均值聚类（K-Means）： kmeans()
+    
+    * 系谱聚类（HC）: hclust()、cutree()、rect.hclust()
+    
+* cluster： 用于聚类分析，含有很多聚类相关的函数及数据集
+
+    * K-中心点聚类（K-Medoids）：  pam()
+    
+* fpc： 含有若干聚类算法函数，如固定点聚类，线性回归聚类，DBSCAN聚类等
+
+    * 密度聚类（DBSCAN）： dbscan()
+    
+* mclust： 主要用来处理基于高斯混合模型，通过EM算法实现的聚类、分类及密度估计等问题
+
+    * 期望最大化聚类（EM）： Mclust、clustBIC()、mclust2Dplot()、densityMclust()
+
+
+#核心函数
+
+##K-均值：kmeans()
+* K-均值算法的实现，来源stats包
+
+* kmeans(x,centers,iter.max=10,nstart=1,algorithm=c("Hartigan-Wong","Lloyd","For-gy","MacQueen"))
+
+    * 其中x为进行聚类的分析的数据集；centers为预设类别数k；iter.max为迭代的最大值，默认10；nstart为选择随机起始中心点的次数，默认1；algorithm提供4种算法选择，默认Hartigan-Wong
+    
+##K-中心点：pam()
+
+* k—中心点算法的实现，来源cluster包
+
+* pam(x,k,diss=inherits(x,"dist"),metric="euclidean",medoids=NULL,stand=FASLE,cluster.only=FALSE,do.swap=TRUE,keep.diss=!diss&&!cluster.only&&n<100,keep.data=!diss&&cluster.only,pamonce=FALSE,trace.lev=0)
+
+    * 实现PAM算法
+    * x于k分别表示待处理数据及类别数；
+    * metric参数选择样本点间距离计算方式，可选euclidean于manhattan
+    * medoids默认NULL，即由软件选择初始中心点样本，也可认为设定一个k维向量来指定初始点
+    * stand选择对数据进行聚类前是否需要标准化
+    * cluster.only选择是否获取各样本所属的类别（Cluster vector）这一项聚类结果，选择TRUE，则聚类过程效率更高。FALSE时，则除了个样本归属类别这一项之外，不再产生其他聚类相关信息
+    * keep.data 选择是否在聚类结果中保留数据。FASLE时，数据集不再被保留在聚类结果中
+
+* clara()
+    * 实现CLARA算法
+    * x于k分别表示待处理数据及类别数；
+    * metric参数选择样本点间距离计算方式，可选euclidean于manhattan
+    * stand选择对数据进行聚类前是否需要标准化
+    * keep.data 选择是否在聚类结果中保留数据。FASLE时，数据集不再被保留在聚类结果中
+
+* fpc包的pamk()[不需要用户输入k的值]
+    * data为待聚类数据集或距离矩阵
+```{r,eval=FALSE}
+library(fpc)
+iris2 <- iris
+iris2$Species <- NULL
+
+pamk.result <- pamk(data=iris2) 
+#查看聚类数
+pamk.result$nc
+#查看准确率
+table(pamk.result$pamobject$clustering,iris$Species)
+#可视化
+layout(matrix(c(1,2),1,2))#分割
+plot(pamk.result$pamobject)
+layout(matrix(1))#回复分割
+```
+
+##dbscan()
+
+* DBSCAN聚类算法的实现，来源fpc包
+
+* dbscan(data,eps,MinPts=5,scale=FALSE,method=c("hybrid","raw","dist"),seeds=TRUE,showplot=FALSE,countmode=NULL)
+    * data为待聚类数据集或距离矩阵
+    * eps为考察每一样本点是否满足密度要求时，所划定的考察领域半径；
+    * MinPts为密度阈值，当考察点eps领域内的样本点数大于等于MinPts时，该点才被认为是核心对象，否则为边缘点
+    * scale选择聚类前是否对数据集进行标准化
+    * method选择如何看待data，hybrid表示data为距离阵，raw表示data为原始数据集，且不计算其距离矩阵，dist表示也将data视为距离矩阵，但计算局部聚类矩阵
+    * showplot选择是否输出聚类结果示意图，取值0、1、2分别表示不绘图、每次迭代都绘图、仅对子迭代过程绘图
+
+##hclust()、cutree()、rect.halust()
+
+* 系谱聚类算法的实现，来源stats包
+
+* hclust(d,method="complete",members=NULL)
+    * d为待处理的数据集样本间的距离矩阵，可用dist()函数计算得到
+    * method参数用于选择选择聚类的具体算法，有ward、single、complete等7种，默认complete
+    * members指出每个待聚类样本点\簇是由几个单样本构成，如共有5个待聚类样本点\簇，当members=rep(2,5)表明每个样本点\簇中分别是2个单样本聚类的结果，参数默认值NULL，表示每个样本点本身即为单样本
+
+* cutree(tree,k=NULL,h=NULL)
+    * 对hclust()函数的聚类结果进行剪枝，即选择输出指定类别的系谱聚类结果
+    * tree为hclust()函数的聚类结果
+    * k、h用于控制选择输出的结果
+
+* rect.hclust(
+    * 可以在plot()形成的系谱图中将指定类别中的样本分支用方框表示出来
+    * rect.hclust(tree,k=NULL,which=NULL,x=NULL,h=NULL,border=2,cluster=NULL)
+)
+
+##Mclust()、mclustBIC()、mclust2Dplot()、densityMclust()
+
+* EM算法的实现，来源Mclust()包
+
+* Mclust(data,G=NULL,modelNames=NULL,prior=NULL,control=emControl(),initialization=NULL,warn=FALSE,...)
+    * data用于放置处理数据集
+    * G为预设类别墅，默认1-9，由软件根据BIC的值来选择
+    * modelNames设定模型类别，该参数和G一样也可以由函数自动选取
+    
+* mclustBIC()
+    * 参数设置与Mclust()基本一致，用于获取数据集所对应的参数化高斯混合模型的BIC值
+    * BIC的值用于评价模型优劣，BIC值越高模型越优
+    
+* mclust2Dplot()
+    * 可根据EM算法生成的参数对二维数据制图
+    
+* densityMclust()
+    * 利用Mclust()的聚类结果对数据集中每个样本点进行密度估计
+    
+#演示数据集
+
+用一个2维数据集：Countries#无法获取
+改用一下数据
+
+```{r}
+library(ISLR)
+V1=as.character(c(1:1250))
+V2=Smarket$Lag1
+V3=Smarket$Lag2
+Countries=data.frame(V1=V1,V2=V2,V3=V3)
+#查看数据
+str(Countries)
+head(Countries)
+#为了后面聚类分析的输出结果方便查看，对列名进行设置
+names(Countries)=c("country","birth","death")
+var=Countries$country#取变量country的值赋予var
+var=as.character(var)#将var转换为字符型
+for(i in 1:68) row.names(Countries)[i]=var[i]#将countries的行命名为相应的国家名
+#实际上自己构造的数据集已经处理好了
+#Countries=Countries[sample(nrow(Countries),50),]
+head(Countries)#查看处理后的数据
+
+#小技巧怎么在图上标出想要的点
+plot(Countries$birth,Countries$death)
+A=which.max(Countries$death)#如要画出名字为9的国家，或者某个变量值最大which.macx()等
+points(Countries[A,-1],pch=16)#以实心点画出
+legend(Countries$birth[A],Countries$death[A],"9,HERE!",bty="n",xjust = 0.5,cex = 0.8)#前面两个参数为标注的x，y坐标，9为标注内容
+```
+
+#应用实例
+
+##K-均值聚类
+
+聚类为较少类别(取center=3)，其他参数取默认值来对Countries聚类
+
+```{r}
+library(stats)
+fit.km1=kmeans(Countries[,-1],centers = 3)#用kmeans对数据集聚类
+print(fit.km1)#输出聚类结果
+```
+
+上示结果显示3个类别的样本数，424，485，341，以及各类别的中心点坐标
+
+```{r}
+#获取各类别中心店坐标
+fit.km1$centers
+#分别输出本次聚类的总平方和、组内平方和、组间平方和
+fit.km1$totss#总平方和
+fit.km1$tot.withinss#组内平方和
+fit.km1$betweenss#组间平方和
+```
+
+下面绘图：以星号标出3个类别中心点
+```{r}
+plot(Countries[,-1],pch=(fit.km1$cluster-1))#将countris数据集中三类以3中不同形状表示
+points(fit.km1$centers,pch=8)
+
+legend(fit.km1$centers[1,1],fit.km1$centers[1,2],"Center_1",bty="n",xjust=1,yjust=0,cex=0.8)#类别1的中心点标注
+
+legend(fit.km1$centers[2,1],fit.km1$centers[2,2],"Center_2",bty="n",xjust=0,yjust=0,cex=0.8)#类别2的中心点标注
+
+legend(fit.km1$centers[3,1],fit.km1$centers[3,2],"Center_3",bty="n",xjust=0.5,cex=0.8)#类别3的中心点标注
+
+
+```
+
+下面展示如何选择最优centers
+* 遍历centers当样本数据较少时，可以遍历所有类别墅，这里仅遍历50
+* 通过组间平方和占总平方和的百分比值来确定最优类别墅，即聚类优度
+```{r}
+result=rep(0:49)#存放49个聚类优度值
+for(k in 1:50)
+{
+    fit.km=kmeans(Countries[,-1],centers = k)#取类别数k
+    result[k]=fit.km$betweenss/fit.km$totss#计算类别墅为k时的聚类优度
+}
+round(result,2)#输出计算得到的result，取小数位后两位结果
+
+#画图
+
+plot(1:50,result,type="b",main="choosing the optimal number of cluster",xlab="number of cluster",ylab="betweenss/totss")
+
+points(10,result[10],pch=16)#比如想选10类，可以标出点，看看实际效果
+legend(10,result[10],paste("10",sprintf("%.1f%%",result[10]*100),")",sep="|"),bty="n",xjust = 0.3,cex = 0.8)#对类别10，标出坐标（x，y），x为类别数，y为聚类优度
+```
+
+##K-中心点聚类
+
+选择类别数3来聚类：
+
+```{r}
+library(cluster)
+fit.pam=pam(Countries[,-1],3)#用k-Medoids算法对Countries聚类
+print(fit.pam)#查看聚类结果
+```
+* Medoids指明了聚类完成时各类别的中心点分别是哪几个样本点，他们变量取值多少
+* 目标方程项(Objective function)给出了build和swap两个过程中目标方程中的值
+    * build过程用于在未指定初始中心点情况下，对最优初始中心点的寻找
+    * swap过程则用于在初始中心点的基础上，对目标方程寻找使其能达到局部最优的类别的划分状态，即其他划分方式都会使得目标方程的取值低于改值
+    
+* pam()还给出了一些在处理数据过程中给我们带来方便的输出结果
+
+```{r}
+head(fit.pam$data)#回看产生该聚类结果的相应数据集
+fit.pam$call#回看产生该聚类结果的函数设置
+```
+
+##系谱聚类
+
+要先使用dist()函数中默认的欧式距离生成Countries数据集的距离矩阵，再使用hclust()函数系谱聚类
+
+```{r}
+fit.hc=hclust(dist(Countries[,-1]))#，产生距离矩阵，进行聚类
+print(fit.hc)#查看结果
+plot(fit.hc)#图左侧是高度指标，在下面剪枝过程会用到
+
+group.k3=cutree(fit.hc,k=3)#利用剪枝函数，k=3表示输出3个类别的系谱聚类结果
+group.k3#显示结果
+
+table(group.k3)#将结果1️以表格形式总结
+
+#小技巧：查看k=3的聚类结果中各类别的样本
+sapply(unique(group.k3),function(g)Countries$country[group.k3==g])
+
+#画图
+plot(fit.hc)#对系谱聚类做系谱图
+rect.hclust(fit.hc,k=3,border = "light grey")#浅灰色矩形框出2分类的聚类结果
+```
+
+##密度聚类
+
+先对dbscan()函数中两个核心函数eps及MinPts来随意取值，通过查看输出结果，再考虑如何从数据集本身出发尽可能的合理确定参数取值
+
+```{r}
+library(fpc)
+ds1=dbscan(Countries[,-1],eps = 1,MinPts = 5)#取半径参数1，密度阈值5
+ds1#查看聚类结果
+```
+* 此时聚成2类
+* 第一类有1220个样本，即以上输出结果标号为1所对应的列，seed所对应的行，也就是理论所说的相互目睹可达的核心对象构成的类别，即类别A
+* 另有14个个样本点，即border所对应的行中的数字3，也就是与类A密度相连的边缘点所构成的类别，即类别B
+* 标号为0的列为噪声点的个数，此处为16
+
+```{r}
+library(fpc)
+ds2=dbscan(Countries[,-1],eps = 1,MinPts = 3)#取半径参数4，密度阈值5
+ds2#查看聚类结果
+```
+* 此时噪声点9个，其余样本为相应类别中
+* 样本点分为4类，所含样本数分别4，1，1232，4
+
+    *总结：
+        * 列标号>1的border，seed对应的前面为类别
+        * 列表号0对应的噪声点
+        
+下面绘图：
+
+```{r}
+plot(ds2,Countries[,-1],main="2:eps=1,MinPts=3")
+```
+
+** 规律：半径参数与阈值参数的取值差距越大，所得类别总数越小 **
+* 查看大多数样本间的距离是怎样的范围，再以此距离作为半径参数的取值，这样很大程度保证大部分样本被聚于类别内，而不被认为是噪声点
+* 噪声点太多，说明参数条件过紧，参与有效聚类的样本点太少
+
+```{r}
+d=dist(Countries[,-1])#计算数据集的距离矩阵d
+max(d)
+min(d)
+#为使用数据分段函数cut_interval(),加载ggplot2包
+library(ggplot2)
+interval=cut_interval(d,6)#对样本间的距离分段处理，最大值12，最小值0，居中段数为6
+table(interval)
+which.max(table(interval))
+#大多样本在0-1.86间，考虑eps取值0.1-2.0,密度阈值为1-10，做双层循环
+
+for(i in seq(0.1,1.9,by=0.5))#取半径参数
+{
+    for(j in 1:3)#取密度阈值
+    {
+        ds=dbscan(Countries[,-1],eps = i,MinPts = j)
+        print(ds)
+    }
+}
+#结果需要自己对比
+```
+
+
+##EM算法
+```{r}
+library(mclust)
+fit.EM=Mclust(Countries[,-1])#进行EM聚类
+summary(fit.EM)#查看简略信息
+summary(fit.EM,parameters=TRUE)#想要查看包括参数估计值在内更为具体的信息
+```
+看出根据BIC选择出最佳模型为VII，最优类别数2，且个类别分别含有1061，189个样本
+
+对Mclust()的聚类结果直接作图，获得4张连续图像，BIC图，分类图，概率图，密度图
+```{r}
+plot(fit.EM)
+```
+
+可以反复改变Mclust()的参数改变聚类，也可以用mclustBIC()函数实现比较
+
+```{r}
+library(mclust)
+countries.BIC=mclustBIC(Countries[,-1])#获取Countries在各模型和类别数下的BIC值
+countries.BICsum=summary(countries.BIC,data=Countries[,-1])#获取数据集countries的BIC值概况
+countries.BICsum#得到BIC值最高时的模型情况及BIC取值，分别为个2分类VII，2分类VEI，2分类VEE的模型，
+countries.BIC#输出BIC阵
+plot(countries.BIC,G=1:7,col="black")#对countries数据集在类别数为1-7的条件下的BIC值作图
+```
+
+利用countries.BICsum结果中相关参数值，通过mclust2Dplot()函数画分类图
+```{r}
+names(countries.BICsum)#查看countries.BICsum可以获得的结果
+#library(mclust2Dplot)
+#mclust2Dplot(countries[,-1],classification=countries.BICsum$classification,parameters=countries.BICsum$parameters,col="black")#绘制分类图
+```
+
+###2017，1，21
+* 确定聚类数
+    * nc <- Nbclust(data,min.nc,max.nc,method)
+    * nc$best.partition:最佳分类数的聚类结果
+
+* 比k-means更好的一个聚类方法：k-mediods（PAM算法）
+    * pam(data,k,stand=TRUE):stand表示是否标准化

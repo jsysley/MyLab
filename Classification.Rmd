@@ -1,0 +1,156 @@
+---
+title: "Classification"
+author: "jsysley"
+date: "2016年9月17日"
+output: html_document
+---
+
+# The book
+
+##Logistic Regression
+```{r}
+# 数据
+library(ISLR)
+str(Smarket)
+fix(Smarket)
+#查看数据集的简要信息
+summary(Smarket)
+#产生变量间的协方差矩阵
+#cor(Smarket)#出错,因为最后一列是定性变量
+cor(Smarket[,-9])
+#发现系列Lag变量和Today变量的相关系数接近0，发现Year变量和Volume变量的相关性大
+dev.new()
+plot(Smarket$Volume)
+#下面进行Logistic回归
+glm.fit <- glm(Direction~Lag1+Lag2+Lag3+Lag4+Lag5+Volume,data = Smarket,family = binomial)
+summary(glm.fit)
+#发现p值均比较大，查看系数
+coef(glm.fit)
+summary(glm.fit)$coef#或者这样也可以
+summary(glm.fit)$coef[,4]#抽出p值
+#predict()函数用于求出y值，加上type="response"求的是P(Y=1|x)，用contrasts()查看R是如何编码因此变量的
+glm.probs=predict(glm.fit,type = "response")#求出训练集的预测概率
+glm.probs[1:10]#查看前10个值
+contrasts(Smarket$Direction)#查看R如何编码因子变量
+#下面将回归结果转换回因子变量
+str(Smarket)
+glm.pred=rep("Down",1250)
+glm.pred[glm.probs>0.5]="Up"
+#查看对比结果
+table(glm.pred,Direction=Smarket$Direction)#为了有名字
+#计算准确率
+mean(glm.pred==Smarket$Direction)
+
+#下面进行划分training data和testing data
+str(Smarket)
+train=(Smarket$Year<2005)
+Smarket.2005=Smarket[!train,]#testing data
+dim(Smarket.2005)#查看维数
+Direction.2005=Smarket$Direction[!train]#对应的testing 因变量
+#下面进行用training data 训练
+glm.fit1=glm(Direction~Lag1+Lag2+Lag3+Lag4+Lag5+Volume,data = Smarket,family = binomial,subset=train)#加一个subset参数，里面是布尔变量
+#用得到的模型在testin data上预测
+glm.probs1=predict(glm.fit1,Smarket.2005,type = "response")
+#下面进行比对
+glm.pred1=rep("Down",252)
+glm.pred1[glm.probs1>0.5]="Up"
+table(glm.pred1,Direction.2005)
+#查看准确率
+mean(glm.pred1==Direction.2005)
+#查看错误率
+mean(glm.pred1!=Direction.2005)
+
+#模型不是很好，于是重新拟合
+glm.fit2=glm(Direction~Lag1+Lag2,data = Smarket,family = binomial,subset = train)
+glm.probs2=predict(glm.fit2,Smarket.2005,type = "response")
+glm.pred2=rep("Down",252)
+glm.pred2[glm.probs2>0.5]="Up"
+table(glm.pred2,Direction.2005)
+#计算准确率
+mean(glm.pred2==Direction.2005)
+
+#预测新值
+predict(glm.fit2,newdata = data.frame(Lag1=c(1.2,1.5),Lag2=c(1.1,-0.8)),type = "response")
+
+```
+
+---
+
+##Linear Discriminant Analysis
+用MASS中的lda()
+
+```{r}
+#数据
+library(MASS)
+#拟合一个LDA
+lda.fit=lda(Direction~Lag1+Lag2,data = Smarket,subset = train)
+lda.fit
+plot(lda.fit)
+
+```
+#给出先验概率0.492，0.508，拟合出的线性判别式是-0.642*Lag1-0.514*Lag2,值大时预测为增加<br>
+#predict()函数给出3个元素，第一个class，即LDA的预测的类型，第二个元素posterior是属于某个类型的概率，第三个x是线性判别式的值
+
+```{r}
+lda.pred=predict(lda.fit,Smarket.2005)
+names(lda.pred)
+
+lda.class=lda.pred$class
+table(lda.class,Direction.2005)
+#计算准确率
+mean(lda.class==Direction.2005)
+```
+可以变换概率阈值
+```{r}
+sum(lda.pred$posterior[,1]>0.5)#down的个数
+sum(lda.pred$posterior[,1]<0.5)#up的个数
+```
+
+---
+
+##Quadratic Discriminant Analysis
+用MASS包中的qda()
+
+```{r}
+library(MASS)
+qda.fit=qda(Direction~Lag1+Lag2,data = Smarket,subset=train)
+qda.fit
+
+#用predict()拟合,然后查看准确率
+qda.class=predict(qda.fit,Smarket.2005)$class
+table(qda.class,Direction.2005)
+mean(qda.class==Direction.2005)
+```
+
+
+##K-Nearset Neighbors
+用class包中的knn()函数<br>
+要求四个输入：
+* training data
+* testing data
+* one class labei vector
+* the value of K
+
+```{r}
+library(class)
+#训练集
+train.x=cbind(Smarket$Lag1,Smarket$Lag2)[train,]
+#待预测集
+test.x=cbind(Smarket$Lag1,Smarket$Lag2)[!train,]
+#训练集的类标号向量
+train.Direction=Smarket$Direction[train]
+#每次结果可能不一样
+set.seed(1)
+knn.pred=knn(train.x,test.x,train.Direction,k=1)
+#查看结果
+table(knn.pred,Direction.2005)
+mean(knn.pred==Direction.2005)
+
+#下面尝试不同的k值
+knn.pred1=knn(train.x,test.x,train.Direction,k=3)
+#查看结果
+table(knn.pred1,Direction.2005)
+mean(knn.pred1==Direction.2005)
+```
+
+

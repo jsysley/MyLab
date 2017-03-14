@@ -1,0 +1,1574 @@
+---
+title: "R-For-Everyone"
+author: "jsysley"
+date: "2016年10月11日"
+output: html_document
+---
+
+# 第三章 R包
+
+###3.1 包的安装
+* 从Github或BitBucket上来安装软件包的新方法
+    * 需要包：devtools
+```{r,eval=FALSE}
+require(devtools)
+install_github(repo="coefplot",username="jaredlander")
+```
+
+* 包的卸载
+```{r,eval=FALSE}
+remove.packages("")
+```
+
+###3.2包的加载
+* 加载包只有两个命令   
+    * require()：会在成功加载时返回TRUE，加载失败时返回带有FALSE字符的警告,在一个函数体内部加载包时十分有用。并且会依次显示出同样加载的相关包。quietly=TRUE可以隐藏。
+    * library
+    * 在RStutio的Packages界面的复选框内选择要加载的包的名称。
+    
+###3.3 包的卸载
+* 卸载包有两个命令
+    * 在RStutio的Packages界面清除复选框中的选项
+    * detach("packages: ")
+* 当不同包内有相同名字函数时
+    * function::package(object)
+    * 这命令不仅可以调用相应的函数，也可以调用未被加载包内的函数
+    
+# 第四章 R语言基础
+
+* 赋值：使用assign函数
+    * 变量名字可以使数字、字符以及句号(.)和下划线(_)的组合，但变量名称不能以数字和下划线开头
+```{r,eval=FALSE}
+assign("j",4)
+```
+
+* 删除变量
+    * remove函数
+```{r,eval=FALSE}
+rm(j)
+```
+    * 为了确保释放存储空间，可以使用gc函数，它会回收垃圾，释放操作系统中不用的存储空间。
+```{r,eval=FALSE}
+gc()# 现在做
+```
+
+* 得到字符(或数值)的长度，nchar()函数.(对因子函数不起作用),可以对向量作用
+```{r,eval=FALSE}
+x <- "hello"
+nchar(x)
+y <- c("hello","nope","apple")
+nchar(y)
+```
+
+* 日期
+    * R有很多日期类型，常用的用两种：Date,POSIXct
+        * Date：仅存储日期
+        * POSIXct存储日期与时间
+```{r,eval=FALSE}
+date1 <- as.Date("2012-12-10")
+date1
+class(date1)#查看数据类型
+mode(date1)#？？？
+as.numeric(date1)#代表自1970年1月1日以来的天数
+
+date2 <- as.POSIXct("2012-12-10 17:42")
+date2
+class(date2)
+as.numeric(date2)#代表自1970年1月1日以来的秒数
+```
+
+* 逻辑型
+    * 向量可以与一个数比较，返回逻辑值
+```{r,eval=FALSE}
+x <- c(1,2,3,4,5)
+x>3
+```
+    * 为了检查是否所有元素都是TRUE，可以用all
+    * 为了检查是否有一个元素是TRUE，可以用any
+```{r,eval=FALSE}
+x <- 10:1
+y <- -4:5
+any(x<y)
+all(x<y)
+```
+    
+* 向量处理
+    * 获取向量中的元素通过方括号[]，获取连续的x[1:10],获取离散的x[c(1,3,9)]
+    * 向量创建后给向量命名：names(x) <- c("str","str",...)
+```{r,eval=FALSE}
+x <- c(1:5)
+x[1:4]
+x[c(1,3,5)]
+names(x) <- c("str1","st2","st3","str4","str5")
+x
+```
+
+* 因子变量
+    * 可以对字符串作用,一个因子的水平数是那个因子变量不重复元素的个数。其实R给每个因子一个唯一值一个整数，通过as.numeric查看
+    
+```{r,eval=FALSE}
+q2 <- c("str1","st2","st3","str4","str5")
+q2Factor <- as.factor(q2)
+#指定每个字符的水平数，把字符串按顺序写出
+q2Factor1 <- factor(q2,levels = c("str1","st2","st3","str4","str5"))
+
+q2Factor
+q2Factor1
+
+as.numeric(q2Factor)
+as.numeric(q2Factor1)
+
+#指定因子顺序
+q2Factor2 <- factor(q2,levels = c("str1","st2","st3","str4","str5"),ordered = TRUE)
+q2Factor2
+```
+
+* 函数文件
+    * 查看二元运算符
+```{r,eval=FALSE}
+?'+'
+```
+    * 有时候对想用的函数记不清，用apropos()函数来查找你想要的函数，但要使用该函数名称的一部分
+    
+    
+```{r,eval=TRUE}
+apropos("mea")
+```
+
+# 高级数据结构
+
+###5.1 数据框
+* 在创建的过程中指定列名,data.frame()中参数stringAsFactor设为FALSE时（默认值TRUE），组织将字符变量变为因子变量
+```{r,eval=FALSE}
+x <- 1:10
+y <- -4:5
+z <- 4:13
+theDF <- data.frame(first=x,second=y,third=3)
+theDF
+
+#行数
+nrow(theDF)
+
+#列数
+ncol(theDF)
+
+#维数
+dim(theDF)
+
+#看列名字
+names(theDF)
+
+#引用
+names(theDF)[3]
+
+#看行名字
+rownames(theDF)
+
+#看列名字
+colnames(theDF)
+
+#看前几个数据
+head(theDF,n=2)
+
+#看最后几个数据
+tail(theDF,n=2)
+
+#通过名字访问多列
+theDF[,c("first","third")]
+
+#返回的数据类型
+theDF[,"second"]#返回向量，是数据类本身的类型，integer
+theDF["second"]#返回列向量，是数据框类型
+theDF[,"second",drop=FALSE]#此时返回列向量，数据框类型
+
+#看某列数据属性
+class(theDF[,"second"])#看这列的数据属性，数据本身的类型
+class(theDF["second"])# 看这个数据的类型，数据框
+class(theDF[,"second",drop=FALSE])#看这个数据类型，数据框
+```
+
+* 因子的哑变量编码：model.matrix()#？？？不懂
+```{r,eval=FALSE}
+newfactor <- factor(c("a","b","c","d","e"))
+m1 <- model.matrix(~newfactor-1)#列代表一个因素的水平，每行里，对应的那个水平是1，其余是0
+m1
+
+m2 <- model.matrix(~newfactor)#多了一个intercept项？
+m2
+```
+
+
+# 第六章 导入数据
+
+### 6.1 导入CSV
+* read.table(file,header,sep)
+    * file甚至可以是网址，但要是.csv结尾的文件
+    * header表示的是数据第一行，即各列的变量名
+    * sep指定数据的分割符
+    * stringAsFactor设为FALSE时（默认值TRUE），组织将字符变量变为因子变量
+    * quote设定封闭单元格为字符型
+    * colClasses设定每一列的数据类型
+
+* read.csv2():适用于有的CSVs（或者标签分隔）的单元中，已经存在单元分隔符。
+
+###6.7 从互联网上抓取数据
+* 简单的HTML表格
+    * 如果数据很整齐的存储在一个HTML表格里，可以利用XML软件包的readHTMLTable命令轻松抓取数据
+        * which允许我们在多个表格的情况下读取哪个表格
+```{r,eval=FALSE}
+library(XML)
+theURL <- "http://www.jaredlander.com/2012/02/another-kind-of-super-bowl-pool/"
+bowlPool <- readHTMLTable(theURL,which = 1,header = FALSE,stringsAsFactors=FALSE)
+bowlPool
+```
+
+
+# 第七章 统计图形
+
+###7.1 基本图形
+```{r,eval=FALSE}
+require(ggplot2)
+data("diamonds")
+```
+
+* 基础直方图
+```{r,eval=FALSE}
+hist(diamonds$carat,main = "Carat Histogram",xlab = "Carat")
+```
+
+* 基础散点图
+```{r,eval=FALSE}
+plot(price~carat,data=diamonds)
+```
+
+* 基础箱线图
+```{r,eval=FALSE}
+boxplot(diamonds$carat)
+```
+
+###7.2 ggplot2
+
+* ggplot2:直方图和核密度曲线
+```{r,eval=FALSE}
+ggplot(data = diamonds)+geom_histogram(aes(x=carat))#画直方图
+ggplot(data = diamonds)+geom_density(aes(x=carat))#画核密度图
+```
+    * 着色fill,注意参数fill的位置
+```{r,eval=FALSE}
+ggplot(data = diamonds)+geom_density(aes(x=carat,fill="gret50"))
+```
+
+* ggplot2:散点图
+```{r,eval=FALSE}
+g <- ggplot(diamonds,aes(x=carat,y=price))+geom_point()
+```
+    * 进一步对g添加图层
+```{r,eval=FALSE}
+g+geom_point(aes(color=color))#用diamonds数据的color来设置颜色，ggplot自动生成图例
+```
+    * 分面图形可由函数facet_wrap或者 facet _grid完成
+        * facet_wrap根据变量水平将数据划分成子集，每个子集一次绘制在不同面板上
+        * facet_grid把变量的水平映射到面板的行和列
+```{r,eval=FALSE}
+g+geom_point(aes(color=color))+facet_wrap(~color)
+g+geom_point(aes(color=color))+facet_grid(cut~clarity)
+```
+        * 也可以对直方图或其他图形分面
+    
+```{r,eval=FALSE}
+ggplot(data=diamonds,aes(x=carat))+geom_histogram()+facet_wrap(~color)
+```
+
+* ggplot2:箱线图和小提琴图
+    * 绘制箱线图geom_boxplot(),尽管它只是用到y轴属性的一维图形，但人可以添加x属性
+    
+    
+```{r,eval=FALSE}
+#将1映射到x轴
+ggplot(diamonds,aes(y=carat,x=1))+geom_boxplot()
+```
+    * 在同一个图形中使用多个图层，注意两个图层的顺序是不一样的，左图的数据点在小提琴下面，右图的数据点在小提琴上面
+```{r,eval=FALSE}
+ggplot(diamonds,aes(y=carat,x=cut))+geom_point()+geom_violin()
+ggplot(diamonds,aes(y=carat,x=cut))+geom_violin()+geom_point()
+```
+
+* ggplot2；曲线图
+```{r,eval=FALSE}
+ggplot(economics,aes(x=date,y=pop))+geom_line(aes(group=1))
+```
+
+
+# 第八章 编写R函数
+
+###8.2 函数参数
+    * sprintf():第一个参数是带有特殊字符的字符串，第二个参数会替换掉特殊字符
+```{r,eval=FALSE}
+sprintf("Hello %s","Jared")
+
+sprintf("Hello %s , today is %s","Jared","Sunday")
+```
+    * do.call():指定函数名称（字符型或对象），提供参数作为一个列表
+```{r,eval=FALSE}
+hello.p <- function(a,b)
+{
+    print(sprintf("hello,%s %s",a,b))
+}
+do.call(hello.p,args = list("harlem","jsysley"))
+```
+
+# 第九章 控制语句
+* switch()函数
+```{r,eval=TRUE}
+use.switch <- function(x)
+{
+    switch(x,
+           "a"="first",
+           "b"="seconf",
+           "c"="third",
+           "other")
+}
+use.switch("a")
+
+#如果第一个参数是数字，不管接下来的参数是什么名字，它后面跟的参数是定位匹配，如果这个数值大于后续参数的数量，则返回null
+use.switch(1)
+use.switch(2)
+
+use.switch(6)
+is.null(use.switch(6))
+```
+
+* ifelse语句
+    * 第一个参数是被检查的条件
+    * 第二个参数是检查的条件为真的返回值
+    * 第三个参数是检查的条件为假的返回值
+```{r,eval=FALSE}
+ifelse(1==1,"yes","no")
+```
+
+# 第十章 循环，Un-R方式的迭代
+
+* identical(x,y)#x==y时返回TRUE
+
+# 第十一章 分组操作
+ 
+### apply函数族
+* apply():第一个参数为操作的矩阵对象，第二个参数为应用函数的维度，1为行，2为列，第三个参数为处理数据调用的函数，na.rm=TRUE表示确实值的处理
+```{r,eval=FALSE}
+the <- matrix(1:9,nrow = 3)
+apply(the,1,sum)
+```
+* rowSums(matrix)，行求和
+* colSums(matrix),列求和
+
+* lapply()与sapply()
+    * lapply():将一个函数运用到一个列表中的每个元素，并将结果作为列表返回
+```{r,eval=FALSE}
+theList <- list(A=matrix(1:9,3),B=1:5,C=matrix(1:4,2),D=2)
+lapply(theList,sum)#返回列表
+```
+    * sapply():与lapply一样，只是返回的结果是向量
+```{r,eval=FALSE}
+sapply(theList, sum)
+```
+    * 向量也是列表的一种，因此也可以用于向量
+
+* mapply():将调用的函数运用到多个列表中的每一个元素。可以在一定程度上代替循环。
+```{r,eval=FALSE}
+firstlist <- list(A=matrix(1:16,4),B=matrix(1:16,2),C=1:5)
+secondlist <- list(A=matrix(1:16,4),B=matrix(1:16,8),C=15:1)
+
+mapply(identical,firstlist,secondlist)
+
+simpleFunc <- function(x,y)
+{
+    nrow(x)+nrow(y)
+}
+mapply(simpleFunc,firstlist,secondlist)
+```
+
+### 11.2 aggregate()函数
+* aggregate(formual,data,function)
+    * 第一个参数说明y变量按照什么变量来分类统计
+    * 第二个参数指明数据集
+    * 第三个参数指明要应用的函数
+```{r,eval=FALSE}
+aggregate(price~cut,diamonds,mean)
+aggregate(price~cut+color,diamonds,mean)
+
+#需要汇总两个变量，但仍按变量cut分组,得到了cut分组的变量price和carat的平均值
+aggregate(cbind(price,carat)~cut,diamonds,mean)
+```
+
+###11.3 plyr
+* ddply:输入数据框，输出数据框
+* llply:输入列表，输出列表
+* aaply:输入数组/向量/矩阵，输出数组/向量/矩阵
+* dlply:输入数据框，输出列表
+* daply:输入数据框，输出数组/向量/矩阵
+* d_ply:输入数据框，输出无
+* ldply:输入列表，输出数据框
+* laply:输入列表，输出数组/向量/矩阵
+* l_ply:输入列表，输出无
+* adply:输入数组/向量/矩阵，输出数据框
+* alply:输入数组/向量/矩阵，输出列表
+* a_ply：输入数组/向量/矩阵，输出无
+
+*ddply(data,.variables,.fun):以数据框为输入值，根据几个变量对其分类并做相应的运算，最后返回一个数据框
+```{r,eval=FALSE}
+require(plyr)
+head(baseball)
+baseball$sf[baseball$year<1954] <- 0
+baseball$hbp[is.na(baseball$hbp)] <- 0
+
+baseball <- baseball[baseball$ab>=50,]#只要这个条件的数据
+#计算指定球员的OBP（假设已知公式）,with函数可以对指定的一个数据框进行操作且无需每次操作都要指明数据框的名称
+baseball$OBP <- with(baseball,(h+bb+hbp)/(ab+bb+hbp+sf))
+
+#为了计算每个球员在其整个职业生涯的OBP指标，只能用ddply
+obp <- function(data)
+{
+    c(OBP=with(data,sum(h+bb+hbp)/sum(ab+bb+hbp+sf)))
+}
+careerOBP <- ddply(baseball,.variables = "id",.fun=obp)
+careerOBP <- careerOBP[order(careerOBP$OBP,decreasing = TRUE),]
+```
+
+* llply():与lapply()函数一样的结果
+```{r,eval=FALSE}
+theList <- list(A=matrix(1:9,3),B=1:5,C=matrix(1:4,2),D=2)
+lapply(theList,sum)#返回列表
+
+llply(theList,sum)
+```
+
+* laply():与sapply函数一样的结果
+```{r,eval=FALSE}
+sapply(theList, sum)
+laply(theList,sum)#得到的向量不含有名称
+```
+
+* plyr辅助函数
+    * each():能够在使用函数aggregate时调用多个函数
+```{r,eval=FALSE}
+aggregate(price~cut,diamonds,each(mean,median))
+```
+    * idata.frame():创建了一个数据框的引用地址，这样使得取子集运算更加快速和能更有效地利用内存
+```{r,eval=FALSE}
+system.time(dlply(baseball,"id",nrow))#计算时间
+
+iBaseball <- idata.frame(baseball)
+system.time(dlply(iBaseball,"id",nrow))
+```
+
+
+###11.4 data.table
+* data.table的软件包能扩展和增强data.frame的功能。data.table运行速度快的原因是它有类似于数据库一样的索引，且两者相似。
+
+* 创建data.table对象与data.frame对象一样
+```{r,eval=FALSE}
+require(data.table)
+theDF <- data.frame(A=1:10,
+                    B=letters[1:10],
+                    C=LETTERS[11:20],
+                    D=rep(c("One","Two","Three"),length.out=10))
+theDT <- data.table(A=1:10,
+                    B=letters[1:10],
+                    C=LETTERS[11:20],
+                    D=rep(c("One","Two","Three"),length.out=10))
+#两者的数据项是相同的，不同之处在于data.frame把B转化为因子，而data.table没有，仍为字符串。
+#也可以从现有数据创建
+diamondsDT <- data.table(diamonds)
+
+#只输出前5行和最后5行数据
+diamondsDT
+
+#访问数据时，要用列表类型
+theDT[,list(A,C)]
+
+#返回向量
+theDT[,B]
+
+#返回结果维持data.table结构
+theDT[,list(B)]
+
+#如果必须指定列名为字符型，则需要设置with=FALSE
+theDT[,"B",with=FALSE]
+theDT[,c("A","C"),with=FALSE]
+```
+
+* 指针
+```{r,eval=FALSE}
+#查看现在有几个data.table在内存中，key是指针。此时我们没有把指针赋值给任何对象，所以这一列是空的
+tables()
+
+```
+    * 对theDT增加一个指针，且用D列来索引data.table。
+        * setkey():第一个参数为data.table的名称，第二个参数是放置指针的列（不带引号，且必须与选择的列一致）
+```{r,eval=FALSE}
+#创建指针
+setkey(theDT,D)
+theDT
+#可以看出数据已经根据D的字符顺序重新排列，用key(data.table)来查看指针,或者tables()
+key(theDT)
+tables()
+
+#用指针列的值访问行数据
+theDT["One",]
+theDT[c("One","Two"),]
+
+#设置多个列为指针
+setkey(diamondsDT,cut,color)
+
+#根据两个指针来访问行，必须用到J()函数
+diamondsDT[J("ideal","E")]
+diamondsDT[J("ideal",c("E","D"))]
+```
+
+* data.table汇总
+```{r,eval=FALSE}
+#返回结果无列名
+diamondsDT[,mean(price),by=cut]
+
+#返回结果有列名
+diamondsDT[,list(price=mean(price)),by=cut]
+
+#汇总多个分类变量
+diamondsDT[,mean(price),by=list(cut,color)]
+
+#汇总多个参数
+diamondsDT[,list(price=mean(price),carat=mean(carat)),by=cut]
+
+#不同标准汇总
+diamondsDT[,list(price=mean(price),carat=mean(carat),caratSum=sum(carat)),by=cut]
+```
+
+
+# 第十二章 数据整理
+* 合并：merge(x,y,by.x,by.y)
+    * x:数据框
+    * y:数据框
+    * by.x:指定左边数据框的匹配列（key）
+    * by.y:指定右边数据框的匹配咧（key）
+
+* plyr中的join():
+    * 与merge()函数一样，要快得多，但最大缺点是每一个表的匹配列名必须一样
+    * join(x,y,by)#by可为多个字符串，c()连接
+
+* reshape2包
+    * melt(data=,id.vars="str",variable.name="str",value.name="str")
+        * id.vars参数是用来指定那一列唯一的标识一行
+    * dcast(data,formula,value.var="str")
+        * 第一个参数是要用的数据
+        * 第二个数据是公式，表达式左边的列名依然作为列，表达式右边的列名变为行
+        * 第三个参数是（包含要填充到新列中的值）列（一个字符），代表着公式右边参数的唯一值
+        
+
+# 第十三章 字符串操作
+
+###3.1 paste
+* 接受一系列字符串，将其连接成一个字符串
+```{r,eval=FALSE}
+paste("Hello","Jared","and others")
+
+#自选分隔符
+paste("Hello","Jared","and others",sep = "/")
+
+#分别配对
+paste(c("Hello","Hey","Howdy"),c("Jared","Bob","David"))
+
+#一对多
+paste("Hello",c("Jared","Bob","David"))
+```
+
+* 利用collapse参数，可以 把一个文本向量拆解成由任意分隔符的元素组成的向量
+```{r,eval=FALSE}
+vectorOfText <- c("Hello","Everyone","out there",".")
+paste(vectorOfText,collapse = "*")
+
+#注意区别：
+paste(vectorOfText,sep = " ")
+paste("Hello","Everyone","out there",".",sep = " ")
+```
+
+###13.2 把格式数据写成串(sprintf)
+```{r,eval=FALSE}
+person <- "Jared"
+partySize <- "eight"
+waitTime <- 25
+sprintf("Hello %s, your party of %s will be seated in %s minutes",person,partySize,waitTime)
+```
+
+###13.3 提取文本
+```{r,eval=FALSE}
+require(XML)
+theURL <- "http://www.loc.gov/rr/print/list/057_chron.html"
+presidents <- readHTMLTable(theURL,which = 3,as.data.frame = TRUE,skip.rows = 1,header = TRUE,stringsAsFactors=FALSE)
+presidents <- presidents[1:10,]
+names(presidents) <- c("YEAR","PRESIDENT","FIRST LADY","VICE PRESIDENT","START","STOP")
+head(presidents)
+```
+
+* str_split()返回的列表，转化为data.frame
+    * dataframe <- data.frame(Reduce(rbind,object))
+    * 转化为矩阵：da.call(rbind,object)
+    
+* str split()函数
+```{r,eval=FALSE}
+require(stringr)
+yearList <- str_split(string=presidents$YEAR,pattern="-")
+yearList <- yearList[1:10]
+yearMatrix <- data.frame(Reduce(rbind,yearList))#法一
+yearMatrix <- do.call(rbind,yearList)#法二
+
+#对yearMatrix处理，加进去原数据框
+names(yearMatrix) <- c("Start","Stop")
+presidents <- cbind(presidents,yearMatrix)
+
+presidents$Start <- as.numeric(as.character(presidents$Start))
+presidents$Stop <- as.numeric(as.character(presidents$Start))
+```
+
+* str_sub函数：从文本中选择指定字符
+```{r,eval=FALSE}
+str_sub(string = presidents$PRESIDENT,start = 4,end = 8)
+
+#查找一位总统，任期开始于以1结束的年份
+presidents[str_sub(string = presidents$START,start = 4,end = 4)==1,c("YEAR","PRESIDENT","START","STOP")]
+```
+
+###13.4 正则表达式（帮组文档"?regex"）
+* 例子：要找到任何名字中带John的总统，因为不知道John会出现在哪个位置，因此不能用str_sub
+    * 这里正则表达式选择，用str_string
+```{r,eval=FALSE}
+johnPos <- str_detect(string = presidents$PRESIDENT,pattern = "John")
+presidents[johnPos,c("YEAR","PRESIDENT","START","STOP")]
+
+#若要忽略大小写，则加 参数ignose.case("str")
+johnPos1 <- str_detect(string = presidents$PRESIDENT,ignore.case("John"))
+sum(johnPos1)
+```
+    * str_split()中，pattern可以使用正则表达式，如
+```{r,eval=FALSE}
+con <- url("http://www.jaredlander.com/data/warTimes.rdata")
+load(con)
+close(con)
+head(warTimes)
+#分离，“ACAEA”，还有“-”,这有个影响就是一些连接符单词也存在，我们并不想分离单词
+warTimes[str_detect(string = warTimes,pattern = "-")]
+
+
+theTimes <- str_split(string=warTimes,pattern="ACAEA|-",n=2)
+#为了避免分离“mid-July”这种单词，设参数n=2，所以它为输入向量的每个元素返回至多两个元素
+
+#例子：
+str_split(string="mid-July",pattern="ACAEA|-",n=1)
+str_split(string="mid-July",pattern="ACAEA|-",n=2)
+
+#另一个例子，str_detect()可以这样用
+which(str_detect(string = warTimes,pattern = "-"))
+
+#另两个函数：str_trim(),str_extract
+theStart <- sapply(theTimes,FUN=function(x)x[1])#只取时间
+
+#原始文本有时在分隔符附近有空格，有时没有，意味着我们的一些文本尾部有空白。处理他们用str_trim()
+theStart <- str_trim(theStart)
+head(theStart)
+
+#为了提取单词“January”（无论存在与否），用函数str_extract()函数，若没有找到则结果显示NA
+str_extract(string = theStart,pattern = "January")
+
+#利用str_detect()函数可以找到包含“January”的元素，并返回整个条目，而不仅仅是January本身，返回结果作为theStart的子集
+theStart[str_detect(string = theStart,pattern = "January")]
+
+#为了提取年份，我们搜寻连续4个数字在一起的数字，其他正则表达式语法可用
+head(str_extract(string = theStart,"[0-9]{4}"),20)
+head(str_extract(string = theStart,"\\d{4}"),20)#或者
+
+#正则表达式的另一个强大的功能是有选择的替换文本
+head(str_replace(string = theStart,pattern = "\\d",replacement = "x"),30)
+
+head(str_replace_all(string=theStart,pattern = "\\d",replacement = "x"))
+
+```
+
+
+# 第十四章 概率分布
+
+* 这个概率用曲线下面的面积表示
+```{r,eval=FALSE}
+library(ggplot2)
+randNorm <- rnorm(30000)
+randDensity <-dnorm(randNorm)
+
+p <- ggplot(data.frame(x=randNorm,y=randDensity))+aes(x=x,y=y)+geom_line()+labs(x="x",y="Density")
+
+neg1Seq <- seq(from=min(randNorm),to=-1,by=0.1)
+lessThanNeg1 <- data.frame(x=neg1Seq,y=dnorm(neg1Seq))
+head(lessThanNeg1)
+
+#画图，找横坐标最左点和最右点
+lessThanNeg1 <- rbind(c(min(randNorm),0),lessThanNeg1,c(max(lessThanNeg1$x),0))
+
+p+geom_polygon(data=lessThanNeg1,aes(x=x,y=y))
+```
+
+# 第十五章 描述性统计
+* 加权平均值
+```{r,eval=FALSE}
+grades <- c(95,72,87,66)
+weights <- c(1/2,1/4,1/8,1/5)
+weighted.mean(x=grades,w=weights)
+
+```
+
+* 相关系数和协方差，可视化分析
+```{r,eval=FALSE}
+require(ggplot2)
+head(economics)
+#计算相关系数阵
+cor(economics[,c(2,4:6)])
+library(GGally)
+ggpairs(economics[,c(2,4:6)])
+```
+    * cor(data)函数
+        * 对缺失值的处理
+            * use=everything: 意味着所有列的元素必须 不含缺失值，否则结果是NA
+            * use=all.obs:要求所有列不含缺失值，否则提示错误
+            * use=complete.obs和use==na.or.complete，仅留下不存在缺失值的行来计算相关系数。不同之处在于经过处理之后，数据没有一个完整的数据的行，complete.obs会返回提示错误，na.or.complete会返回NA。
+            * use=pairwise.complete.obs依次比较多对变量，并把两个变量相互间的缺失列剔除，用余下的数据计算两者的相关系数。这种方法在本质上是与complete.obs在计算每一对变量组合的相关系数是相同的。
+
+* 非参数AnsariBradley检验，方差是否相等
+ansari.test(y~x,data)
+
+* 单样本t-检验
+    * t.test(data,alternative="two.sided",mu=)#检验数据的均值是否等于mu
+    * t.test(data,alternative="greater",mu=)#检验数据的均值是否大于mu
+    
+* 两样本-t检验
+    * 检验之前，要检验一下两样本的方差是否相等，一般t检验要求两个样本具有相同方差
+    * 方差相等检验：标准的F检验var.test(),Bartlett检验bartlett.test()。
+        * 以上两个检验要求数据具有正态分布，shapiro.test()
+        * 以上两个方差检验不能用时，可用非参数AnsariBradley检验,ansari.test(y~x,data)
+    * t.test(y~x,data,var.equal=TRUE) #原假设两样本差异不大
+
+* 两配对样本t-检验
+    * t.test(x,y,paired=TRUE)# 只需要加参数paired=TRUE
+    
+* 方差分析
+    * 比较组间差距的老办法
+    * formula中，左边是感兴趣的变量，右边是控制分组的变量。
+    * aov(y~x-1,data)#没有截距项
+    * aoc(y~x,data)#有截距项
+    * 方差分析是检验是否有一组与其他组存在差异，但不能明确哪一组是不同的，所以打印的结果只返回一个单侧P值
+
+# 第十六章 线性模型
+
+* 简单线性回归
+```{r,eval=FALSE}
+require(UsingR)
+require(ggplot2)
+head(father.son)
+#可视化分析
+ggplot(father.son,aes(x=fheight,y=sheight))+geom_point()+geom_smooth(method = "lm")+labs(x="fathers",y="sons")
+#lm()函数回归
+heightsLM <- lm(sheight~fheight,data = father.son)
+y.res <- residuals(heightsLM)
+y.pre <- predict(heightsLM)
+ggplot(data.frame(y.res,y.pre),aes(x=y.pre,y=y.res))+geom_line()+labs(x="y.predict",y="y.residuals")
+plot(heightsLM)
+
+library(car)
+#分位数比较图，更为精确的正态假设检验法
+qqPlot(heightsLM,labels=FALSE,simulate=TRUE,main="QQ-plot")
+
+#误差独立性
+durbinWatsonTest(heightsLM)
+
+#线性相关性
+crPlots(heightsLM,one.page=TRUE,ask = FALSE)
+
+#同方差性
+ncvTest(heightsLM)#原假设误差方差不变
+
+#同方差性:添加了最佳拟合曲线的散点图，展示标准化残差绝对值与拟合值的关系
+spreadLevelPlot(heightsLM)
+#方差正态
+shapiro.test(y.res)#正态
+
+#线性模型假设的综合验证
+library(gvlma)
+gvmodel <- gvlma(heightsLM)
+summary(gvmodel)
+
+#多重共线性
+vif(heightsLM)
+sqrt(vif(heightsLM))>2
+```
+
+* 方差分析（ANOVA）代替者
+    * 另一种方差分析检验的方法是：仅用一个分类变量且无截距项来拟合一个回归
+```{r,eval=FALSE}
+data(tips,package = "reshape2")
+head(tips)
+tipsAnova <- aov(tip~day-1,data = tips)
+tipsLM <- lm(tip~day-1,data = tips)
+summary(tipsAnova)
+summary(tipsLM)
+#插曲：plyr的应用
+library(plyr)
+tipSummary <- ddply(tips,"sex",summarize,tip.mean=mean(tip,na.rm = TRUE),tip.sd=sd(tip,na.rm = TRUE),
+                    lower=tip.mean-2*tip.sd/sqrt(length(tip)),
+                    upper=tip.mean+2*tip.sd/sqrt(length(tip)))
+tipSummary
+```
+
+* 多元线性回归
+```{r,eval=FALSE}
+#读取数据，stringAsFactors是的字符列不转化为因子，节约读取时间，也使得他们更加容易处理
+housing <- read.table("http://www.jaredlander.com/data/housing.csv",sep=",",
+                      header=TRUE,stringsAsFactors = FALSE)
+head(housing)
+str(housing)
+View(housing)
+#缺失值观察
+describe(housing)
+library(mice)
+md.pattern(housing)
+
+#第一步画反应变量的直方图
+ggplot(housing,aes(x=Market.Value.per.SqFt))+geom_histogram(binwidth = 10)+labs(x="Value per Square Foot")
+
+#直方图双峰说明其中有东西需要继续探索。用不同颜色代表不同Boro,将不同城市分开画
+ggplot(housing,aes(x=Market.Value.per.SqFt,fill=Boro))+geom_histogram(binwidth = 10)+labs(x="Value per Square Foot")
+#进一步分片,发现模式
+ggplot(housing,aes(x=Market.Value.per.SqFt))+geom_histogram(binwidth = 10)+labs(x="Value per Square Foot")+facet_wrap(~Boro)
+
+#接下来看一下建筑面积和单元个数，因为右偏，去掉超过1000单元的建筑还是一样
+ggplot(housing,aes(x=Gross.SqFt))+geom_histogram()
+ggplot(housing,aes(x=Total.Units))+geom_histogram()
+ggplot(housing[housing$Total.Units<1000,],aes(x=Gross.SqFt))+geom_histogram()
+ggplot(housing[housing$Total.Units<1000,],aes(x=Total.Units))+geom_histogram()
+#以上图显示相当多建筑有难以置信的单元数。
+
+#下面画出散点图，以每平方英尺为纵坐标，单元数和建筑面积为横坐标。图中还画出了包括和不包括离群建筑（单元数超1000），以便于我们判断是否丢弃离群值。
+#散点图画出每平方英尺的散点图，以及价值与单元数
+ggplot(housing,aes(x=Gross.SqFt,y=Market.Value.per.SqFt))+geom_point()
+ggplot(housing,aes(x=Total.Units,y=Market.Value.per.SqFt))+geom_point()
+ggplot(housing[housing$Total.Units<1000,],aes(x=Gross.SqFt,y=Market.Value.per.SqFt))+geom_point()
+ggplot(housing[housing$Total.Units<1000,],aes(x=Total.Units,y=Market.Value.per.SqFt))+geom_point()
+#计算有多少需要移除
+sum(housing$Total.Units>1000)
+#移除
+housing <- housing[housing$Total.Units<1000,]
+
+#对数变化对数据分析有用（把数据变得靠中心一点）,对Gross.SqFt挑选log变换
+ggplot(housing,aes(x=Gross.SqFt,y=Market.Value.per.SqFt))+geom_point()
+ggplot(housing,aes(x=log(Gross.SqFt),y=Market.Value.per.SqFt))+geom_point()
+ggplot(housing,aes(x=Gross.SqFt,y=log(Market.Value.per.SqFt)))+geom_point()
+ggplot(housing,aes(x=log(Gross.SqFt),y=log(Market.Value.per.SqFt)))+geom_point()#取这个变换
+#对Gross.SqFt挑选log变换
+ggplot(housing,aes(x=Total.Units,y=Market.Value.per.SqFt))+geom_point()
+ggplot(housing,aes(x=log(Total.Units),y=Market.Value.per.SqFt))+geom_point()
+ggplot(housing,aes(x=Total.Units,y=log(Market.Value.per.SqFt)))+geom_point()
+ggplot(housing,aes(x=log(Total.Units),y=log(Market.Value.per.SqFt)))+geom_point()#取这个变换
+
+#开始建模
+house1 <- lm(Market.Value.per.SqFt~Total.Units+Gross.SqFt+Boro,data = housing)
+summary(house1)#Boro转化为因子变量，字符变量建模会自动转化为指标变量
+#可视化系数
+require(coefplot)
+coefplot(house1)
+#使用*可加入交互变量，此时单个变量本身和交互项都包含在模型之中；如果只包含交互项而不包括单个变量本身的话使用：
+house2 <- lm(Market.Value.per.SqFt~Total.Units*Gross.SqFt+Boro,data = housing)
+coefplot(house2)
+house3 <- lm(Market.Value.per.SqFt~Total.Units:Gross.SqFt+Boro,data = housing)
+coefplot(house3)
+#拟合了多个模型，挑选一个模型，将多个模型的系数可视化
+multiplot(house1,house2,house3)
+```
+
+
+#第十七章 广义线性模型
+
+###17.1 逻辑斯蒂回归
+```{r,eval=FALSE}
+acs <- read.table("http://jaredlander.com/data/acs_ny.csv",sep=",",header = TRUE,stringsAsFactors = FALSE)
+#一个家庭是否有超过$150 000的收入
+acs$Income <- with(acs,FamilyIncome>150000)
+require(ggplot2)
+require(useful)
+ggplot(acs,aes(x=FamilyIncome))+geom_density(fill="grey",color="grey")+
+    geom_vline(xintercept = 150000)+scale_x_continuous(labels = multiple.dollar,limits = c(0,1000000))
+
+#建模,这里Income是true或false，Income是0，1的值
+incomel <- glm(Income~HouseCosts+NumWorkers+OwnRent+NumBedrooms+FamilyType,data = acs,family=binomial(link = "logit"))
+summary(incomel)
+require(coefplot)
+coefplot(incomel)
+
+#解释logistic回归系数需要取逆logit函数
+invlogit <- function(x)
+{
+    1/(1+exp(-x))
+}
+
+invlogit(incomel$coefficients)
+```
+
+###17.2 泊松回归
+```{r,eval=FALSE}
+ggplot(acs,aes(x=NumChildren))+geom_histogram(binwidth = 1)
+children1 <- glm(NumChildren~FamilyIncome+FamilyType+OwnRent,data=acs,family=poisson(link = "log"))
+summary(children1)
+coefplot(children1)
+
+#泊松回归特别关心过度分散问题。即在数据中看到的变异性大于泊松分布理论的变异性，下面计算过度分散
+z <- (acs$NumChildren-children1$fitted.values)/sqrt(children1$fitted.values) 
+sum(z^2)/children1$df.residual
+
+pchisq(sum(z^2),children1$df.residual)
+#一般偏大离差值为2或大于2表示存在过度分散。这里overdispersion值小于2，p值为1，意味着有统计学上的显著性
+#考虑overdispersion,利用伪泊松模型重新拟合模型，实际上使用负二项分布
+children2 <- glm(NumChildren~FamilyIncome+FamilyType+OwnRent,data=acs,family=quasipoisson(link = "log"))
+multiplot(children1,children2)
+#比较两个模型一个考虑了overdispersion,一个没有。由于overdispersion不是很大，第二个模型仅增加了一点不确定性
+```
+
+###17.3其他广义线性模型
+* glm()函数支持的其他常见广义线性模型
+    * 伽马gamma
+    * 逆高斯inverse guassian
+    * 伪二项quasibinomial
+    *不同的连接函数
+        * 二项族有logit、probit、cauchit、log、cloglog
+        * 伽马族有inverse、identity、log
+        * 泊松族有log、identity、sqrt
+        * 逆高斯有1/mu^2、inverse、identity、log
+* 对于多分类策略的多项回归
+    * 运行多个logistics回归
+    * 利用nnet包的polr()或multinom()函数
+    
+
+###17.4 生存分析
+```{r,eval=FALSE}
+require(survival)
+head(bladder)
+#stop列：表示是事件发生或病人离开研究队列的事件
+#event列：表示一个事件在某一时间是否发生
+#即使event=0，我们也不知道一个事件是否在之后发生了，即删失数据
+
+#利用这种结构的数据需要Surv()函数
+survObject <- with(bladder[100:105,],Surv(stop,event))
+survObject#友好打印形式
+survObject[,1:2]#矩阵形式
+
+#Cox比例风险模型，用函数coxph()函数。survfit可以画出生存曲线。生存曲线显示了一个在给定时间里参与者或者的比例。summary()给出概要
+
+cox1 <- coxph(Surv(stop,event)~rx+number+size+enum,data = bladder)
+summary(cox1)
+#可视化
+plot(survfit(cox1),xlab="Days",ylab="Survival Rate",conf.int = TRUE)
+
+#通过rx分层
+cox2 <- coxph(Surv(stop,event)~strata(rx)+number+size+enum,data = bladder)
+summary(cox2)
+plot(survfit(cox2),xlab="Days",ylab="Survival Rate",conf.int = TRUE,col=1:2)
+legend("bottomleft",legend = c(1,2),lty = 1,col = 1:2,text.col = 1:2,title = "rx")
+
+#利用cox.zph进行比例风险的假设检验
+cox.zph(cox1)
+```
+
+
+#第十八章 模型诊断
+
+###18.1 残差
+```{r,eval=FALSE}
+house1 <- lm(Market.Value.per.SqFt~Total.Units+Gross.SqFt+Boro,data = housing)
+#系数可视化
+require(coefplot)
+coefplot(house1)
+h1 <- ggplot(data.frame(house1$fitted.values,house1$residuals),aes(x=house1$fitted.values,y=house1$residuals))+
+    geom_point()+
+    geom_hline(yintercept = 0)+
+    geom_smooth()+
+    labs(x="Fitted Values",y="Residuals")
+#通过Boro着色 
+h1+geom_point(aes(color=housing$Boro))
+
+#Q-Q图
+ggplot(house1,aes(sample=.stdresid))+stat_qq()+geom_abline()
+
+#残差直方图
+ggplot(house1,aes(x=.resid))+geom_histogram()
+```
+
+###18.2 模型比较
+```{r,eval=FALSE}
+#系数图
+multiplot(house1,house2,house3)
+
+#ANOVA分析，返回结果包括残差平方和RSS的表格，越小越好
+anova(house1,house2,house3)
+
+#AIC度量：对模型复杂度进行判罚，越小越好
+AIC(house1,house2,house3)
+
+#BIC值
+BIC(house1,house2,house3)
+```
+
+###18.3 交叉验证
+* 数据分为没有重叠的k份。用k-1份去拟合模型，用第k份做预测，这个过程重复k次，直到每一部分被抽出做一次模型检验，做k-1次模型拟合。
+* boot包的cv.glm()函数
+```{r,eval=FALSE}
+require(boot)
+houseG1 <- glm(Market.Value.per.SqFt~Total.Units+Gross.SqFt+Boro,data = housing,family = gaussian(link = "identity"))
+#交叉验证
+houseCV1 <- cv.glm(housing,houseG1,K=5)
+#查看错误率,第一个是Error，第二个是Adjusted.Error
+houseCV1$delta
+```
+
+
+###18.4 Bootstrap
+* 计算某个统计量
+    * data为数据集
+    * FUN为统计量的计算函数
+    * R为计算的次数
+
+boot(data,FUN,R,stype="i")#计算方法的bias的估计和standard error的估计
+
+boot.ci(object,conf=0.95,type="norm")
+    * 计算置信区间
+    * object是boot()对象
+    * conf是置信度
+
+
+#第十九章 正则化和压缩
+* 高维数据，需要一些防止过度拟合的方法
+* 正则化（regularization）:glmnet包的glmnet()
+* 压缩（shrinkage）:arm包的bayesglm()
+
+###19.1 弹性网络
+* 它是lasso和岭回归的动态混合
+* glmnet，它是用弹性网络来拟合广义线性模型
+* glmnet()需要预测变量的设计矩阵（包含截距项）和反应变量的数值矩阵
+* 设计矩阵可以用model.matrix()或者build.x()，build.y()来构造
+* build()函数的contrasts=FALSE表示不转化为示性变量，单纯的编码
+```{r,eval=FALSE}
+library(useful)
+acs <- read.table("http://jaredlander.com/data/acs_ny.csv",sep = ",",header = TRUE,stringsAsFactors = FALSE)
+#构造数值矩阵，输出设计矩阵model.matrix():输入表达式和数据，它就会输出设计矩阵
+acs$Income <- with(acs,FamilyIncome>=150000)
+
+acsX <- build.x(Income~NumBedrooms+NumChildren+NumPeople+NumRooms+NumUnits+NumVehicles+NumWorkers+OwnRent+YearBuilt+ElectricBill+FoodStamp+HeatingFuel+Insurance+Language-1,data = acs,contrasts = FALSE)
+
+acsY <- build.y(Income~NumBedrooms+NumChildren+NumPeople+NumRooms+NumUnits+NumVehicles+NumWorkers+OwnRent+YearBuilt+ElectricBill+FoodStamp+HeatingFuel+Insurance+Language-1,data = acs)
+
+#拟合模型，lambda控制压缩的程度。glmnet()默认的在100个不同的lambda值上进行路径拟合。最优路径的选择依赖于使用者，交叉验证往往是一个不错的方法。glmnet包有一个函数cv.glmnet()可以自动的计算交叉验证的值。
+require(glmnet)
+set.seed(1863561)
+#自动计算交叉验算的值
+acsCV1 <- cv.glmnet(x=acsX,y=acsY,family="binomial",nfold=5)
+#cv.glmnet函数返回的最有用的信息是交叉验证和使交叉验证误差达到最小的lambda值。此外还返回使得交叉验证误差在一个标准误差范围内的最大的lambda值。默认alpha=1，lasso计算。
+
+acsCV1$lambda.min
+
+acsCV1$lambda.1se
+
+plot(acsCV1)
+
+#coef()用来提取估计的系数，只不过需要先给定lambda的水平。否则所有路径都输出。下面输出的结果中的点代表变量没有被选上
+coef(acsCV1,s="lambda.1se")
+
+#画图，直观的看沿着lambda路径，变量何时进入模型
+plot(acsCV1$glmnet.fit,xvar = "lambda")
+#加直线
+abline(v=log(c(acsCV1$lambda.min,acsCV1$lambda.1se)),lty=2)
+
+#把alpha=0,则岭回归
+acsCV2 <- cv.glmnet(x=acsX,y=acsY,family="binomial",nfold=5,alpha=0)
+acsCV2$lambda.min
+acsCV2$lambda.1se
+plot(acsCV2)
+coef(acsCV2,s="lambda.1se")
+
+plot(acsCV1$glmnet.fit,xvar = "lambda")
+abline(v=log(c(acsCV1$lambda.min,acsCV1$lambda.1se)),lty=2)
+
+
+#寻找最优的alpha需要另一个交叉验证。并行化处理，使用parallel包、doParallel包、foreach包
+require(parallel)
+require(doParallel)
+#当两层交叉验证都运行时，一个观测值需要放在同一个域中，所以建立一个指定域关系的向量。
+#也指定foreach将要循环遍历的alpha值得顺序。一般情况下倾向于lasso更好，因此考虑alpha>0.5的值
+set.seed(2834673)
+#创建folds
+theFolds <- sample(rep(x=1:5,length.out=nrow(acsX)))
+#创建alpha遍历值
+alphas <- seq(from=0.5,to=1,by=0.05)
+#并行工作需要开始一个簇(cluster),并用makeCluster和registerDoParallel注册
+set.seed(5127151)
+#开始一个簇with 2 workers
+cl <- makeCluster(2)
+#注册
+registerDoParallel(cl)
+#记录时间
+before <- Sys.time()
+#建立foreach循环run parallel,
+#.errorhandling = "remove"表示如果有错误发生跳出循环。
+#.inorder = FALSE表示合并结果的顺序无关紧要，无论何时返回都可以组合起来，大大提高速度。
+#因为使用默认的组合函数list，需要很多参数，可以通过设置.multicombine为TRUE来加快速度
+#.packages设置glmnet应该在每个“工人（workers）”进行加载，提高性能
+# %dopar%告诉foreach要进行并行工作
+# 并行运算依赖环境，所以用.export在foreach环境中下载一些变量
+
+acsDouble <- foreach(i=1:length(alphas),.errorhandling = "remove",.inorder = FALSE,.multicombine = TRUE,.export = c("acsX","acsY","alphas","theFolds"),.packages = "glmnet") %dopar%
+{
+    print(alphas[i])
+    cv.glmnet(x=acsX,y=acsY,family="binomial",nfolds = 5,foldid = theFolds,alpha=alphas[i])
+}
+
+#停止计算时间
+after <- Sys.time()
+
+#停止簇
+stopCluster(cl)
+#计算时间
+after-before
+#在acsDouble中的结果应该是一个包含cv.glmnet的11个例子的列表
+sapply(acsDouble,class)
+
+#目标是找到最优的lambda和alpha组合，需要一个函数从列表中的每个元素中提取交叉验证误差（包括置信区间和lambda）
+extractGlmnetInfo <- function(object)
+{
+    #找lambda
+    lambdaMin <- object$lambda.min
+    lambda1se <- object$lambda.1se
+    
+    #找出lambda在哪个path
+    whichMin <- which(object$lambda==lambdaMin)
+    which1se <- which(object$lambda==lambda1se)
+    
+    #建立一个一行的data.frame，记录选择的lamda和相应的error
+    data.frame(lambda.min=lambdaMin,error.min = object$cvm[whichMin],
+               lambda.1se=lambda1se,error.1se = object$cvm[which1se])
+    
+}
+
+#以上函数用于acsDouble列表的每一行元素
+alphaInfo <- Reduce(rbind,lapply(acsDouble, extractGlmnetInfo))
+
+#也可以用plyr包的ldply()函数
+alphaInfo2 <- plyr::ldply(acsDouble,extractGlmnetInfo)
+
+#identical(alphaInfo,alphaInfo2) 可以判断是否一致，结果是一致的
+
+#创建以列，列出alphas
+alphaInfo$Alpha <- alphas
+alphaInfo
+
+#可视化
+require(reshape2)
+require(stringr)
+alphaMelt <- melt(alphaInfo,id.vars = "Alpha",value.name = "Value",variable.name = "Measure")
+alphaMelt$Type <- str_extract(string = alphaMelt$Measure,pattern = "(min|1se)")
+#housekeeping
+alphaMelt$Measure <- str_replace(string = alphaMelt$Measure,pattern = "\\.(min|1se)",replacement = "")
+alphaCast <- dcast(alphaMelt,Alpha+Type~Measure,value.var = "Value")
+
+ggplot(alphaCast,aes(x=Alpha,y=error))+
+    geom_line(aes(group=Type))+
+    facet_wrap(~Type,scales = "free_y",ncol=1)+
+    geom_point(aes(size=lambda))
+#两图中，交叉验证误差越小越好，上图alpha最佳值为0.75，下图alpha最佳值为0.95
+#选定alpha=0.75,重新拟合
+set.seed(5127151)
+acsCV3 <- cv.glmnet(x=acsX,y=acsY,family="binomial",nfold=5,alpha=alphaInfo$Alpha[which.min(alphaInfo$error.1se)])
+plot(acsCV3)
+abline(v=log(c(acsCV3$lambda.min,acsCV3$lambda.1se)),lty=2)
+#下面画系数图
+theCoef <- as.matrix(coef(acsCV3,s="lambda.1se"))#未加入的变量系数为0
+coefDF <- data.frame(Value=theCoef,Coefficient=rownames(theCoef))
+coefDF <- coefDF[nonzeroCoef(coef(acsCV3,s="lambda.1se")),]#拿出非0的系数
+
+ggplot(coefDF,aes(x=X1,y=reorder(Coefficient,X1)))+ #将y按照x1大小排序
+    geom_vline(xintercept = 0,color="grey",linetype=2)+
+    geom_point(color="blue")+
+    labs(x="Value",y="Coefficient",title="Coefficient Plot")
+
+
+```
+
+
+###19.2 贝叶斯压缩
+* 压缩是以较弱的先验信息出现。当用于建立一个模型的数据不够充足时，这个特别有用。
+```{r,eval=FALSE}
+load("E:\\code\\R\\data\\ideo.rdata")
+View(ideo)
+
+#为了显示对压缩的需求，对每个选年拟合一个模型，给出种族（race）黑人（black level）的最终系数
+theYears <- unique(ideo$Year)
+results <- vector(mode="list",length = length(theYears))#创建一个空列，元素与theYears一样多
+names(results) <- theYears
+
+for(i in theYears)
+{
+    results[[as.character(i)]] <- glm(Vote~Race+Income+Gender+Education,data=ideo,subset = Year==i,family = binomial(link = "logit"))
+}
+
+#可视化
+require(coefplot)
+voteInfo <- multiplot(results,coefficients = "Raceblack",plot=FALSE)
+#画在窗口(-20,20)
+multiplot(results,coefficients = "Raceblack",secret.weapon = TRUE)+coord_flip(xlim=c(-20,10))
+
+#1964年有明显的错误。为了解决这个问题，对模型的系数给出一些先验信息。用arm包。其默认的设置为尺度为2.5的柯西先验。（arm包的命名空间和coefplot包冲突，这里不加载）
+resultsB <- vector(mode = "list",length = length(theYears))
+names(resultsB) <- theYears
+library(arm)
+for(i in theYears)
+{
+    resultsB[[as.character(i)]] <- arm::bayesglm(Vote~Race+Income+Gender+Education,data=ideo[ideo$Year==i,],family = binomial(link = "logit"),prior.scale=2.5,prior.df=1)
+}
+#不取子集即可
+multiplot(resultsB,coefficients = "Raceblack",secret.weapon = TRUE)
+```
+
+
+# 第二十章 非线性模型
+
+###20.1 非线性最小二乘
+* 非线性最小二乘模型是使用平方误差损失来寻找一般函数（非线性）的最优参数的估计值
+```{r,eval=FALSE}
+load("/Users/jsysley/Documents/git/MyLab/wifi.rdata")
+head(wifi)
+require(ggplot2)
+ggplot(wifi,aes(x=x,y=y,color=Distance))+
+    geom_point()+
+    scale_color_gradient2(low = "blue",mid="white",high = "red",midpoint = mean(wifi$Distance))
+```
+* R中计算非线性最小二乘的标准函数是nls()。系数的初始要给定，放在list中
+```{r,eval=FALSE}
+wifiModel <- nls(Distance~sqrt((betaX-x)^2+(betaY-y)^2),data = wifi,start = list(betaX=50,betaY=50))
+summary(wifiModel)
+
+ggplot(wifi,aes(x=x,y=y,color=Distance))+
+    geom_point()+
+    scale_color_gradient2(low = "blue",mid="white",high = "red",midpoint = mean(wifi$Distance))+
+    geom_point(data = as.data.frame(t(coef(wifiModel))),aes(x=betaX,y=betaY),size=5,color="green")
+```
+
+###20.2 样条
+* 光滑样条可以用于平滑数据，其表现出是非线性特征，甚至可以在新数据上做预测。
+* 一个样条是N个函数（每个函数对应唯一的一个点）的线性组合
+* 在R中用smooth.spline()函数可以完成
+    * x是数据中不重复的值
+    * y是相应的拟合值
+    * df是所用的自由度
+```{r,eval=FALSE}
+data(diamonds)
+diaSpline1 <- smooth.spline(x=diamonds$carat,y=diamonds$price)
+diaSpline2 <- smooth.spline(x=diamonds$carat,y=diamonds$price,df=2)
+diaSpline3 <- smooth.spline(x=diamonds$carat,y=diamonds$price,df=10)
+diaSpline4 <- smooth.spline(x=diamonds$carat,y=diamonds$price,df=20)
+diaSpline5 <- smooth.spline(x=diamonds$carat,y=diamonds$price,df=50)
+diaSpline6 <- smooth.spline(x=diamonds$carat,y=diamonds$price,df=100)
+
+#下面画图，先提取一些信息
+get.spline.info <- function(object)
+{
+    data.frame(x=object$x,y=object$y,df=object$df)
+}
+
+require(plyr)
+#把结果整合到一个data.frame中
+splineDF <- ldply(list(diaSpline1,diaSpline2,diaSpline3,diaSpline4,diaSpline5,diaSpline6),get.spline.info)
+head(splineDF)
+g <- ggplot(diamonds,aes(x=carat,y=price))+
+    geom_point()
+g+geom_line(data=splineDF,aes(x=x,y=y,color=factor(round(df,0)),group=df))+
+    scale_color_discrete("Degrees of \n Freedom")
+
+#预测函数predict()
+
+```
+* 另一种样条是基样条，它是对原始预测变量的转换来构造新的预测变量。最佳的基样条是自然三次样条(natural cubic spline)，因为其在内部的节点处创建了平滑过渡，在数据边界点上采用线性。
+    * 用splines包中的ns函数可以拟合三次样条
+```{r,eval=FALSE}
+require(splines)
+head(ns(diamonds$carat,df=1))
+#以上的新变量像其他变量一样，可以用于任何其他模型
+#可视化
+g <- ggplot(diamonds,aes(x=carat,y=price))+geom_point()
+g+stat_smooth(method = "lm",formula = y~ns(x,6),color="blue")#用6个节点
+g+stat_smooth(method = "lm",formula = y~ns(x,3),color="red")#用3个节点
+
+```
+
+###20.3 广义相加模型
+* 广义相加模型（GAMs），它是独立的对每一个预测变量做光滑处理。
+    * 非常一般，在一些列回归中均可用。反应变量可以使连续的，二元的，计数数据或其他数据。
+    * R中包mgcv,语法与glm包一样。
+```{r,eval=FALSE}
+#设定列名
+creditNames <- c("Checking","Duration","CreditHistory",
+                 "Purpose","CreditAmount","Savings","Employment",
+                 "InstallmentRate","GenderMarital","OtherDebtors",
+                 "YearsAtResidence","RealEstate","Age",
+                 "OtherInstallment","Housing","ExistingCredits","Job",
+                 "NumLiable","Phone","Foreign","Credit")
+#读取数据
+theURL <- "http://archive.ics.uci.edu/ml/machine-learning-databases/statlog/german/german.data"
+credit <- read.table(theURL,sep = " ",header = FALSE,col.names = creditNames,stringsAsFactors = FALSE)
+head(credit)
+
+
+#解码数据，仅解码其中一个变量，最简单的方法就是建立一个以代码为名称，其值为新数据的向量(小技巧)
+creditHistory <- c(A30="All Paid",A31="All Paid This Bank",A32="Up To Date",A33="Late Payment",A34="Critical Account")
+purpose <- c(A40="car (new)",A41="car (used)",A42="furniture/equipment",A43="radio/television",
+             A46="education",A47="(vacation-does not exist?",A48="retraining",A49="business",A410="others")
+employment <- c(A71="unemployed",A72="< 1 year",A73="1-4 years",A74="4-7 years",A75=">= 7 years")
+credit$CreditHistory <- creditHistory[credit$CreditHistory]
+credit$Purpose <- purpose[credit$Purpose]
+credit$Employment <- employment[credit$Employment]
+#编码good/bad
+credit$Credit <- ifelse(credit$Credit==1,"Good","Bad")
+#转因子,编码水平
+credit$Credit <- factor(credit$Credit,levels = c("Good","Bad"))
+head(credit[,c("CreditHistory","Purpose","Employment","Credit")])
+
+#可视化
+require(useful)
+#基于信用额度、信用历史、雇佣情况，好信用与坏信用
+ggplot(credit,aes(x=CreditAmount,y=Credit))+
+    geom_jitter(position = position_jitter(height=0.2))+
+    facet_grid(CreditHistory~Employment)+
+    xlab("Credit Amount")+
+    scale_x_continuous(labels=multiple)
+#基于年龄与信用额度
+ggplot(credit,aes(x=CreditAmount,y=Age))+
+    geom_point (aes(color=Credit))+
+    facet_grid(CreditHistory~Employment)+
+    xlab("Credit Amount")+
+    scale_x_continuous(labels=multiple)
+#使用gam()函数类似于lm()、glm()，不同的是像CreditAmount和Age这样的连续变量可以被像样条或张量积这样的非参数光滑函数转化
+require(mgcv)
+#fit a logistic GAM
+creditGam <- gam(Credit~te(CreditAmount)+s(Age)+CreditHistory+Employment,data = credit,family = binomial(link="logit"))
+summary(creditGam)
+
+```
+
+###20.4 决策树
+* 对递归变量做二分处理来进行回归和分类
+```{r,eval=FALSE}
+require(rpart)
+creditTree <- rpart(Credit~CreditAmount+Age+CreditHistory+Employment,data = credit)
+creditTree
+#可视化
+require(rpart.plot)
+rpart.plot(creditTree,extra=4)
+```
+
+###20.5 随机森林
+```{r,eval=FALSE}
+require(useful)
+require(randomForest)
+#建立设计矩阵
+creditFormula <- Credit~CreditHistory+Purpose+Employment+Duration+Age+CreditAmount
+creditX <- build.x(creditFormula,data=credit)
+creditY <- build.y(creditFormula,data=credit)
+#建立森林
+creditForest <- randomForest(x=creditX,y=creditY)
+creditForest
+```
+
+# 第二十一章 时间序列和自相关
+
+###21.1 自回归移动平均模型
+```{r,eval=FALSE}
+require(WDI)#用这个包的GDP数据
+#pull the data
+gdp <- WDI(country=c("US","CA","GB","DE","CN","JP","SG","IL"),indicator=c("NY.GDP.PCAP.CD","NY.GDP.MKTP.CD"),start=1960,end=2011)
+#命名
+names(gdp) <- c("iso2c","Country","Year","PerCapGDP","GDP")
+#names(gdp) <- c("iso2c","Country","PerCapGDP","Year")
+head(gdp)
+
+#可视化，画出人均GDP，绝对GDP
+require(ggplot2)
+require(scales)
+#人均GDP
+ggplot(gdp,aes(x=Year,y=PerCapGDP,color=Country,linetype=Country))+
+    geom_line()+
+    scale_y_continuous(label=multiple.dollar)
+
+#下面仅看美国
+us <- gdp$PerCapGDP[gdp$Country=="United States"]
+#转化为时间序列:ts()函数
+us <- ts(us,start = min(gdp$Year),end=max(gdp$Year))
+us
+plot(us,ylab="Per Capital GDP",xlab="Year")
+
+#另一种查看时间序列的方法是查看其自相关系数（ACF）和偏自相关系数（PACF）,R中函数acf(),pacf()
+acf(us)
+pacf(us)
+#需要变换才能进行建模，因为不是平稳的，可用差分和其他变换方式来修正它。
+require(forecast)
+ndiffs(x=us)
+plot(diff(us,2))
+
+#forecast包的auto.arima(data)有能自动确定模型结构的功能
+usBest <- auto.arima(x=us)
+usBest
+#查看拟合后模型残差的ACF和PACF，符合白噪声特征，则证明模型合适。
+acf(usBset$residuals)
+pacf(usBest$residuals)
+#ARIMA的系数由AR模型和MA模型的系数组成
+coef(usBest)
+
+#预测predict()
+predict(usBest,n.head=5,se.fit=TRUE)#预测未来5年，并且包括标准误。
+#make a prediction for 5 years out
+theForecast <- forecast(object=usBest,h=5)
+#可视化
+plot(theForecast)
+```
+
+###21.2 向量自回归(多元时间序列)
+```{r,eval=FALSE}
+#先将数据框形式的数据转化为宽数据，再用函数ts()转化为多元时间序列
+require(reshape2)
+gdpCast <- dcast(Year~Country,data = gdp[,c("Country","Year","PerCapGDP")],value.var = "PerCapGDP")
+#移除前10行，因为Germany为NA
+gdpCast <- gdpCast[-1:-10,]
+#转换成时间序列数据
+gdpTS <- ts(data = gdpCast[,-1],start = min(gdpCast$Year),end = max(gdpCast$Year))
+#可视化
+plot(gdpTS,plot.type = "single",col=1:8)
+legend("topleft",legend=colnames(gdpTS),ncol = 2,lty = 1,col = 1:8,cex = 0.9)
+#因Germany有缺失值，去掉这一列
+gdpTS <- gdpTS[,which(colnames(gdpTS)!="Germany")]
+
+#拟合多元时间序列常用模型向量自回归模型VAR，函数ar()虽然可以拟合，但常会在AR阶数过高时出现奇异矩阵，所以最好用vars包的var()函数。为了检验数据是否要差分运算，用forecast包的ndiffs()确定差分次数
+numDiffs <- ndiffs(gdpTS)
+numDiffs
+#gdpDiffed <- diff(gdpTS,differences=numDiffs)
+gdpDiffed <- diff(gdpTS,differences=1)
+#可视化
+plot(gdpDiffed,plot.type = "single",col=1:7)
+legend("topleft",legend=colnames(gdpDiffed),ncol = 2,lty = 1,col = 1:7,cex = 0.9)
+
+#接下来就可以用var()拟合VAR模型了
+require(vars)
+#拟合模型
+gdpVar <- VAR(gdpDiffed,lag.max=12)
+#选阶数
+gdpVar$p
+#看看模型中的值
+names(gdpVar$varresult)
+#其实每一个模型是一个object
+class(gdpVar$varresult$Canada)
+#每个模型都有系数
+head(coef(gdpVar$varresult$Canada))
+
+require(coefplot)
+coefplot(gdpVar$varresult$Canada)
+
+#预测
+predict(gdpVar,n.ahead=5)
+```
+
+###21.3 广义自回归异方差模型（GARCH）
+
+
+# 第二十二章 聚类
+
+### K-means
+```{r,eval=FALSE}
+wine <- read.table(file="/Users/jsysley/Downloads/winequality-white.csv",header = TRUE,sep = ";")
+set.seed(278613)
+wineK3 <- kmeans(x=wine,centers = 3)
+wineK3
+#可视化：由于数据是高维的，为了克服这个问题，useful包的plot.kmeans函数用于把高维投影到两维，对不同类赋予不同颜色
+require(useful)
+plot(wineK3,data = wine)
+#可以设定真正的类组，形状代表真正的类组，颜色代表kmeans的分类结果
+plot(wineK3,data=wine,class="类的列")
+
+#K-means可以设置任意的其实条件，因此设置一些随机起始数作为一个好的训练，通过nstart命令
+set.seed(278613)
+wineK3N25 <- kmeans(wine,centers = 3,nstart = 25)
+#看各类的size
+wineK3N25$size
+
+#如何选择类数：Hartigan准则，useful包的FitKMeans()
+require(useful)
+wineBest <- FitKMeans(wine,max.clusters = 30,nstart = 25,seed=278613)
+wineBest#选择第一个AddCluster为FALSE的那个数，即在簇数
+PlotHartigan(wineBest)
+
+#如何选择类数的另一条准则：Gap统计值，通过对数据bootstrap抽样来比较聚类的内差异性，cluster包的clusGap()计算（仅仅适合于数值型数据），它需要一点时间，因为需要大量模拟。最优的聚类数目是在一个标准差里使gap达到最小的聚类数目。
+require(cluster)
+theGap <- clusGap(wine,FUNcluster = pam,K.max=20)
+gapDF <- as.data.frame(theGap$Tab)
+#logW curves
+ggplot(gapDF,aes(x=1:nrow(gapDF)))+
+    geom_line(aes(y=logW),color="blue")+
+    geom_point(aes(y=logW),color="blue")+
+    geom_line(aes(y=E.logW),color="green")+
+    geom_point(aes(y=E.logW),color="green")+
+    labs(x="Number of Clusters")
+
+#gap curve
+ggplot(gapDF,aes(x=1:nrow(gapDF)))+
+    geom_line(aes(y=gap),color="red")+
+    geom_point(aes(y=gap),color="red")+
+    geom_errorbar(aes(ymin=gap-SE.sim,ymax=gap+SE.sim),color="red")+
+    labs(x="Number of Clusters",y="Gap")
+#蓝色代表聚内差异性，绿色代表排除聚内差异性。红色代表Gap统计值和Gap的标准差的误差线。
+```
+
+
+###22.2 PAM
+* K-medoids聚类，常用算法是PAM，cluster包的pam(),pam能很好的处理缺失值。
+```{r,eval=FALSE}
+indicators <- c("BX.KLT.DINV.WD.GD.ZS","NY.GDP.DEFL.KD.ZG",
+                "NY.GDP.MKTP.CD","NY.GDP.MKTP.KD.ZG",
+                "NY.GDP.PCAP.CD","NY.GDP.PCAP.KD.ZG",
+                "TG.VAL.TOTL.GD.ZS")
+
+require(WDI)
+wbInfo <- WDI(country = "all",indicator = indicators,start = 2011,end = 2011,extra = TRUE)
+#丢掉一些列
+wbInfo <- wbInfo[wbInfo$region!="Aggregates",]
+#丢掉一些国家全部是NA的样本
+wbInfo <- wbInfo[which(rowSums(!is.na(wbInfo[,indicators]))>0),]
+#丢掉一些iso是na的样本
+wbInfo <- wbInfo[!is.na(wbInfo$iso2c),]
+
+#把国家名字作为数据框行名，确保分类变量在合适的水平上是因子的
+rownames(wbInfo) <- wbInfo$iso2c
+wbInfo$region <- factor(wbInfo$region)
+wbInfo$income <- factor(wbInfo$income)
+wbInfo$lending <- factor(wbInfo$lending)
+
+#??
+#find which colnms to keep
+#not those in this vector
+keep.cols <- which(!names(wbInfo) %in% c("iso2c","country","year","captial","iso3c"))
+
+#聚类
+wbPam <- pam(x=wbInfo[,keep.cols],k=12,keep.diss = TRUE,keep.data = TRUE)
+
+wbPam$medoids
+
+plot(wbPam,which.plots=2,main="")
+
+```
+
+###22.3 分层聚类
+hclust(d=dist(data))

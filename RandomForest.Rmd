@@ -1,0 +1,222 @@
+---
+title: "RandomForest"
+author: "jsysley"
+date: "2016年9月19日"
+output: html_document
+---
+
+#概述
+
+#library
+
+randomForest包
+
+    
+
+
+#核心函数
+
+##importance()
+
+* importance(): 提取在利用函数randomForset()建立随机森林模型过程中各个变量重要性的度量结果
+* importance(x,type=NULL,class=NULL,scale=TRUE,...)
+
+    * x: 函数randomForest()生成的随机森林模型
+    * class: 针对随机森林中的分类问题。type=1时，该参数的取值范围为响应变量中的样本类别，并且返回结果为该参数的取值对应类别的重要情况
+    * type: 指对于变量重要值的度量标准。type可取两个值，1和2。1表示用精度平均较少值作为度量标准，2表示用节点不存度的平均减少值作为度量标准
+    * scale: 表示是否对变量进行标准化
+    
+###importance()函数示例
+```{r}
+#采用R自带数据集mtcars
+library(randomForest)
+set.seed(4)
+data(mtcars)
+mtcars.rf=randomForest(mpg~.,data=mtcars,ntree=1000,importance=TRUE)#基于数据集mtcars建立随机森林模型
+importance(mtcars.rf)#获取随机森林模型中的重要值，此时输出两种标准，对应type=1，2
+importance(mtcars.rf,type = 1)#提取随机森林模型中以第一种度量标准得到的重要值
+```
+
+
+##MDSplot()
+
+* MDSplot():绘制利用函数randomForset()建立随机森林模型过程中产生的临近矩阵经过标准化后的坐标图，简言之，将高位图缩放到任意小的维度下来观看模型各个类别在不同维度下的分布情况。
+* 主要用于随机森林模型可视化分析。
+* MDSplot(rf,fac,k=2,palette=NULL,pch=20,...)
+    * rf: randomForest()得到的随机森林模型。需强调：在构建模型时，必须咋模型中包含有模型的临近矩阵
+    * fac： 构建rf随机森林模型过程中所使用到的一个因子变量
+    * k： 用来决定所绘制的图像所包含的经过缩放的维度，默认值2
+    * palette： 决定所绘制的图像中各个类别的样本点的颜色
+    * pch： 决定所绘制的图像中各个类别的样本点的形状
+    
+###MDSplot()函数示例
+
+```{r}
+set.seed(1)
+data("iris")#用R自带数据集iris
+iris.rf=randomForest(Species~.,iris,proximity=TRUE)#基于数据集iris建立随机森林模型
+MDSplot(iris.rf,iris$Species,palette=rep(1,3),pch = as.numeric(iris$Species))
+```
+
+##rflmpute
+
+* rflmpute():对数据中缺失值进行插值
+* 利用随机森林模型中的临近矩阵来对将要进行模型建立的预测数据中存在的缺失值进行插值，经过不断的迭代不断的修正所插入的缺失值，尽可能得到最优的样本拟合值
+
+* 引用的两种格式
+
+    * rfImpute(x,y,iter=5,ntree=300,...)
+    
+    * rfImpute(x,data,...,subset)
+    
+        * x: 一个含有缺失值的预测数据集，x也可以为一个公式
+        * y: 响应变量向量，该函数中，参数y不能存在缺失值
+        * iter： 插值过程中迭代次数
+        * ntree： 每次迭代生成的随机森林模型中的决策树数量
+        * subset： 采用的样本集
+        
+###rfImpute()函数示例
+
+```{r}
+data(iris)#用R自带数据集
+iris.na=iris#生成需要进行处理的数据集
+#设置缺失值
+iris.na[75,2]=NA
+iris.na[125,3]=NA
+set.seed(111)#设置随机数生成器初始值
+iris.imputed=rfImpute(Species~.,data = iris.na)#插值
+list("real"=iris[c(75,125),1:4],"have-NA"=iris.na[c(75,125),1:4],"disposed"=round(iris.imputed[c(75,125),2:5],1))
+```
+
+##treesize()
+
+* treesize():查看随机森林模型中，每一颗树所具有的节点个数
+
+* treesize(x,terminal=TRUE)
+
+    * x: 函数randomForest()构建的随机森林模型
+    * terminal: 觉得节点的计数方式，TRUE表示只计算最终根节点数据，FALSE则将所有节点全部计数
+
+###treesize()函数示例
+```{r}
+iris.rf=randomForest(Species~.,iris)#利用数据集iris构建随机森林模型
+hist(treesize(iris.rf))#绘制相应的柱状图
+
+```
+
+#randomForest()
+
+* randomForest()： 随机森林中最核心函数，建立随机森林模型，该函数既可以建立判别模型，也可以建立回归模型，还可以建立无监督模型
+* 两种调用格式：
+    * randomForest(foumula,data=NULL,...,subset,na.action=na.fail)
+    * randomForest(x,y  =NULL,  xtest=NULL,   ytest=NULL, ntree=500,  mtry=if(!is.null(y)&&!is.factor(y))max(floor(ncol(x)/3),1) else floor(sqrt(ncol(x))),  replace=TRUE,   classwt=NULL, cutoff, strata, sampsize=if(replace)nrow(x) else ceiling(0.632*nrow(x)), nodesize=if(!is.null(y)&&!is.factor(y))5 else 1, maxnodes=NULL, importance=FALSE,  localImp=FALSE,  nPerm=1,  proximity,  oob.prox=proximity,  norm.votes=TRUE,  do.trace=FASLE,  keep.forest=!is.null(y)&&is.null(xtest),  corr.bias=FALSE,  keep.inbag=FALSE,...)
+        * 第一类使用格式，
+            * formula: 函数公式
+            * data： 模型中包含的有变量的一组可选格式数据
+            * subset： 用于抽取样本数据中的部分样本为训练集，该参数的数据格式为一个向量，向量中的每个个数代表所需要抽取的样本的行数
+            * na.action： 遇到缺失值的处理。na.fail即不能出现缺失；还可以取na.omit，忽略缺失值
+        * 第二类使用格式：
+            * x: 一个矩阵或者一个格式化数据集，建立随机森林模型的自变量数据
+            * y: 建立随机森林的响应变量。若y为字符向量，则模型为判别模型；若y为数量向量，则为回归模型；若不设定y的值，则为无监督模型
+            * xtest： 一个格式数据或矩阵，用来进行预测的测试集的预测指标
+            * ytest： 参数xtest决定的测试集的真是分类情况
+            * ntree： 指森林中树的数目。强调：不宜偏小，一般500或1000
+            * mtry: 建立随机森林中决策树的每次分支时所选择的变量个数，即m值。默认值为变量个数的二次根号，在回归模型中则为变量个数的1/3
+            * replace: 决定随机抽样的方式。TRUE为有放回抽样;FALSE为无放回抽样
+            * strata： 因子变量，该向量决定用于决定分层抽样
+            * sampsize： 与strata联合使用，strata决定抽取的类别，sampsize决定每个类别应该抽取的样本数
+            * nodesize： 决定随机森林中决策树的最少节点数，默认在判别模型为1，回归模型为5
+            * maxnodes： 决定随机森林中决策树的最大节点数。不设定则决策树节点会尽可能最大化
+            * importance： 决定是否计算各个变量在模型中的重要值，逻辑参数。该参数配合函数importance()使用
+            * proximity: 决定是否计算模型的临近矩阵，逻辑参数，配合函数MDSplot()使用
+            
+        * randomForest()输出的结果
+            
+            * predicted： 包含利用构建的随机森林模型基于OOB数据进行预测的结果
+            * importance： 包含各个变量在模型中的重要值，最后两列和函数importance()中输出结果一致。其他列则是各个变量对于个别类别分类的重要值，该值为精确度的平均减少值
+            * call： 概述模型的基本参数
+            * ntree： 随机森林中存在决策树的数量。
+            * mty为决策树中非节点分支上所选择的变量个数；
+            * err.rate是模型基于OOB数据进行预测的总体误判率；
+            
+            
+#可视化分析：plot()
+```{r}
+data("airquality")
+set.seed(131)
+ozone.fr=randomForest(Ozone~.,data=airquality,mtry=3,importance=TRUE,na.action=na.omit)
+plot(ozone.fr)
+```
+
+
+#演示
+
+```{r}
+library(randomForest)
+str(iris)
+set.seed(71)
+samp=sample(1:150,100)#抽样100个样本作为训练集
+set.seed(111)
+#第一种使用格式
+iris.rf=randomForest(Species~.,data=iris,importance=TRUE,proximity=TRUE,ntree=500,subset = samp)
+#第二种使用格式
+x=subset(iris,select = -Species)#提取除因变量以外的数据作为自变量
+y=iris$Species#设置因变量
+set.seed(71)
+samp=sample(1:150,100)#生成训练集
+xr=x[samp,]
+yr=y[samp]
+set.seed(111)
+iris.rf=randomForest(xr,yr,importance = TRUE,proximity = TRUE,ntree=500)
+#结果分析
+
+print(iris.rf)
+```
+结果得到信息：
+    * call: 模型构建相关参数
+    * Type: 说明模型类别
+    * Number of trees: 展示构建的随机森林模型中包含500颗决策树
+    * No. of variables tried at each split: 2 告知每颗决策树节点处所选择的变量个数为3
+    * 模型基于OOB样本集的预测得到的结果存在混淆矩阵Confusion matrix:，总体预测误差OOB estimate of  error rate: 7%
+    
+##自变量的重要程度
+```{r}
+importance(iris.rf)
+```
+随机森林模型中两种测算方式MeanDecreaseAccuracy，MeanDecreaseGini，数值越大越重要。
+
+##优化建模
+影响随机森林模型的两个主要参数：决策树节点分支所选择的变量个数mtry；随机森林中决策树的数量ntree
+
+寻找最优模型：
+```{r}
+n=ncol(iris)-1#计算数据集中自变量的个数
+rate=1#设置模型误判率向量初始值
+for(i in 1: n)#依次逐个增加节点所选变量个数
+{
+    set.seed(222)
+    #建立随机森林模型
+    rf=randomForest(Species~.,data=iris,mtry=i,importance=TRUE,ntree=1000)
+    rate[i]=mean(rf$err.rate)#计算基于OOB数据的模型误判率均值
+    #print(rf)#展示模型的简要信息
+}
+rate
+```
+
+看出决策树所选变量个数为4时，模型误判率均值最低，因此选为4，下面进一部确定模型中决策树数量
+```{r}
+set.seed(222)
+rf=randomForest(Species~.,data=iris,mtry=4,importance=(TRUE),ntree=1000)#构建随机森林模型
+plot(rf,col=1:1)#绘制模型误差与决策树数量关系图,可以看到600之后稳定下来
+
+set.seed(222)
+rf.final=randomForest(Species~.,data=iris,mtry=4,proximity=TRUE,importance=TRUE,ntree=600)
+print(rf.final)
+```
+
+##预测
+```{r}
+x=iris[1,-5]#构造一个新数据
+predict(rf.final,x)
+```
+

@@ -1,0 +1,661 @@
+---
+title: "RTips"
+author: "jsysley"
+date: "2016年9月18日"
+output: html_document
+---
+
+#三个数据集：<br>
+```{r}
+#自带数据集
+str(women)
+str(uspop)
+str(Titanic)
+```
+
+---
+
+##names(),class(),head(),tail()
+```{r}
+library(MASS)
+data("Insurance")#获取数据集
+str(Insurance)#查看数据集
+names(Insurance)#查看数据集的变量名字
+head(names(Insurance),n=2)#仅列出前面两个变量名字
+tail(names(Insurance),n=2)#仅列出后面两个变量名字
+head(Insurance$Holders,n=2)#仅列出前面两个数据
+```
+
+---
+
+###通过系列函数as.numeric(),as.integer(),as.logical(),as.character()
+强制数据转换
+
+---
+
+###通过系列函数is.numeric(),is.integer(),is.logical(),is.character()来判断数据类型，返回布尔值
+
+---
+
+#数据抽样
+用到base软件包的sample()函数，以及sampling包的strata(),cluster()函数
+
+##简单随机抽样：sample()
+sample(x,size,replace=FALSE,prob=NULL)<br>
+* 其中x表示带抽取对象，一般用向量表示；size为非负整数，抽取的样本个数，replace表示是否为有放回抽样，prob设置抽取各样本的概率，默认等概率
+
+例如对于一个数据集Insurance，可以如下方式抽样：
+```{r}
+str(Insurance)
+sub1=sample(nrow(Insurance),10,replace = TRUE)#抽取index来获取样本
+sub2=Insurance[sub1,]#通过index获取样本
+```
+
+下面演示用prob时向量怎么写，最后一条样本概率为1，其他样本概率为0
+```{r}
+sub3=sample(nrow(Insurance),10,replace = TRUE,prob = c(rep(0,nrow(Insurance)-1),1))#prob的向量长度要注意
+
+sub4=Insurance[sub3,]#抽取数据
+```
+
+---
+
+##分层抽样：strata()
+strata(data,stratanames=NULL,size,method=c("srswor","srswr","poission","systematic",pik,description=FALSE))
+* 其中，data为待抽数据集；stratanames中为分层所依据的变量名称；size为抽取的各层的样本数（顺序与数据集改变量的水平出现顺序一致；method为抽样方法，分别为无放回，有放回，泊松，系统抽样，默认srswor；pik设置各层中各样本的概率；description选择是否输出含有各层基本信息的结果）
+
+下面对数据集Insurance按照District变量为分层变量来抽样，1-4个街区分别抽取1-4个样本
+
+```{r}
+library(sampling)
+sub5=strata(Insurance,stratanames="District",size=c(1,2,3,4),method="srswor")
+sub5
+#其中第一列为样本所在数据集的行号，最后一列为所在层数，Prob为所在层数的抽样概率
+#通过getdata()函数获取分层抽样的数据
+getdata(Insurance,sub5)
+```
+
+---
+
+##整群抽样：cluster()
+cluster(data,clustername,size,method=c("srswor","srswr","poisson","systematic"),pik,description=FALSE)
+* 其中，data为待抽数据集；size为抽取的样本数；method为抽样方法，分别为无放回，有放回，泊松，系统抽样，默认srswor；pik设置各层中各样本的概率；description选择是否输出含有各层基本信息的结果）；clustername指定用来划分群的变量名称
+
+```{r}
+str(Insurance)
+#共抽取2个整群，所含样本数为32个
+sub6=cluster(Insurance,clustername = "District",size = 2,method = "srswor",description = TRUE)
+#显示抽样结果,抽中的District取值为2，3的两个整群，共四个群，每个群抽中的概率0.5
+sub6
+#拿到数据
+getdata(Insurance,sub6)
+```
+
+---
+
+##划分训练集与测试集
+以Insurance数据集为例，无放回方式抽取3/4的样本作为训练集，剩下1/4为测试集
+
+```{r}
+train_sub=sample(nrow(Insurance),3/4*nrow(Insurance))#抽取行号
+train_data=Insurance[train_sub,]#拿取数据作为训练集
+test_data=Insurance[-train_sub,]#拿取剩下的数据作为测试集
+```
+
+
+#探索性数据分析
+
+用到Hmisc()包：describe()
+
+fBasics包的basicStats()
+
+timeDate包的skewness(),kurtosis()
+
+##变量概况
+```{r}
+attributes(Insurance)#查看数据属性列表
+str(Insurance)#查看数据集结构
+names(Insurance)#列出数据集的各个变量的名字
+summary(Insurance)#查看数据集各变量的一系列统计指标值
+```
+
+用Hmisc包的describe()函数查看变量概况，会给出样本总个数(n)，缺失样本数(missing)，水平个数(unique)
+
+```{r}
+library(Hmisc)
+describe(Insurance)
+```
+
+```{r}
+library(fBasics)
+basicStats(Insurance$Holders)
+```
+
+计算峰度和偏度，这两个指标值可以通过basicStats()函数得到，也可以用以下方法得到
+```{r}
+library(timeDate)
+skewness(Insurance[,4:5])#计算偏度
+kurtosis(Insurance[,4:5])#计算峰度
+```
+
+###稀疏性
+用Matrix包来探究，为R中最著名的稀疏矩阵包，其提供的函数主要用于处理高密度矩阵或者稀疏矩阵
+
+下面生产一个10*10的数据矩阵，100个元素，只有10个元素随机取1
+```{r}
+library(Matrix)
+i=sample(1:10,10,replace=TRUE)#在1到10有放回取10个数，作为数据集中非空元素的行号
+j=sample(1:10,10,replace=TRUE)#在1到10中有放回的取10个数，作为数据集中非空元素的列号
+(A=sparseMatrix(i,j,x=1))#对i行j列的元素取值1，其余为空,生成稀疏矩阵A
+```
+
+###缺失值观察
+用mice包的md.pattern()函数来获取其中的缺失值得分布情况
+
+```{r}
+library(mice)
+a=rep(1,10)
+a[2:3]=c(NA,NA)
+b=rep(2,10)
+b[3:4]=c(NA,NA)
+c=cbind(a,b)
+md.pattern(c)
+```
+其中1表示该变量取值中无缺失值，0表示有缺失值。左侧数字表示对应行的数据样例的个数，如7表示a,b均无缺失值的样本个数为7个，以此类推
+
+###相关性
+cor()函数<br>
+下面演示计算Insurance集中Holders和Claims两个变量的相关系数
+
+```{r}
+cor(Insurance$Holders,Insurance$Claims)
+```
+
+下面以rattle包中的weather数据集说明处理过程
+```{r}
+library(rattle)
+data(weather)#获取数据集
+str(weather)#查看数据集
+#绘图之前，先计算得到相关系数矩阵
+var=c(12:21)#设置所选12-21列的变量
+cor_matrix=cor(weather[var],use="pairwise")#计算相关系数矩阵
+cor_matrix#显示
+```
+
+下面用Ellipse包中的plotcorr()来绘图
+```{r}
+library(ellipse)
+plotcorr(cor_matrix,col=rep(c("white","black"),5))#对如上相关系数矩阵画图
+```
+圆形宽窄表示相关性大小，越窄相关性越高，方向为相关性的正负。在plotorr()函数中加上参数type=lower则只显示下三角图（图是对称的，简洁）
+
+#R语言编程艺术
+
+##杂项
+* &用于向量的逻辑运算，&&用于标量的逻辑运算。
+* diff(data)用于求data[i]-data[9-1]
+* 注意一个data.frame的数据类型，选择一行或者一列时会降维，加上drop=FALSE
+* 对一个矩阵m，row(m)返回一个和矩阵一样维数的矩阵，元素为对应元素的行号，col()同理
+* 查看数据类型：class(),typeof(),mode(),str()
+* 查看一个对象的组件attributes()
+* 取消名字：names(data) <- NULL
+* 可用vector来创建列表：gg <- vector(mode="list")##创建一个空列表
+* 删除列表元素可直接把其值设为NULL
+* unlist(list)返回列表的元素(返回形式是一个向量，第一列为名字)
+* 去掉一个向量的名字：data <- unname(data)
+* 递归型列表和非递归型列表：
+    * c(list(a=1,b=2,c=list(d=5,e=9)))#递归型列表
+    * c(list(a=1,b=2,c=list(d=5,e=9)),recursive=T)#得到的实现向量
+* complete.case(data.frame)#返回逻辑值，当一行数据都没有NA值时为TRUE
+* assign(str,value)函数，它可以通过变量名字的字符串来赋值，又能设置变量为顶级变量
+* CSV格式文件，检查每一条记录所包含字段的个数是否正确，count.fields(data,sep=","),可用all()来检查，all(count.fields(data,sep=",")==number)
+* 检查字段是否有拼写错误：for(col in 1:ncol(data))print(unique(sort(data[,col])))
+* lapply()函数和sapply()函数用于列表是对列表的每一个元素操作，用于data.frame是对每一列元素操作
+* 对factor数据用unclass()返回一列向量，对应为数据的factor的真实值（一般是1,2,...,n,...）
+* tapply(x,f,g)#其中x是向量，f是因子或因子列表，g是函数；其执行的操作是将x分组，每组对应一个因子水平，得到x的子向量，每个子向量应用函数g
+* split(x,f)函数，这里x和f与tapply(x,f,g)中的意义相似，x为向量或数据框，f是因子或因子列表。该函数把x划分组，并返回分组的列表（x在split()中可以是数据框，而在tapply()中不可以）（x和f是对应的）
+* by()函数，与tapply()的运作方式类似，但by()应用于对象而不仅是向量，第一个参数指定数据，第二个数据指定分组，第三个参数是用于每组的函数
+* 提取名字：names(),colnames(),rownames(),dimnames()
+* 对于table对象，subtable(table,list())可以提取字表，list()中之处横轴名字=c()，纵轴名字=c()，指明对于的水平，字符串表示
+* do.call(f,argslist),其中f是一个函数，argslist是函数f()的参数列表
+* 其他与因子有关的函数
+    * aggregate(data,list(f),g)#data是数据，f是因子，g是函数
+    * cut(x,b,labels=FALSE)#x是数据，b是一列数，对应组成左开右闭区间，返回对应数据落入的区间的index，
+    * findInterval()
+* 列出包的所有文件
+    * library(help=mvtnorm)
+    * help(package=mvnorm)
+
+##第七章 R语言编程结构
+* 7.1控制语句
+    * 循环：for(),while(),repeat{}(其中repeat没有逻辑判断退出条件，必须利用break（或者类似return）的语句)
+    * next，跳过本次迭代的剩余部分，直接进入循环的下一次迭代
+    * 对读取文件循环：
+```{r,eval=FALSE}
+#循环读取 并打印每一个文件的内容
+for(fn in c("file1","file2"))print(scan(fn))
+```
+    * 对非向量集合的循环：
+        * lapply():如果循环的每次循环独立，可以以任意顺序执行
+        * get()：这个函数接受一个代表对象名字的字符串参数，然后返回该对象的内容
+    * 一个函数对象g,formals(g)返回其参数，body(g)返回函数体
+    * 查看函数代码：可直接输入g，或用函数page(g)，还可以edit(g)
+    * formuals()和body()可以当做参数使用，如body(g) <- quote(x+1),改变函数g的功能
+    
+* 7.6 环境和变量作用域的问题
+    * R语言中，函数正式的被称为“闭包”（closure）。函数不仅包括参数和函数体，还包括“环境”（environment）
+    1. 顶层环境
+        * environment(object)可查看对象所处的环境，返回的是对象定义的所处的环境
+        * ls()会把某个环境中的所有对象列举出来，如果在顶层调用，就会得到顶层环境下的对象名单，ls.str()可以获得更多信息
+    2. 变量作用于的层次全局变量和局部变量是相对的，要看相对于哪个变量来说
+        * 函数体内可以直接调用上一层环境的变量。R语言解释器在局部变量中没有找到，就会在更高层次里查找，一直往上寻找
+        * 在层次中发生命名冲突是可以的。冲突时优先使用最里层的变量
+    3. 关于ls()的进一步讨论
+        * print(ls(evvir=parent.frame(n=1))),在parent.frame()中，参数n设定了要沿函数调用向上追溯几个框架。此时第0层框架依赖于执行时所在的环境
+    4. 函数（几乎）没有副作用
+        * 函数不会改变非局部变量。代码可以给这些变量重新赋值，但实际上这种行为只会影响他们的备份，而不是变量本身。
+    8. 向上级层次进行写操作
+        * 在当前层次使用超赋值运算符<<-,或者使用函数assign()。
+        * 超赋值<<-运算符的写操作，会导致对上级环境层次的查找，直到遇到含该变量的第一个层次。如果没有找到，就会选取全局层次
+        * assign("u",2-u,pos=.GlobalEnv)#assign()函数让R把2-u（此处u是局部变量）的值向上赋值给调用栈中的变量u，具体而言是顶层环境下的u。
+
+* 7.11 写函数代码的工具
+    2. edit()函数
+        * 想修f1()函数：edit(f1)
+        * 创建一个非常类似与f1()的函数f2()：f2 <- edit(f1),这样就提供了一份拷贝。可以在它的基础上进行修改并保存到f2()上
+
+* 7.12 创建自己的二元运算符
+```{r,eval=FALSE}
+"%a2b%" <- function(a,b)return(a+2*b)
+3 %a2b% 5
+```
+
+* 7.13 匿名函数
+    * 在调apply()函数时使用一个匿名函数：apply(z,1,function(x) x/c(2,8))
+
+##第八章 数学运算与模拟
+* 8.1 数学函数
+    * 一些内置函数
+        * exp():以自然常数e为底的指数函数
+        * log():自然对数
+        * log10():以10为底的常用对数
+        * sqrt():平方根
+        * abs():绝对值
+        * sin(),cos()等：三角函数
+        * min(),max():向量的最小，最大值
+        * which.min(),which.max():向量的最小值，最大值的索引
+        * pmin(),pmax():把多个等长度的向量按元素逐个对比，返回所有向量的第k个元素中最小（最大）值
+        * sum(),prod():把多个一个向量的所有元素累计求和（求积）
+        * cumsum(),cumprod():把一个向量的前k个元素累计求和（求积）
+        * round(),floor(),ceilling():分别是四舍五入取整，向下取整和向上取整
+        * factorial():阶乘
+        * 求函数的最小值，最大值用nlm(),optim()
+```{r,eval=FALSE}
+##求函数x^2-sin(x)的最小值
+nlm(function(x)return(x^2-sin(x)),8)#次数求根用Newton-Raphson方法，第二个参数设置初始值
+optim(function(x)return(-x^2+2*x-9),par = 1)#乱来
+```
+        * 微积分:R的odesolve包可以处理违反方程；ryacas包提供了R与Yacas符号数学系统接口
+```{r,eval=FALSE}
+##微分
+D(expression(exp(x^2)),"x")
+##积分
+integrate(function(x)x^2,0,1)
+```
+* 8.2 统计分布函数
+    * d：概率密度函数或概率质量函数
+    * p: 累计分布函数
+    * q: 分位数
+    * r：随机数的生成
+* 8.3 排序
+    * 对向量进行普通数值排序，sort(),注意此时x本身没有改变
+    * 得到排序后的值在原向量中的索引，order(),还函数还可以对字符排序
+    * rank()，返回向量中每一个元素的排位
+* 8.4 向量和矩阵的线性代数运算
+    * 计算两个向量的内积：crossprod(x,y)
+    * 数学意义上的矩阵乘法：% *%
+    * solve()可以解线性方程组，还可以求矩阵的逆，solve(a,b)#其中a是方程组的稀疏矩阵，b是列向量，求矩阵的逆直接solve(a)
+    * 其他一些线性代数运算：
+        * t():矩阵的转置
+        * qr():QR分解
+        * chol():Cholesky分解
+        * det():矩阵行列式的值
+        * eigen():矩阵的特征值和特征向量
+        * diag(): 从方阵中提出对角矩阵（有利于从协方差矩阵中得到方差和构建对角矩阵）。如果参数是矩阵，则返回值为矩阵，若参数是一个标量，返回值是方阵
+        * sweep():数值分析批量运算符
+```{r,eval=FALSE}
+#sweep()函数的示例，取一个矩阵，第一行都加1，第二行都加4，第三行都加7
+m <- matrix(1:9,nrow = 3,byrow = TRUE)
+sweep(m,1,c(1,4,7),"+")#1表示对行操作，第四个参数是要使用的函数，第三个参数是要使用的额函数的参数
+```
+* 8.5 集合运算
+    * union(x,y):集合x和y的并集
+    * intersect(x,y):集合x和y的交集
+    * setdiff(x,y):集合x和y的差集
+    * setequal(x,y):检验集合x和y是否相等
+    * c %in% y:检验c是否为集合y中的元素
+    * choose(n,k):从含有n个元素的集合中选取含有k个元素的自己的数目
+    * combn():用于产生集合元素的组合，例如找出集合{1,3,2}中含有2个元素的子集，返回值是矩阵，一行是一种情况;也允许用户指定一个函数，作用于挑选出的每个组合，例如计算每个子集里元素的总和：combn(1:3,2,sum)
+
+##第九章 面向对象的编程
+* 9.1 S3类
+    * 一个S3类包含一个列表，再附加上一个类名属性和调度(dispatch)的功能
+    1. S3泛型函数
+        * R是多态的，同一个函数可以针对不同的类的调用不同的操作。具有多态性的函数称为"泛型函数"
+    * 寻找泛型函数的实现方法：methods(function),例如methods(print)
+        * 星号标注的是不可见函数（nonbisible fnction），即不在默认命名空间中的函数。可以通过getAnywhere()找到这些函数，然后使用命名空间限定符访问(:::)
+    4. 编写S3类
+        * 类的属性可以通过attr()或者class()函数手动设置，然后再定义各种泛型函数的实现方法
+```{r,eval=FALSE}
+#雇员数据的例子
+j <- list(name="Joe",salary=55000,union=T)
+class(j) <- "employee"
+attributes(j)
+j#查看默认打印
+####本质上，j在打印时被当做一个列表，下面编写自己的打印方法：
+print.employee <- function(wrkr)
+{
+    cat(wrkr$name,"\n")
+    cat("salary",wrkr$salary,"\n")
+    cat("union member",wrkr$union,"\n")
+}
+###这样在对employee类打印时调用print()，会定向到print.employee
+methods(,"employee")
+```
+    5. 使用继承
+        * 在以上雇员的例子上创建小时工"hrlyemployee",作为"employee"的子类
+```{r,eval=FALSE}
+k <- list(name="Kate",salary=68000,union=F,hrsthismonth=2)
+class(k) <- c("hrlyemployee","employee")#新类和类原有的类
+###print.employee()仍然适用于新的类
+```
+        * 小技巧：通过把整个赋值语句放在括号内就能打印出来
+* 9.2 S4类
+    * 定义类：setcalss(S3类是在构造函数的代码中隐义)
+    * 创建对象：new(S3类是创建列表，设置类属性)
+    * 引用成员变量：@(S3是$)
+    * 实现泛型函数：setMethod(S3类是定义f.classname())
+    * 声明泛型函数：setGeneric(S3类是UseMethod())
+    1. 编写S4类
+```{r,eval=FALSE}
+setClass("employee",
+         representation(
+             name="character",
+             salary="numeric",
+             union="logical")
+         )
+"employee"
+###用内置new()为此类创建一个示例
+Joe <- new("employee",name="Joe",salary=55000,union=T)
+Joe
+###访问成员：slot()函数或者@
+Joe@salary
+slot(Joe,"salary")
+```
+    2. 在S4类上实现泛型函数
+        * setMethod()函数，下面实现show()（与S3类中的print()函数类似）
+```{r,eval=FALSE}
+###一下两种打印方法等价
+Joe
+show(Joe)
+###下面用代码重写：
+setMethod("show","employee",
+          function(object)
+              {
+                inorout <- ifelse(object@union,"is","is not")
+                cat(object@name,"has a salary of",object@salary,
+                    "and",inorout,"in the union","\n")
+              })
+```
+
+* 9.4 对象的管理
+    1. 用ls()函数列出所有对象
+```{r,eval=FALSE}
+ls()#列出所有对象
+ls(pattern = "p")#列出所有名称中含有字符串"p"的对象
+
+```
+    2. 用rm()函数删除特定对象
+        * rm(object1,object2,...)
+        * 删除所有的对象：rm(ls())
+        * 删除所有名称含p的对象：rm(ls(pattern="p"))
+    3. browseEnv():在另一个界面显示所有全局变量
+    4. 用save()函数保存对象集合
+        * 在若干个对象上调用save()可以把这些对象写入硬盘中，下次使用可以用load()恢复
+    5. 查看对象内部结构
+        * class(),mode()
+        * name(),attributes()
+        * unclass(),str()
+            * unclass()非常有用，比如如果仅仅打印一个对象，print()，则结果就完全由与该类相关联的print()的版本决定，这样往往隐藏或扭曲了一些有价值的信息。用unclass()来打印结果可以解决这个问题
+        * edit()可以在文本编辑器查看对象
+    6. exists()函数
+        * 根据其参数是否存在返回TRUE或者FALSE,注意要把参数放在引号里面
+    
+
+##第十章 输入与输出
+* 10.1 连接键盘与显示器
+    1. 使用scan()函数
+        * scan()函数可以从文件中读取或者用键盘输入一个向量，它可以是数值型或字符型向量
+            * what参数用来设定变量的模式(mode),默认double模式，字符模式可以为what=""
+            * 默认空白字符作为分隔，空白字符包括空格、回车、换行符和水平制表符，其他分隔符用参数sep设定
+            * 从键盘读取数据：scan("")
+            * 如果不希望scan()报告已读取的项目数，可以设置参数quiet=TRUE
+    2. 用readline()函数
+        * 从键盘输入单行数据：w <- readline()
+        * 可以指定提示语,w <- readline("type it: ")
+    3. 输出到显示器
+        * print(object)#输出内容待编号，且只能输出一个表达式
+        * cat("str")#该函数输出内容不带编号。调用cat()时需要一个结束字符"\n"，如果没有，下一次调用cat()函数还会在同一行输出内容
+        * cat()函数打印的各个内容是空白符为分隔，不想分隔用参数sep=""
+* 10.2 读写文件
+    1. 从文件中读取数据框或矩阵
+        * read.table()##当有表头的data.frame用scan读取会出错，因为文件中数值和字符混杂（表头），一个简单的方法是用scan()逐行读取
+    2. 读取文本文件
+        * 文本文件(text file)和二进制文件(binary file)之间通常会有区别
+        * readlines("file")，可以一次性读取整个文件
+    3. 连接的介绍
+        * 连接一般通过函数file(),url()或其他R函数创建
+        * 连接用close()关闭
+```{r,eval=FALSE}
+###逐行读取一个文件
+c <- file("file","r")
+readlines(c,n=1)#n=1表示使程序一次只读取文件的一行，当R遇到文件结束符（EOF），就返回一个空值。下面设置一个连接，让R跟踪读取文件的进程
+
+c <- file("file","r")
+while(TRUE)
+{
+    rl <- readLines(c,n=1)
+    if(length(rl)==0)
+    {
+        print("reached the end")
+        break
+    }else
+    {
+        print(rl)
+    }
+}
+###如果想要“倒带”，从文件处重新读取，用seek()
+seek(con=c,where=0)#此时c已经在开头，该函数返回值为执行命令前文件指针位于的地方
+```
+    6. 写文件
+        * write.table(data,file="str")函数把数据写入文件
+        * 把矩阵写入文件，只需声明不要列名和行名：write.table(data,file="str",row.names=F,col.names=F)
+        * cat()函数也可以用来写入文件，一次写入一部分
+```{r,eval=FALSE}
+cat("abc\n",file="u")#第一次调用时创建文件u，包含第一行内容”abc"
+cat("de\n",file="u",append=TRUE)#第二次调用追加了第二行
+###cat()函数里的内容会成为一行
+```
+        * writelines()
+```{r,eval=FALSE}
+c <- file("file","w")
+writeLines(c("a","b","c"),c)
+close(c)#abc三个元素各占一行
+```
+    7. 获取文件和目录信息
+        * file.info():参数是表示文件名称的字符向量，函数给出每个文件的大小、创建时间，是否为目录等信息
+        * dir():返回一个字符向量，列出在其第一个参数指定的目录中所有文件的名称。当recursive=TRUE时，结果将把第一个参数下面整个目录的树都显示出来
+        * file.exists():返回一个布尔向量，表示作为第一个参数的字符串向量中给定的每个文件名是否存在
+        * getwd()和setwd()：用于确定和改变工作目录
+```{r,eval=FALSE}
+sumtree <- function(drtr)
+{
+    tot <- 0
+    fls <- dir(drtr,recursive = TRUE)
+    for(f in fls)
+    {
+        #f是否为目录
+        f <- file.path(drtr,f)#以路径的形式拼接字符串
+        if(!file.info(f)$isdir)
+        {
+            tot <- tot+sum(scan(f,quiet = TRUE))
+        }
+    }
+    return(drtr)
+}
+```
+
+        
+##第十一章 字符串操作
+* 11.1 字符串操作函数概述
+    * grep(patten,x):在字符串向量x里搜索给定的子字符串pattern。如果x含有n个元素，即包含n个字符串，则grep(pattern,x)会返回一个长度不超过n的向量。这个向量的每个元素是x的索引，表示匹配的子字符串。当找不到时，返回integer(0)
+    * nchar(str):返回字符串的长度
+    * paste(...):把若干个字符串拼接起来，返回一个长字符串，sep,pattern,collapse等可以设置分隔符
+    * sprintf(...):按一定格式把若干组件组合成字符串
+```{r,eval=FALSE}
+i=8
+s <- sprintf("the square of %d is %d",i,i^2)
+s
+```
+    * substr(x,start,stop)函数返回给定字符串x中指定位置范围start:stop上的字符串
+```{r,eval=FALSE}
+substr("Equator",3,5)
+substring("Equator",3,5)
+```
+    * strsplit(x,split):根据x中的字符串split把字符串x拆分成若干子字符串，返回列表
+    * regexpr(pattern,text):在字符串text中寻找pattern，返回与pattern匹配的第一个子字符串的起始字符位置
+```{r,eval=FALSE}
+regexpr("uat","Equator")
+```
+    * gregexpr(pattern,text):与regexpr()一样，不过他会寻找与pattern匹配的全部子字符串的其实位置
+```{r,eval=FALSE}
+gregexpr("iss","Mississippi")
+```
+* 11.2 正则表达式
+    * [au]:表示含有字母a或u的字符串
+    * .:表示任意一个字符
+    * 查找句点".":\\.
+```{r,eval=FALSE}
+dbgsendeditcmd <- function(cmd)
+{
+    syscmd <- paste("vim --remote-send",cmd," --severname ",vimsever,sep="")
+    system(syscmd)
+}
+```
+
+##第十二章 绘图
+* 精确定位函数：locator(1)函数，其中1表示返回1个坐标
+```{r,eval=FALSE}
+hist(c(12,5,13,25,16))
+#精确显示图例
+text(locator(1),"nv=75")
+```
+* 保存图形：
+    * R没有"撤销"的命令。当认为绘图室下一步可能会撤销时，则需要函数recordPlot()将当前图像保存，之后用replayPlot()恢复
+    * 另一种做法：将你画图的命令保存为一个文件，然后用source()或"剪切-粘贴"的办法来运行代码
+```{r,eval=FALSE}
+hist(c(12,5,13,25,16))
+gg <- recordPlot()
+#精确显示图例
+text(locator(1),"nv=75")
+replayPlot(gg)
+```
+* 添加多边形：polygon(x,y)##用不了
+    * 该函数可用来绘制任意形状的多边形
+    * 第一个参数设置多边形各定点的横坐标，第二个参数是相应的纵坐标
+```{r,eval=FALSE}
+f <- function(x)return(1-exp(-x))
+curve(f,0,1)##画曲线的函数，其中0，1表示x轴的范围
+polygon(c(1.2,1.4,1.4,1.2),c(0,0,f(1.3),f(1.3)),col = "red")
+```
+* 平滑散点
+    * lowess()
+    * loess()
+```{r,eval=FALSE}
+x=seq(0,100,length=30)+rnorm(30,0,10)
+plot(x)
+lines(lowess(x))#对数据拟合一条平滑的非参数回归曲线
+```
+* 绘制具有显式表达式的函数
+    * 法一：
+```{r,eval=FALSE}
+g <- function(t){return(t^2+1)^0.5}
+x <- seq(0,5,length=1000)
+y <- g(x)
+plot(x,y,type = "l")
+```
+    * 法二：其中可选参数默认n=101，表示会在给定的x范围内等距离计算101个点的函数值
+```{r,eval=FALSE}
+curve((x^2+1)^0.5,0,5)#后面两个参数是x的范围
+###如果想在现有的图中添加这条曲线，用add参数
+curve((x^2+1)^0.5,0,5,add=TRUE)
+```
+
+* 保存图形
+    * 打开一个图形文件：pdf("d12.pdf")
+    * 查看已有的图像：dev.list()
+    * 查看当前活动的设备：dev.cur()
+    * 保存已显示的图像：将当前屏幕重新设置为活动设备，然后将内容复制到PDF
+```{r,eval=FALSE}
+dev.set(2)
+dev.copy(which=3)#此处3是pdf设备编号，在dev.list()会显示图像的编号，还有对应的pdf设备编号
+```
+* 关闭R图形设备
+    * 之前创建的PDF文件必须在关闭设备后才能正常使用
+```{r,eval=FALSE}
+dev.set(3)
+dev.off(3)
+```
+
+##第十三章 调试
+* 13.1 调试的基本原则
+    1. 调试的本质：确认原则
+    2. 从小处着手
+    3.模块化、自顶向下的调试风格
+        * 第一层代码不应该超过12行，主要包含一系列的函数调用
+        * 同时每个函数也不应该太长
+    4. 反漏洞 
+        * 假设在某段代码中变量x应该为正，那么可以插入以下语句stopifnot(x>0)
+* 13.2 为什么要用调试工具
+    * 检查if等语句是否执行可在里面加入print()语句来确认，但当代码长时则乏味
+* 13.3 使用R的调试工具
+    1. 利用debug()和browser()函数进行逐步调试
+        * R的核心调试工具由浏览器（browser）构成，它可以让你逐行运行代码，并在运行过程中进行检查。可以调用debug()或browser()函数来打开这一浏览器
+        * R的debug()是针对单个函数，如对f()函数调试，则debug(f)来设置函数f()的调试状态。这意味着在每次调用函数f()，将自动在函数入口处进入浏览器。undebug(f)取消函数的调试状态。
+        * 如果在f()中的某一行加入一条browser()语句，那么浏览器只会在程序执行到这一行时被打开，接下来可以调试代码，知道退出这一函数。如果你认为漏洞的位置离函数开始部分比较远，不想从头开始调试，可以用这种插入browser()的办法。
+        * 如果只想对f()进行一次调试会话，用debugonce(f),会在f()第一次被执行时对其设置调试状态，在f()退出时立刻将调试状态取消
+    2. 使用浏览器命令
+        * 进入调试时，>变成Browser[d]>（此处d表示函数调用链的深度），在命令提示符之后可以输入：
+            * n(代表next):执行下一行，然后暂停，直接键入enter有一样的效果
+            * c(代表continue)：与n类似，但在下次暂停前可能会执行若干条语句。如果在循环中，则会执行剩余的循环，知道退出循环才暂停；如果在函数但不在循环中，那么下一次暂停前函数的剩余部分会被执行
+            * 任意的R命令：可以任意的查看变量取值。如想查看x的取值，键入x，如果有某个变量与浏览器的命令同名，那么必须显示使用print()等输出语句
+            * where:会输出一份栈跟踪路径（stack trace），即显示到达当前位置过程中函数的调用序列。
+            * Q：退出浏览器
+    3. 设置断点
+        * 设置断点：在代码关键部分设置断点，让程序暂停的地方，可以用browser()函数，或者使用setBreakpoint()函数
+        1. 直接使用brower()函数
+            * 还可以设置一些条件，使得浏览器只在特定的条件下被打开，定义这些条件的方法是使用expr参数。例如认为只在变量s大于1时会出现漏洞：browser(s>1),或者if(s>1)browser;例如某些大型循环，认为漏洞在第50次迭代之后才会出现，循环索引i，可以使用：if(i>49)browser()
+        2. 使用setBreakpoint():与browser()函数类似，但避免了使用编辑器修改代码的麻烦
+            * setBreakpoint(filename,linenumber):在源文件filename的第linenumber行调用browser()。可以在调试中设置，而不用退出调试在函数里面设置完再重新进入调试
+            * 假设在函数g中某一行调用了setBreakpoint(),那么要去下断点，untrace(g)
+    4. 使用trace()函数进行追踪
+        * trace(f,t):在R每次进入函数f时自动调用函数t()。
+        * trace(gy,browser),例如想在源码中插入一条browser()，此时可以达成效果。但它更方便，使用这种方法，不必再源码中插入一行，保存文件，然后重新运行。调用trace()不会修改源文件，尽管它确实修改了由R生成该文件的一个临时拷贝
+        * 取消追踪：untrace(gy)
+        * 全局地打开或关闭追踪功能，可以使用tracingState()函数，将参数设为TRUE表示打开追踪，设为FALSE表示关闭追踪
+    5. 使用traceback()和debugger()函数对崩溃的程序进行检查
+        * 当R程序崩溃时，但当前没有运行调试器时，依然可以在程序奔溃后使用一项调试工具，即调用traceback()函数。该函数会告诉你问题发生在哪个函数中，还能告诉你程序是通过怎样的函数调用链到那个函数的
+        * 想获取更多错误信息：可以设置options(error=dump.frames);这样设置后可以在发生奔溃后运行下面：debugger();接下来可以选择浏览那个层级的函数的调用。浏览之后，可以输入N来返回到debugger()的主菜单
+        * 选在在发生错误后自动进入调试器：options(error=recover)；关闭这项设置options(NULL)
+        * options(warn=2):将warnings转化为错误，从而能知道warnings在哪里出现
+        

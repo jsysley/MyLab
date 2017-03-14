@@ -1,0 +1,1305 @@
+---
+title: "RDatamining"
+author: "jsysley"
+date: "2016年10月17日"
+output: html_document
+---
+
+#第四章 决策树与随机森林
+
+##4.1 使用party包构建决策树
+```{r,eval=FALSE}
+#使用数据集irsi
+str(iris)
+set.seed(1234) 
+#分离训练集和验证集
+ind <- sample(2, nrow(iris), replace=TRUE, prob=c(0.7, 0.3))
+trainData <- iris[ind==1,]
+testData <- iris[ind==2,]
+#构建模型
+library(party)
+myFormula <- Species ~ Sepal.Length + Sepal.Width + Petal.Length + Petal.Width
+iris_ctree <- ctree(myFormula, data=trainData)
+# 检验训练集的预测
+table(predict(iris_ctree), trainData$Species)
+sum(predict(iris_ctree)==trainData$Species)/nrow(trainData)#准确率
+#查看拟合的决策树
+print(iris_ctree)
+#画出来
+plot(iris_ctree)
+plot(iris_ctree, type="simple")#向量分别表示属于三个类的数据比例
+#测试集上
+testPred <- predict(iris_ctree, newdata = testData)
+table(testPred, testData$Species)
+sum(predict(iris_ctree, newdata = testData)==testData$Species)/nrow(testData)#准确率
+```
+* ctree()的目前版本不能很好地的处理缺失值，因此缺失值有时会划分到左子树中，有时划分到右子树中。
+* 如果训练集中的一个变量在使用函数ctree()构建决策树后被剔除，那么在对测试集进行预测时也必须包含该变量，否则predict()会报错。
+* 如果测试集与训练集的分类变量水平不同，对测试集的预测也会失败。
+    * 解决办法：使用训练集构建了一颗决策树后，再用第一颗决策树中 包含的所有变量重新用ctree()建立一颗新的决策树，并根据测试集中分类变量的水平值显示的设置训练数据。
+    
+##4.2 使用rpart包构建决策树
+```{r,eval=FALSE}
+data("bodyfat", package = "TH.data")
+dim(bodyfat)
+attributes(bodyfat)
+#分离训练集与测试集
+set.seed(1234) 
+ind <- sample(2, nrow(bodyfat), replace=TRUE, prob=c(0.7, 0.3))
+bodyfat.train <- bodyfat[ind==1,]
+bodyfat.test <- bodyfat[ind==2,]
+#建立模型
+library(rpart)
+myFormula <- DEXfat ~ age + waistcirc + hipcirc + elbowbreadth + kneebreadth
+bodyfat_rpart <- rpart(myFormula, data = bodyfat.train, 
+                       control = rpart.control(minsplit = 10))#分支包含最小样本数minsplit
+attributes(bodyfat_rpart)
+#查看cp值，错误率
+print(bodyfat_rpart$cptable)
+print(bodyfat_rpart)
+
+library(rpart.plot)
+rpart.plot(bodyfat_rpart)
+printcp(bodyfat_rpart)#导出回归树cp表格，各节点的CP值，节点序号nsplit，错误率relerror，交互验证错误率xerror等被列出
+text(bodyfat_rpart, use.n=T)#坏了
+#选择具有最小预测误差的决策树
+opt <- which.min(bodyfat_rpart$cptable[,"xerror"])
+cp <- bodyfat_rpart$cptable[opt, "CP"]
+#剪枝，把对应cp值放入
+bodyfat_prune <- prune(bodyfat_rpart, cp = cp)
+print(bodyfat_prune)
+rpart.plot(bodyfat_prune)
+text(bodyfat_prune, use.n=T)#坏了
+
+#在测试集上，将预测结果与真实结果对比
+DEXfat_pred <- predict(bodyfat_prune, newdata=bodyfat.test)
+xlim <- range(bodyfat$DEXfat)
+plot(DEXfat_pred ~ DEXfat, data=bodyfat.test, xlab="Observed", 
+     ylab="Predicted", ylim=xlim, xlim=xlim)
+abline(a=0, b=1)
+
+```
+
+##4.2 随机森林
+* randomForest()存在两个限制：
+    * 第一个限制是该函数不能处理带有缺失值的数据
+    * 第二个限制是分类属性的水平划分数量的最大值为32，水平划分大于32的分类属性需要在调用randomForest()前进行转换
+* 另一种建立随机森林的方法是party包的cforest()函数
+    * 该函数没有限定分类属性的水平划分数
+
+```{r,eval=FALSE}
+#iris数据集，分离训练集与测试集
+ind <- sample(2, nrow(iris), replace=TRUE, prob=c(0.7, 0.3))
+trainData <- iris[ind==1,]
+testData <- iris[ind==2,]
+
+#建立模型
+library(randomForest)
+rf <- randomForest(Species ~ ., data=trainData, ntree=100, proximity=TRUE)
+table(predict(rf), trainData$Species)
+sum(predict(rf)==trainData$Species)/sum(nrow(trainData))#计算准确率
+print(rf)
+attributes(rf)
+
+#根据生成的随机森林中不同的树来绘制误差率
+plot(rf)
+
+#变量重要性可通过importance()和varImpPlot()获得
+importance(rf)
+varImpPlot(rf)
+
+#查看在测试集上的表现
+irisPred <- predict(rf, newdata=testData)
+table(irisPred, testData$Species)
+sum(irisPred==testData$Species)/sum(nrow(testData))#计算准确率
+plot(margin(rf, testData$Species))#数据点的边距为正确归类的比例减去被归到其他类别的最大比例。一般来说，边距为正数说明该数据点划分正确。
+```
+
+#第五章 回归分析
+```{r,eval=FALSE}
+year <- rep(2008:2010, each=4)#自变量
+quarter <- rep(1:4, 3)#自变量
+cpi <- c(162.2, 164.6, 166.5, 166.0, 
+         166.2, 167.0, 168.6, 169.5, 
+         171.0, 172.1, 173.3, 174.0)#因变量
+plot(cpi, xaxt="n", ylab="CPI", xlab="")#因变量散点图
+# draw x-axis
+axis(1, labels=paste(year,quarter,sep="Q"), at=1:12, las=3)
+
+#分别查看相关系数
+cor(year,cpi)
+cor(quarter,cpi)
+
+#拟合模型
+fit <- lm(cpi ~ year + quarter)
+summary(fit)
+
+predict(fit)
+#查看拟合模型的内容
+attributes(fit)
+fit$coefficients#获取系数
+
+#观测值与拟合结果的残差
+residuals(fit)
+
+layout(matrix(c(1,2,3,4),2,2)) # 4 graphs per page 
+plot(fit)#四幅图
+#拟合模型的3D图像
+library(scatterplot3d)
+s3d <- scatterplot3d(year, quarter, cpi, highlight.3d=T, type="h", lab=c(2,3))
+s3d$plane3d(fit)
+
+#新的值预测
+data2011 <- data.frame(year=2011, quarter=1:4)
+cpi2011 <- predict(fit, newdata=data2011)
+style <- c(rep(1,12), rep(2,4))
+plot(c(cpi, cpi2011), xaxt="n", ylab="CPI", xlab="", pch=style, col=style)
+axis(1, at=1:16, las=3,
+     labels=c(paste(year,quarter,sep="Q"), "2011Q1", "2011Q2", "2011Q3", "2011Q4"))
+
+```
+
+##5.2 逻辑回归
+glm()，且设置参数为binomial(link="logit")
+
+##5.3 广义线性回归
+
+```{r,eval=FALSE}
+data("bodyfat", package="TH.data")
+myFormula <- DEXfat ~ age + waistcirc + hipcirc + elbowbreadth + kneebreadth
+bodyfat.glm <- glm(myFormula, family = gaussian("log"), data = bodyfat)
+summary(bodyfat.glm)
+pred <- predict(bodyfat.glm, type="response")
+
+plot(bodyfat$DEXfat, pred, xlab="Observed Values", ylab="Predicted Values")
+abline(a=0, b=1)
+```
+
+##5.4 非线性回归
+
+
+#第六章 聚类
+
+##6.1 k-means聚类
+```{r,eval=FALSE}
+#从iris数据集中移除Species属性，然后对iris2调用函数kmeans()
+iris2 <- iris
+iris2$Species <- NULL
+(kmeans.result <- kmeans(iris2, 3)) 
+table(iris$Species, kmeans.result$cluster)
+sum(kmeans.result$cluster==as.numeric(iris$Species))/nrow(iris)#准确率
+
+#可视化
+plot(iris2[c("Sepal.Length", "Sepal.Width")], col = kmeans.result$cluster)
+#画出聚类中心
+points(kmeans.result$centers[,c("Sepal.Length", "Sepal.Width")], col = 1:3, 
+       pch = 8, cex=2)
+```
+
+##6.2 k-medoids聚类
+* cluster包的pam()实现PAM算法，clara()实现CLARA算法。均需要用户指定k，即聚类簇个数
+* fpc包的pamk()，不需要指定k，而是调用函数pam()或clara()根据最优平均阴影宽度估计的聚类簇个数来划分数据
+* 在含有离群点的情况下，相比k-means，k-medoids法有鲁棒性。
+```{r,eval=FALSE}
+library(fpc)
+pamk.result <- pamk(iris2)
+#生成簇的个数
+pamk.result$nc
+# check clustering against actual species
+table(pamk.result$pamobject$clustering, iris$Species)
+sum(pamk.result$pamobject$clustering==as.numeric(iris$Species))/nrow(iris)#准确率
+
+layout(matrix(c(1,2),1,2)) # 2 graphs per page 
+plot(pamk.result$pamobject)
+layout(matrix(1)) # change back to one graph per page 
+
+#下面使用pam()
+library(cluster)
+pam.result <- pam(iris2, 3)
+table(pam.result$clustering, iris$Species)
+sum(pam.result$clustering==as.numeric(iris$Species))/nrow(iris)#准确率
+
+#可视化
+layout(matrix(c(1,2),1,2)) # 2 graphs per page 
+plot(pam.result)
+layout(matrix(1)) # change back to one graph per page 
+```
+
+##6.3 层次聚类
+```{r,eval=FALSE}
+#抽样40条记录
+idx <- sample(1:dim(iris)[1], 40)
+irisSample <- iris[idx,]
+#属性清空
+
+hc <- hclust(dist(irisSample[,-5]), method="ave")
+
+
+plot(hc, hang = -1, labels=iris$Species[idx])
+# cut tree into 3 clusters
+rect.hclust(hc, k=3)
+groups <- cutree(hc, k=3)#对hclust()函数的聚类结果进行剪枝，即选择输出指定类别的系谱聚类结果
+
+#编码是按照出现的先后编码的这里转换一下
+groups[groups==1]="versicolor"
+groups[groups==2]="virginica"
+groups[groups==3]="setosa"
+sum(groups==irisSample$Species)/nrow(irisSample)#计算准确率
+```
+
+##6.4 基于密度的聚类
+* fpc包
+* DBSCAN算法，两个关键参数
+    * eps:可达距离，用于定义领域的大小
+    * MinPts：最小数目的对象点
+* 可视化
+    * plot(object,data)
+    * plotcluster(data,object$cluster)
+```{r,eval=FALSE}
+library(fpc)
+iris2 <- iris[-5] # remove class tags
+ds <- dbscan(iris2, eps=0.42, MinPts=5)
+# compare clusters with original class labels
+table(ds$cluster, iris$Species)#0表示噪声点，不属于任何簇的对象
+sum(ds$cluster==as.numeric(iris$Species))/nrow(iris)#计算准确率
+#可视化
+plot(ds, iris2)#噪声点用黑色小圆圈表示
+#显示第一列和第四列数据的聚类结果
+plot(ds, iris2[c(1,4)])
+
+#fpc包的可视化函数
+plotcluster(iris2, ds$cluster)#数据被投影到不同的簇中
+
+#预测
+set.seed(435) 
+idx <- sample(1:nrow(iris), 10)#抽取10个样本
+newData <- iris[idx,-5]
+newData <- newData + matrix(runif(10*4, min=0, max=0.2), nrow=10, ncol=4)#向样本中加入少量噪声数据用于标记新的数据集，每个数值均加了一些较小的数，震荡
+
+# 预测
+myPred <- predict(ds, iris2, newData)
+# plot result
+plot(iris2[c(1,4)], col=1+ds$cluster)
+points(newData[c(1,4)], pch="*", col=1+myPred, cex=3)
+# check cluster labels
+table(myPred, iris$Species[idx])
+#计算准确率
+mypred[myPred==1]="virginica"
+mypred[myPred==2]="versicolor"
+mypred[myPred==3]="setosa"
+sum(myPred==as.numeric(iris$Species[idx]))/nrow(iris[idx,])#准确率
+```
+
+#第七章 离群点检测
+
+##7.1 单变量的离群点检测
+* boxplot.stats()，该函数返回的统计信息用于画图。由该函数返回的结果中有一个“out”的组件，它存储了所有检测出的离群点，具体来说就是位于盒图两条触须线截止横线之外的数据点。参数coef可以控制触须线延伸的长度。
+```{r,eval=FALSE}
+set.seed(3147)
+x <- rnorm(100)
+summary(x)
+# outliers
+boxplot.stats(x)$out
+boxplot(x)
+
+#另一个例子
+y <- rnorm(100)
+df <- data.frame(x, y)
+rm(x, y)
+head(df)
+attach(df)
+# find the index of outliers from x
+(a <- which(x %in% boxplot.stats(x)$out))
+# find the index of outliers from y
+(b <- which(y %in% boxplot.stats(y)$out))
+detach(df)
+
+# outliers in both x and y
+(outlier.list1 <- intersect(a,b))
+plot(df)
+points(df[outlier.list1,], col="red", pch="+", cex=2.5)
+
+# outliers in either x or y
+(outlier.list2 <- union(a,b))
+plot(df)
+points(df[outlier.list2,], col="blue", pch="x", cex=2)
+```
+
+##7.2 局部离群点因子检测
+* 局部离群点因子（LOF）是一种识别基于密度的局部离群点算法
+* 使用局部离群点因子，将一个点的局部密度与其他邻域进行比较，如果前者远远小于后者（LOF值大于1），则该点相对于其邻域位于一个密度更稀疏的区域，判定改点为离群点。
+* LOF的缺点是只适用于数值型数据
+* lofactor()使用LOF算法计算局部离群点因子(参数k是邻域个数，用于计算局部离群点因子)，函数包DMwR和dprep
+```{r,eval=FALSE}
+library(DMwR)
+# remove "Species", which is a categorical column
+iris2 <- iris[,1:4]
+outlier.scores <- lofactor(iris2, k=5)
+plot(density(outlier.scores))#画出lof得分密度图
+
+outliers <- order(outlier.scores, decreasing=T)[1:5]#拿出前5个得分最高的值，返回index
+# who are outliers
+print(outliers)
+print(iris2[outliers,])#拿出具体值
+
+#基于前两个主成分回执一个双标图，x轴和y轴分别为第一个和第二个主成分
+n <- nrow(iris2)
+labels <- 1:n
+labels[-outliers] <- "."
+biplot(prcomp(iris2), cex=.8, xlabs=labels)
+
+#用以下配对散布图来展示离群点
+pch <- rep(".", n)
+pch[outliers] <- "+"
+col <- rep("black", n)
+col[outliers] <- "red"
+pairs(iris2, pch=pch, col=col)
+```
+
+* Rlof包的函数lof()实现了并行执行的LOF算法，用法与lofactor()一样，但是lof()函数有两个特性：
+    * k可以取多个不同的值
+    * 距离矩阵也有多个选择
+```{r,eval=FALSE}
+#这个包只能在MacOS X下运行
+library(Rlof)
+outlier.scores <- lof(iris2, k=5)
+#try with different number of neighbors (k = 5,6,7,8,9 and 10)
+outlier.scores <- lof(iris2, k=c(5:10))
+```
+
+##7.3 用聚类方法进行离群点检测
+* 将数据进行划分，那些没有被划分到任何簇的数据点即为离群点。
+    * DBSCAN算法：没有被划分到任何一个组的对象
+    * k-means：将数据划分成k组，每个数据点都划分到与之距离最小的组，然后计算每个对象与簇中心之间的距离（或相异度），并将距离最大的对象作为离群点
+```{r,eval=FALSE}
+# 移除属性列
+iris2 <- iris[,1:4]
+kmeans.result <- kmeans(iris2, centers=3)
+# 聚类中心
+kmeans.result$centers
+# 每个样本的聚类后的类别号
+kmeans.result$cluster
+# 计算样本与簇中心的距离
+centers <- kmeans.result$centers[kmeans.result$cluster, ]#按顺序记下每个样本所属的类的簇中心
+distances <- sqrt(rowSums((iris2 - centers)^2))
+# pick top 5 largest distances
+outliers <- order(distances, decreasing=T)[1:5]
+# who are outliers
+print(outliers)
+print(iris2[outliers,])
+
+# 画聚类
+plot(iris2[,c("Sepal.Length", "Sepal.Width")], pch="o", 
+     col=kmeans.result$cluster, cex=0.3)
+# 画聚类中心
+points(kmeans.result$centers[,c("Sepal.Length", "Sepal.Width")], col=1:3, 
+       pch=8, cex=1.5)
+# 画离群点
+points(iris2[outliers, c("Sepal.Length", "Sepal.Width")], pch="+", col=4, cex=1.5)
+```
+
+##7.4 时间序列数据的离群点检测
+* 首先用stl()根据稳健回归对时间序列数据进行分解，然后进行离群点识别
+* STL：基于局部加权回归的季节性趋势分解
+```{r,eval=FALSE}
+# 稳健回归
+f <- stl(AirPassengers, "periodic", robust=TRUE)
+(outliers <- which(f$weights<1e-8))
+# set layout
+op <- par(mar=c(0, 4, 0, 3), oma=c(5, 0, 4, 0), mfcol=c(4, 1))
+plot(f, set.pars=NULL)
+sts <- f$time.series
+# plot outliers
+points(time(sts)[outliers], 0.8*sts[,"remainder"][outliers], pch="x", col="red")
+par(op) # reset layout
+
+```
+
+#第八章 时间序列分析与挖掘
+
+##8.1 R种的时间序列数据
+* 类ts表示在平均间隔时间点上抽样得到的数据，频率为7表示时间序列是由每周的数据构成的，12和4分别表示以“月”和“季度”为时间间隔的序列。
+```{r,eval=FALSE}
+a <- ts(1:30, frequency=12, start=c(2011,3))
+print(a)
+str(a)
+attributes(a)
+```
+
+
+##8.2 时间序列分解
+* 时间序列分解就是分解为趋势，季节性，周期性以及不规则这几个成分。
+```{r,eval=FALSE}
+plot(AirPassengers)
+
+#下面使用decompose()将数据分解成不同成分
+apts <- ts(AirPassengers, frequency=12)
+f <- decompose(apts)
+# seasonal figures
+f$figure
+plot(f$figure, type="b", xaxt="n", xlab="")
+#在x周加标识
+# get names of 12 months in English words
+monthNames <- months(ISOdate(2011,1:12,1))
+# label x-axis with month names 
+# las is set to 2 for vertical label orientation
+axis(1, at=1:12, labels=monthNames, las=2) 
+
+#第一个图是原始时间序列图
+#第二图是数据的趋势图
+#第三个图为季节性因素图
+#第四个图是剔除了趋势和季节性因素之后的其他成分
+plot(f)
+```
+
+##8.3 时间序列预测
+* 两个常用模型：自回归移动平均模型（ARMA）和自回归综合移动平均模型（ARIMA）
+```{r,eval=FALSE}
+#以下使用ARMA模型拟合单变量时间序列，并用拟合模型进行预测
+fit <- arima(AirPassengers, order=c(1,0,0), list(order=c(2,1,0), period=12))
+fore <- predict(fit, n.ahead=24)
+# error bounds at 95% confidence level
+U <- fore$pred + 2*fore$se
+L <- fore$pred - 2*fore$se
+ts.plot(AirPassengers, fore$pred, U, L, col=c(1,2,4,4), lty = c(1,1,2,2))
+legend("topleft", c("Actual", "Forecast", "Error Bounds (95% Confidence)"),
+       col=c(1,2,4), lty=c(1,1,2))
+
+```
+
+
+##8.4 时间序列分类
+* 时间序列聚类是基于相似度或者距离将时间序列划分为不同的组，使得同一组中的时间序列是相似的
+* 距离或相异度的度量很多：如欧式距离，曼哈顿距离，最大范数，海明距离，两个向量之间的角度（内积），动态时间规整（DTW）距离
+
+###动态时间规整
+* 包dtw
+    * 函数btw(x,y,...)计算动态时间规整并找出时间序列x和y之间的最优配置
+    * 函数dtwDist(mx,my=mx,...)或dist(mx,my=mx,method="DTW",...)计算时间序列mx和my之间的距离
+* DTW就是要找出两个时间序列之间的最优配置
+```{r,eval=FALSE}
+library(dtw)
+idx <- seq(0, 2*pi, len=100)
+a <- sin(idx) + runif(100)/10
+b <- cos(idx)
+align <- dtw(a, b, step=asymmetricP1, keep=T)
+dtwPlotTwoWay(align)
+```
+
+###合成控制图的时间序列
+* 介绍合成控制图时间序列的例子
+* 每一个控制图都是一个包含了60个值得时间序列，分6类
+    * 1-100：常规
+    * 101-200:循环
+    * 201-300：递增趋势
+    * 301-400：递减趋势
+    * 401-500：向上偏移
+    * 501-600：向下偏移
+```{r,eval=FALSE}
+sc <- read.table("E:\\code\\R\\parctice\\Rdatamining\\Data-for-RDataMining-book\\data\\synthetic_control.data", header=F, sep="")
+# show one sample from each class
+idx <- c(1,101,201,301,401,501)
+sample1 <- t(sc[idx,])
+plot.ts(sample1, main="")
+```
+
+###基于欧式距离的层次聚类
+```{r,eval=FALSE}
+set.seed(6218)
+#从每一类的时间序列中抽取10个案例
+n <- 10
+s <- sample(1:100, n)
+idx <- c(s, 100+s, 200+s, 300+s, 400+s, 500+s)
+sample2 <- sc[idx,]
+observedLabels <- rep(1:6, each=n)
+# hierarchical clustering with Euclidean distance
+hc <- hclust(dist(sample2), method="average")
+plot(hc, labels=observedLabels, main="")
+# cut tree to get 6 clusters
+rect.hclust(hc, k=6)
+memb <- cutree(hc, k=6)
+table(observedLabels, memb)
+```
+
+###基于DTW距离的层次聚类
+```{r,eval=FALSE}
+library(dtw)
+distMatrix <- dist(sample2, method="DTW")
+hc <- hclust(distMatrix, method="average")
+plot(hc, labels=observedLabels, main="")
+# cut tree to get 6 clusters
+rect.hclust(hc, k=6)
+memb <- cutree(hc, k=6)
+table(observedLabels, memb)
+
+```
+
+##时间序列的分类
+* 时间序列分类是根据已标注的时间序列建立 一个分类模型，然后用分类模型预测为标记时间序列的类别。
+* 从时间序列中抽取新特征可能有助于提高分类模型的性能。
+    * 特征提取技术:奇异值分解（SVD），离散傅里叶变换（DFT），离散小波变换（DWT），分段积累近似法（PAA），连续重要点（PIP），分段线性表示，符号表示
+    
+###基于原始数据分类
+```{r,eval=FALSE}
+classId <- rep(as.character(1:6), each=100)
+newSc <- data.frame(cbind(classId, sc))
+library(party)
+ct <- ctree(classId ~ ., data=newSc, 
+            controls = ctree_control(minsplit=30, minbucket=10, maxdepth=5))
+pClassId <- predict(ct)
+table(classId, pClassId)
+# accuracy
+(sum(classId==pClassId)) / nrow(sc)
+plot(ct, ip_args=list(pval=FALSE), ep_args=list(digits=0))
+
+```
+
+###基于特征提取分类
+```{r,eval=FALSE}
+library(wavelets)
+wtData <- NULL
+for (i in 1:nrow(sc)) {
+  a <- t(sc[i,])
+  wt <- dwt(a, filter="haar", boundary="periodic")
+  wtData <- rbind(wtData, unlist(c(wt@W, wt@V[[wt@level]])))
+}
+wtData <- as.data.frame(wtData)
+wtSc <- data.frame(cbind(classId, wtData))
+```
+
+###k-NN分类
+```{r,eval=FALSE}
+
+k <- 20
+# create a new time series by adding noise to time series 501
+newTS <- sc[501,] + runif(100)*15
+distances <- dist(newTS, sc, method="DTW")
+s <- sort(as.vector(distances), index.return=TRUE)
+# class IDs of k nearest neighbors
+table(classId[s$ix[1:k]]))
+```
+
+
+#第九章 关联规则
+
+##Titanic数据集
+* 首先对数据集重构
+```{r,eval=FALSE}
+str(Titanic)
+df <- as.data.frame(Titanic)
+head(df)
+titanic.raw <- NULL
+for(i in 1:4) {
+   titanic.raw <- cbind(titanic.raw, rep(as.character(df[,i]), df$Freq))#as.character(df[,i])是一个长度为32的向量，df$Freq是一个长度为32的向量，分别对应重复的次数
+}
+titanic.raw <- as.data.frame(titanic.raw)
+names(titanic.raw) <- names(df)[1:4]
+dim(titanic.raw)
+str(titanic.raw)
+head(titanic.raw)
+summary(titanic.raw)
+#现在数据集中每一行代表了一位乘客信息（全部是因子变量）
+```
+
+##9.3关联规则挖掘
+* 包Arules
+    * 函数apriori()实现APRIORI算法，
+    * eclat()实现ECLAT算法，该算法不需要计数，而是依据等价类，深度优先搜索和集合交找出频繁集
+```{r,eval=FALSE}
+library(arules)
+# find association rules with default settings
+rules.all <- apriori(titanic.raw)
+rules.all
+inspect(rules.all)
+
+#只对乘客是否存货感兴趣，确保关联规则右侧rhs只出现“Survived=No”和“Survived=Yes”，设置appearance。
+#当设置default=lhs时，所有项集都出现在左侧lhs
+#注意到第一条关联规则为空，为剔除这种规则，设置minlen=2
+# 设置verbose=F可以压缩过程的细节
+# rules with rhs containing "Survived" only
+rules <- apriori(titanic.raw, control = list(verbose=F),
+                 parameter = list(minlen=2, supp=0.005, conf=0.8),
+                 appearance = list(rhs=c("Survived=No", "Survived=Yes"),
+                                   default="lhs"))
+quality(rules) <- round(quality(rules), digits=3)#对支持度，置信度，提升度小数控制（用法新）
+rules.sorted <- sort(rules, by="lift")#提升度排序
+inspect(rules.sorted)
+```
+
+##9.4 消除冗余
+* 下面修建冗余规则（现在规则已经按照提升度排序）
+```{r,eval=FALSE}
+# find redundant rules
+#把的项集的超集规则去掉
+subset.matrix <- is.subset(rules.sorted, rules.sorted)#行号是项集，列号也是项集，值是TRUE或FALSE。只有对角线是TRUE，其他是FALSE
+subset.matrix[lower.tri(subset.matrix, diag=T)] <- NA #lower.tri(subset.matrix, diag=T)表示下三角是TRUE，上三角是FALSE的矩阵，对角线是TRUE
+#subset.matrix下三角为NA,对角线TRUE，其余FALSE
+#lower.tri返回一个逻辑矩阵，其中下三角的元素为TRUE
+
+redundant <- colSums(subset.matrix, na.rm=T) >= 1 #注意这里列号是项集，行号也是项集，因此返回的是项集
+which(redundant)
+# remove redundant rules
+rules.pruned <- rules.sorted[!redundant] #注意这里操作
+inspect(rules.pruned)
+```
+
+##9.6 规则可视化
+```{r,eval=FALSE}
+library(arulesViz)
+plot(rules.all)
+
+plot(rules.all, method="grouped")
+
+plot(rules.all, method="graph")
+
+plot(rules.all, method="graph", control=list(type="items"))
+
+plot(rules.all, method="paracoord", control=list(reorder=TRUE))
+```
+
+#第十章 文本挖掘
+
+##10.1 Twitter的文本探索
+* 使用twitteR包中的函数userTimeline()来抓取Twitter上的推文。
+```{r,eval=FALSE}
+library(twitteR)
+load("E:\\code\\R\\parctice\\Rdatamining\\Data-for-RDataMining-book\\data\\rdmTweets.rdata")
+
+```
+
+##10.2 转换文本
+* 首先需要将推文准换为数据框，然后转换为一个语料库，该语料库就是一个文本集合
+* 用tm包中的函数对该语料库进行处理
+```{r,eval=FALSE}
+df <- do.call("rbind", lapply(rdmTweets, as.data.frame))
+dim(df)
+
+library(tm)  
+# build a corpus, and specify the source to be character vectors
+#建立一个语料库
+myCorpus <- Corpus(VectorSource(df$text))
+
+#接下来对语料库做一些转换，包括将字母转换为小写字体，删除标点符号、数字和停用词。
+#这里通过添加“available”和“via”，并且删除“r”和“big”（针对大数据），建立一个通用的 英文停用词表。下面的例子还要删除超链接
+# 转换为小写  
+myCorpus <- tm_map(myCorpus, tolower)  
+# 移除符号  
+myCorpus <- tm_map(myCorpus, removePunctuation) 
+# 移除数字 
+myCorpus <- tm_map(myCorpus, removeNumbers)
+# 移除超链接，正则表达式：'[:alnum:]' 匹配任何字母 。至今去除符号，网址已经成为一个长字母串，所以可以这样匹配
+removeURL <- function(x) gsub("http[[:alnum:]]*", "", x)
+myCorpus <- tm_map(myCorpus, removeURL)
+# 添加两个英文停用词表: "available" 和 "via"
+myStopwords <- c(stopwords('english'), "available", "via")
+# 从英文停用表移除 "r" 和 "big" 
+myStopwords <- setdiff(myStopwords, c("r", "big"))
+# remove stopwords from corpus
+myCorpus <- tm_map(myCorpus, removeWords, myStopwords)  
+
+```
+
+##10.3 提取词干
+* 提取词干可以通过snowball词干提取器来完成，需要用到包Snowball，RWeka包，rJava包，RWekajars包。
+* 还可以对词干补笔将其还原为原始形式，词干补笔可以由函数stemCompletion()实现
+```{r,eval=FALSE}
+# keep a copy of corpus to use later as a dictionary for stem completion
+myCorpusCopy <- myCorpus
+# stem words
+myCorpus <- tm_map(myCorpus, stemDocument)
+# inspect documents (tweets) numbered 11 to 15
+# inspect(myCorpus[11:15])
+# The code below is used for to make text fit for paper width
+for (i in 11:15) {
+  cat(paste("[[", i, "]] ", sep=""))
+  writeLines(strwrap(myCorpus[[i]], width=73))
+}
+
+#接下来将未提取词干的语料库myCorpusCopy作为字典，使用函数stemCompletion()对词干进行补笔。默认的设置是使用字典中最频繁匹配的词作为相应的词干的补笔
+# stem completion？？
+myCorpus <- tm_map(myCorpus, stemCompletion, dictionary=myCorpusCopy)
+
+## inspect(myCorpus[11:15])
+
+for (i in 11:15) {
+  cat(paste("[[", i, "]] ", sep=""))
+  writeLines(strwrap(myCorpus[[i]], width=73))
+} 
+
+
+# count frequency of "mining"
+miningCases <- tm_map(myCorpusCopy, grep, pattern="\\<mining")
+sum(unlist(miningCases))
+# count frequency of "miners"
+minerCases <- tm_map(myCorpusCopy, grep, pattern="\\<miners")
+sum(unlist(minerCases))
+# replace "miners" with "mining"
+myCorpus <- tm_map(myCorpus, gsub, pattern="miners", replacement="mining")
+
+```
+
+##10.4 建立词项-文档矩阵
+* 一个词项-文档是一个词项和文档的关系矩阵，其中每一行代表一个词项，每一列代表一个文档，每一个元素是一个词项在文档中出现的次数。
+* 下面用TermDoucumentMatrix()对前面处理过的语料库建立一个词项-文档矩阵。默认参数下，出现少于3次的词项将会被舍弃。
+```{r,eval=FALSE}
+myTdm <- TermDocumentMatrix(myCorpus, control=list(wordLengths=c(1,Inf)))
+myTdm
+```
+
+
+#案例一：房价指数的分析与预测
+```{r,eval=FALSE}
+houseIndex <- read.csv(file="E:\\code\\R\\parctice\\Rdatamining\\Data-for-RDataMining-book\\data\\House-index-canberra.csv", header=FALSE)
+names(houseIndex) <- c("date", "index")
+n <- nrow(houseIndex)
+
+# check start date and end date
+cat(paste("HPI from", houseIndex$date[1], "to", houseIndex$date[n], "\n"))
+
+# extract year and month
+#dates <- strptime(houseIndex$date, format="%d-%b-%y")#用strptime()将数据转换为POSIXlt，以便抽取年份和月份
+dic <- c(Jan="01",Feb="02",Mar="03",Apr="04",May="05",Jun="06",Jul="07",Aug="08",Sep="09",Oct="10",Nov="11",Dec="12")
+dates <- strsplit(as.character(houseIndex$date),split="-")
+dates <- do.call(rbind,dates)#转换为data.frame
+dates[,2] <- dic[dates[,2]]#将缩写更新为数字
+#重新连接字符串
+dates2 <- vector()
+for(i in 1:nrow(dates))
+{
+    dates2[i] <-paste(dates[i,],collapse = "-")
+    
+}
+
+dates <- dates2
+rm(dates2)
+#抽取年和月
+dates <- strptime(dates,format = "%d-%m-%y")
+
+houseIndex$year <- dates$year + 1900
+houseIndex$month <- dates$mon + 1
+fromYear <- houseIndex$year[1]
+```
+
+##12.2 HPI数据探索
+```{r,eval=FALSE}
+#绘图展示1900年到2011年的HPI变化情况
+plot(houseIndex$index, pty=1, type="l", lty="solid", xaxt="n", xlab="",
+     ylab="Index", main=paste("HPI (Canberra) - Since ", fromYear, sep=""))
+# draw tick-marks at 31 Jan of every year
+nYear <- ceiling(n/12)
+posEveryYear <- 12 * (1:nYear) - 11 #找出每年的1月的样本号
+axis(1, labels=houseIndex$date[posEveryYear], las=3, at=posEveryYear)
+# add horizontal reference lines
+abline(h=1:4, col="gray", lty="dotted")
+# draw a vertical reference line every five years
+posEvery5years <- 12 * (5* 1:ceiling(nYear/5) - 4) - 11
+abline(v=posEvery5years, col="gray", lty="dotted")
+
+#查看每个月的HPI增长量
+houseIndex$delta <- houseIndex$index - c(1, houseIndex$index[-n])#实现后者减前者
+plot(houseIndex$delta, main="Increase in HPI", xaxt="n", xlab="")
+axis(1, labels=houseIndex$date[posEveryYear], las=3, at=posEveryYear)
+# add a reference line
+abline(h=0, lty="dotted")
+
+#进一步了解HPI波动，查看每个月的增长率
+houseIndex$rate <- houseIndex$index / c(1, houseIndex$index[-n]) - 1#后者除以前者减1
+# percentage of months having positive increases in HPI
+100 * sum(houseIndex$rate>0)/n#增长的月份的比例
+# use ifelse() to set positive values to green and and negative ones to red
+plot(houseIndex$rate, xaxt="n", xlab="", ylab="HPI Increase Rate",
+     col=ifelse(houseIndex$rate>0,"green","red"),
+     pch=ifelse(houseIndex$rate>0,"+","o"))
+axis(1, labels=houseIndex$date[posEveryYear], las=3, at=posEveryYear)
+abline(h=0, lty="dotted")
+
+
+#对HPI建立一个表格，其中每一行代表一个月份，每一列代表一个年份。
+rateMatrix <- xtabs(rate ~ month + year, data=houseIndex)
+# 展示前4年，因此对钱4年四舍五入
+round(rateMatrix[,1:4], digits=4)
+# plot a grouped barchart: 
+barplot(rateMatrix, beside=TRUE, space=c(0,2),
+        col=ifelse(rateMatrix>0,"lightgreen","lightpink"),
+        ylab="HPI Increase Rate", cex.names=1.2)
+
+#每年中HPI呈现递增的月份数
+numPositiveMonths <- colSums(rateMatrix>0)
+barplot(numPositiveMonths, xlab="Year", ylab="Number of Months with Increased HPI")
+
+#HPI的平均年增长率
+yearlyMean <- colMeans(rateMatrix)
+barplot(yearlyMean, main="Yearly Average Increase Rates of HPI", 
+        col=ifelse(yearlyMean>0,"lightgreen","lightpink"), xlab="Year")
+
+#HPI的平均月增长率
+monthlyMean <- rowMeans(rateMatrix)
+plot(names(monthlyMean), monthlyMean, type="b", xlab="Month",
+     main="Monthly Average Increase Rates of HPI")
+
+#HPI增长率的分布情况
+summary(houseIndex$rate)
+boxplot(houseIndex$rate, ylab="HPI Increase Rate")
+
+#查看每年HPI增长率的分布情况
+boxplot(rate ~ year, data=houseIndex, xlab="Year", ylab="HPI Increase Rate")
+
+#查看每月HPI增长率的分布情况
+boxplot(rate ~ month, data=houseIndex, xlab="Month", ylab="HPI Increase Rate")
+
+```
+
+##12.3 HPI趋势与季节性成分
+* 首先用ts()将指数转换为一个时间序列
+* 用函数stl()对该时间序列分解
+```{r,eval=FALSE}
+hpi <- ts(houseIndex$index, start=c(1990,1), frequency=12)
+f <- stl(hpi, "per")
+plot(f)
+
+#用decompose()函数分解
+ff <- decompose(hpi)
+ff$figure #季节指数
+plot(ff)
+
+#下面提取季节成分画图
+plot(f$time.series[1:12,"seasonal"],type="b",xlab = "Month",ylab = "Seasonal Components")
+
+plot(ff$figure,type="b",xlab = "Month",ylab = "Seasonal Components")
+```
+
+##12.4 HPI预测
+* 使用自回归综合移动平均(Autoregression Integrated Moving Average,ARIMA)
+```{r,eval=FALSE}
+startYear <- 1990
+endYear <- 2010
+# to forecast HPIs in the next four years
+nYearAhead <- 4
+
+fit <- arima(hpi, order=c(2,0,1), seasonal=list(order=c(2,1,0), period=12))
+fore <- predict(fit, n.ahead=12*nYearAhead)
+# error bounds at 95% confidence level
+U <- fore$pred + 2 * fore$se
+L <- fore$pred - 2 * fore$se
+# plot original and predicted data, as well as error bounds
+ts.plot(hpi, fore$pred, U, L, col=c("black", "blue","green","red"), 
+        lty=c(1,5,2,2), gpars=list(xaxt="n",xlab=""),
+        ylab="Index", main="House Price Trading Index Forecast (Canberra)")
+# add labels, reference grid and legend        
+years <- startYear:(endYear+nYearAhead+1)
+axis(1, labels=paste("Jan ", years, sep=""), las=3, at=years)
+grid()
+legend("topleft", col=c("black", "blue","green","red"), lty=c(1,5,2,2),
+       c("Actual Index", "Forecast", "Upper Bound (95% Confidence)", 
+         "Lower Bound (95% Confidence)"))
+
+#绘制单独从2011年起的HPI图标
+ts.plot(fore$pred, U, L, col=c("blue","green","red"), 
+        lty=c(5,2,2), gpars=list(xaxt="n",xlab=""),
+        ylab="Index", main="House Price Trading Index Forecast (Canberra)")
+years <- endYear + (1 : (nYearAhead+1))
+axis(1, labels=paste("Jan ", years, sep=""), las=3, at=years)
+grid(col = "gray", lty = "dotted")
+legend("topleft", col=c("blue","green","red"), lty=c(5,2,2),
+       c("Forecast", "Upper Bound (95% Confidence)", 
+         "Lower Bound (95% Confidence)"))
+```
+
+# 案例二：客户回复预测与效益最大化
+
+##13.2 KDD Cup 1998的数据
+```{r,eval=FALSE}
+cup98 <- read.csv(file = "E:\\code\\R\\parctice\\Rdatamining\\Data-for-RDataMining-book\\data\\KDDCup1998\\cup98LRN.txt",header = TRUE,sep = ",",na.strings = "NA",skipNul = TRUE)
+head(cup98[,1:30])
+#目标变量，TARGET_B，和TARGET_D，下面查看分布情况
+#先查看TARGET_B分布情况
+(response.percentage <- round(100 * prop.table(table(cup98$TARGET_B)), digits=1))#prop.table()
+
+mylabels <- paste("TARGET_B=", names(response.percentage) ,"\n",
+                  response.percentage, "%", sep=" ")
+pie(response.percentage, labels=mylabels)
+
+#查看TARGET_D的值大于0的所有记录
+cup98pos <- cup98[cup98$TARGET_D>0, ]
+targetPos <- cup98pos$TARGET_D
+summary(targetPos)
+boxplot(targetPos)
+
+# number of positive donations
+length(targetPos)
+# number of positive donations not in whole dollars
+sum(!(targetPos %in% 1:200))#捐款数在200以外的数
+targetPos <- round(targetPos)
+barplot(table(targetPos), las=2)
+
+#使用cut()将变量TARGET_D分解，并生成一个新的TARGET_D2，其中right=F表示区间左闭右开
+cup98$TARGET_D2 <- cut(cup98$TARGET_D, right=F,
+        breaks=c(0, 0.1, 10, 15, 20, 25, 30, 50, max(cup98$TARGET_D)))
+table(cup98$TARGET_D2)
+
+cup98pos$TARGET_D2 <- cut(cup98pos$TARGET_D, right=F,
+        breaks=c(0, 0.1, 10, 15, 20, 25, 30, 50, max(cup98pos$TARGET_D)))
+#删除RFA_2R、NOEXCH
+table(cup98$RFA_2R)
+round(100 * prop.table(table(cup98$NOEXCH)), digits=3)
+
+#重新选变量
+varSet <- c(
+   # demographics
+   "ODATEDW", "OSOURCE", "STATE", "ZIP", "PVASTATE", "DOB", "RECINHSE",
+   "MDMAUD", "DOMAIN", "CLUSTER", "AGE", "HOMEOWNR", "CHILD03", "CHILD07",
+   "CHILD12", "CHILD18", "NUMCHLD", "INCOME", "GENDER", "WEALTH1", "HIT", 
+   # donor interests
+   "COLLECT1", "VETERANS", "BIBLE", "CATLG", "HOMEE", "PETS", "CDPLAY",
+   "STEREO", "PCOWNERS", "PHOTO", "CRAFTS", "FISHER", "GARDENIN", "BOATS",
+   "WALKER", "KIDSTUFF", "CARDS", "PLATES",
+   # PEP star RFA status
+   "PEPSTRFL",
+   # summary variables of promotion history
+   "CARDPROM", "MAXADATE", "NUMPROM", "CARDPM12", "NUMPRM12",
+   # summary variables of giving history
+   "RAMNTALL", "NGIFTALL", "CARDGIFT", "MINRAMNT", "MAXRAMNT", "LASTGIFT",
+   "LASTDATE", "FISTDATE", "TIMELAG", "AVGGIFT",
+   # ID & targets
+   "CONTROLN", "TARGET_B", "TARGET_D", "TARGET_D2", "HPHONE_D",
+   # RFA (Recency/Frequency/Donation Amount)
+   "RFA_2F", "RFA_2A", "MDMAUD_R", "MDMAUD_F", "MDMAUD_A",
+   #others
+   "CLUSTER2", "GEOCODE2")
+cup98 <- cup98[, varSet]
+
+```
+
+##13.3 数据探索
+
+* 数据探索步骤
+    * 查看单个变量的分布情况,了解每一个变量的分布情况并找出缺失值和离群点
+    * 查看目标变量（因变量）与预测变量（自变量）之间的关系，可以用于特征选择
+    * 查看预测变量之间的关系
+```{r,eval=FALSE}
+# select numeric variables
+idx.num <- which(sapply(cup98, is.numeric))#查看变量的类型,选出数值型变量
+layout(matrix(c(1,2), 1, 2)) # 2 graphs per page 
+# histograms of numeric variables
+myHist <- function(x) {
+   hist(cup98[,x], main=NULL, xlab=x)
+}
+sapply(names(idx.num[4:5]), myHist)
+layout(matrix(1)) # change back to one graph per page
+
+#画箱线图(重构数据)
+layout(matrix(c(1,2),1,2)) # 2 graphs per page
+boxplot(cup98$HIT)#小部分的值与大部分的值离得远，进一步发现为240或241
+
+cup98$HIT[cup98$HIT>200]
+boxplot(cup98$HIT[cup98$HIT<200])
+layout(matrix(1)) # change back to one graph per page
+
+#查看不同年龄段的分布情况
+AGE2 <- cut(cup98pos$AGE, right=F, breaks=seq(0, 100, by=5))
+boxplot(cup98pos$TARGET_D ~ AGE2, ylim=c(0,40), las=3)
+
+#查看不同性别的分布情况
+attach(cup98pos)
+layout(matrix(c(1,2),1,2)) # 2 graphs per page
+boxplot(TARGET_D ~ GENDER, ylim=c(0,80))
+# density plot
+plot(density(TARGET_D[GENDER=="F"]), xlim=c(0,60), col=1, lty=1)
+lines(density(TARGET_D[GENDER=="M"]), col=2, lty=2)
+lines(density(TARGET_D[GENDER=="J"]), col=3, lty=3)
+legend("topright", c("Female", "Male", "Joint account"), col=1:3, lty=1:3)
+layout(matrix(1)) # change back to one graph per page
+detach(cup98pos)
+
+#查看目标变量与其他变量的相关关系，设置use="pairwise.complete.obs"
+correlation <- cor(cup98$TARGET_D, cup98[,idx.num], use="pairwise.complete.obs")
+correlation <- abs(correlation)
+(correlation <- correlation[order(correlation, decreasing=T)])
+
+#查看任意两个数值型变量之间的相关系数
+cor(cup98[,idx.num])
+pairs(cup98)
+
+#绘制数值变量散布图，并基于变量设置点的颜色，下面使用jitter()添加少量噪声数据，在存在大量重叠数据点的情况下有用
+color <- ifelse(cup98$TARGET_D>0, "blue", "black")
+pch <- ifelse(cup98$TARGET_D>0, "+", ".")
+plot(jitter(cup98$AGE), jitter(cup98$HIT), pch=pch, col=color, cex=0.7, 
+     ylim=c(0,70), xlab="AGE", ylab="HIT")
+legend("topleft", c("TARGET_D>0", "TARGET_D=0"), col=c("blue", "black"), 
+       pch=c("+", "."))
+
+
+#对分类变量 使用卡方检验来查看这些变量之间的关联
+myChisqTest <- function(x) {
+   t1 <- table(cup98pos[,x], cup98pos$TARGET_D2)
+   plot(t1, main=x, las=1)
+   print(x)
+   print(chisq.test(t1))
+}
+myChisqTest("GENDER")
+```
+
+##13.4 训练决策树
+```{r,eval=FALSE}
+nRec <- dim(cup98)[1] #样本数
+trainSize <- round(nRec * 0.7) #训练集样本数
+testSize <- nRec - trainSize  #测试集样本数
+# ctree parameters   
+MinSplit <- 1000 #每个节点中所含样本数的最小值
+MinBucket <- 400 #每个叶节点中所含样本数的最小值
+MaxSurrogate <- 4
+MaxDepth <- 10  #控制树的高度，即设置节点层次的最大值
+(strParameters <- paste(MinSplit, MinBucket, MaxSurrogate, MaxDepth, sep="-"))
+LoopNum <- 9 #对每一个擦书的设置，都重复分割、训练以及测试9次，然后将9次执行的结果与使用不同参数训练的决策树进行对比
+# The cost for each contact is $0.68.
+cost <- 0.68
+varSet2 <- c("AGE", "AVGGIFT", "CARDGIFT", "CARDPM12", "CARDPROM", "CLUSTER2",
+   "DOMAIN", "GENDER", "GEOCODE2", "HIT", "HOMEOWNR", "HPHONE_D", "INCOME",
+   "LASTGIFT", "MAXRAMNT", "MDMAUD_F", "MDMAUD_R", "MINRAMNT", "NGIFTALL",
+   "NUMPRM12", "PCOWNERS", "PEPSTRFL", "PETS", "RAMNTALL", "RECINHSE", 
+   "RFA_2A", "RFA_2F", "STATE", "TIMELAG")
+cup98 <- cup98[, c("TARGET_D", varSet2)]
+
+
+library(party) # for ctree
+#使用pdf设置图形区域和点大小
+pdf(paste("evaluation-tree-", strParameters, ".pdf", sep=""), 
+     width=12, height=9, paper="a4r", pointsize=6) #pdf命名
+cat(date(), "\n") # 输出迭代时的系统当前时间 
+cat(" trainSize=", trainSize, ", testSize=", testSize, "\n")
+cat(" MinSplit=", MinSplit, ", MinBucket=", MinBucket, 
+     ", MaxSurrogate=", MaxSurrogate, ", MaxDepth=", MaxDepth, "\n\n")
+ 
+# run for multiple times and get the average result   
+allTotalDonation <- matrix(0, nrow=testSize, ncol=LoopNum)#一列为一次训练的结果
+allAvgDonation <- matrix(0, nrow=testSize, ncol=LoopNum)#一列为一次循环的平均结果
+allDonationPercentile <- matrix(0, nrow=testSize, ncol=LoopNum) #
+for (loopCnt in 1:LoopNum) {
+    cat(date(), ":  iteration = ", loopCnt, "\n") #输出时间，迭代的序数
+    
+    # split into training data and testing data
+    trainIdx <- sample(1:nRec, trainSize) #抽样
+    trainData <- cup98[trainIdx,]  #拿出训练集
+    testData <- cup98[-trainIdx,]  #拿出测试集
+    
+    # train a decision tree
+    myCtree <- ctree(TARGET_D ~ ., data=trainData,
+          controls=ctree_control(minsplit=MinSplit, minbucket=MinBucket,
+                                 maxsurrogate=MaxSurrogate, maxdepth=MaxDepth))
+    # size of ctree
+    print(object.size(myCtree), units="auto") #输出决策树的大小
+    save(myCtree, file=paste("cup98-ctree-", strParameters, "-run-", 
+                             loopCnt, ".rdata", sep="")) #存储文件，决策树
+       
+    figTitle <- paste("Tree", loopCnt)#loopCnt为第i次循环的i
+    plot(myCtree, main=figTitle, type="simple", ip_args=list(pval=FALSE), 
+         ep_args=list(digits=0,abbreviate=TRUE), tp_args=list(digits=2))
+    #print(myCtree)
+   
+    # test
+    pred <- predict(myCtree, newdata=testData) #用测试集进行测试
+    plot(pred, testData$TARGET_D) #画出预测与真实
+    print(sum(testData$TARGET_D[pred > cost] - cost)) #输出预测值大于真实的所有绝对值误差
+    # quick sort is "unstable" for tie values, so it is used here to introduce 
+##    # a bit random for tie values
+    s1 <- sort(pred, decreasing=TRUE, method = "quick", index.return=TRUE)
+    #s1有两个值的列表，x是排序的值，ix是对应的index，从大到小排序
+    totalDonation <- cumsum(testData$TARGET_D[s1$ix]) # cumulative sum累加和(真实值)
+    avgDonation <- totalDonation / (1:testSize)   # 前1：testSize个人的均值（真实值）
+    donationPercentile <- 100 * totalDonation / sum(testData$TARGET_D) #前1:testSize的人的值占总体的百分比
+    allTotalDonation[,loopCnt] <- totalDonation #前1：testSize个人的值放入第loopCnt迭代的的矩阵（真实值）
+    allAvgDonation[,loopCnt] <- avgDonation #前1：testSize个人的均值放入矩阵（真实值）
+    allDonationPercentile[,loopCnt] <- donationPercentile##前1:testSize的人的值占总体的百分比放入矩阵（真实值）
+    plot(totalDonation, type="l")
+    grid()
+ }
+ graphics.off()
+ cat(date(), ":  Loop completed.\n\n\n")
+ 
+fnlTotalDonation <- rowMeans(allTotalDonation) #前1：testSize的累加总值的9次均值
+fnlAvgDonation <- rowMeans(allAvgDonation) # 前1：testSize个人的均值（真实值）的9次的均值
+fnlDonationPercentile <- rowMeans(allDonationPercentile)#前1:testSize的人的值占总体的百分比的9次均值
+
+rm(trainData, testData, pred)
+
+# save results into a CSV file
+results <- data.frame(cbind(allTotalDonation,fnlTotalDonation))
+names(results) <- c(paste("run",1:LoopNum), "Average")
+write.csv(results, paste("evaluation-TotalDonation-", strParameters, ".csv",
+                      sep=""))    
+```
+
+##13.5 模型评估
+* 在决策树模型中，按照预测的客户捐款数额的降序对其排序。
+```{r,eval=FALSE}
+result <- read.csv(file="E:\\git\\trial\\MyLab\\evaluation-TotalDonation-1000-400-4-10.csv")
+head(result)
+
+result[,2:11] <- result[,2:11] - cost * (1:testSize)#减去成本？
+
+# to reduce size of the file to save this chart
+#  对于每10个数据点只绘制一个点，以便缩减保存图表的文件的大小
+idx.pos <- c(seq(1, nrow(result), by=10), nrow(result))
+
+plot(result[idx.pos,12], type="l", lty=1, col=1, ylim=c(0,4500), 
+     xlab="Number of Mails", ylab="Amount of Donations ($)")
+for (fCnt in 1:LoopNum) {
+   lines(result[idx.pos,fCnt+1], pty=".", type="l", lty=1+fCnt, col=1+fCnt)
+}
+legend("bottomright", col=1:(LoopNum+1), lty=1:(LoopNum+1), 
+       legend=c("Average", paste("Run",1:LoopNum)))
+
+
+
+
+```
+
+#案例三： 内存受限的大数据预测模型
+
+##14.3 数据与变量
+```{r,eval=FALSE}
+cup98 <- read.csv(file = "E:\\code\\R\\parctice\\Rdatamining\\Data-for-RDataMining-book\\data\\KDDCup1998\\cup98LRN.txt",header = TRUE,sep = ",",na.strings = "NA",skipNul = TRUE)
+dim(cup98)
+n.missing <- rowSums(is.na(cup98))
+sum(n.missing>0)#每条样本都有缺失值
+varSet <- c(
+   # demographics
+   "ODATEDW", "OSOURCE", "STATE", "ZIP", "PVASTATE", "DOB", "RECINHSE", 
+   "MDMAUD", "DOMAIN", "CLUSTER", "AGE", "HOMEOWNR", "CHILD03", "CHILD07", 
+   "CHILD12", "CHILD18", "NUMCHLD", "INCOME", "GENDER", "WEALTH1", "HIT", 
+   # donor interests
+   "COLLECT1", "VETERANS", "BIBLE", "CATLG", "HOMEE", "PETS", "CDPLAY", 
+   "STEREO", "PCOWNERS", "PHOTO", "CRAFTS", "FISHER", "GARDENIN", "BOATS", 
+   "WALKER", "KIDSTUFF", "CARDS", "PLATES",
+   # PEP star RFA status
+   "PEPSTRFL",
+   # summary variables of promotion history
+   "CARDPROM", "MAXADATE", "NUMPROM", "CARDPM12", "NUMPRM12",
+   # summary variables of giving history
+   "RAMNTALL", "NGIFTALL", "CARDGIFT", "MINRAMNT", "MAXRAMNT", "LASTGIFT", 
+   "LASTDATE", "FISTDATE", "TIMELAG", "AVGGIFT",
+   # ID & targets
+   "CONTROLN", "TARGET_B", "TARGET_D", "HPHONE_D",
+   # RFA (Recency/Frequency/Donation Amount)
+   "RFA_2F", "RFA_2A", "MDMAUD_R", "MDMAUD_F", "MDMAUD_A",
+   #others
+   "CLUSTER2", "GEOCODE2")
+# remove ID & TARGET_D
+vars <- setdiff(varSet, c("CONTROLN", "TARGET_D"))
+cup98 <- cup98[,vars]
+```
+
+##14.4 随机森林
+* randomForest包无法处理包含缺失值或者拥有超过32个等级水平的分类变量。
+* 以下分类变量中有一部分可以通过分组的方式来减少等级水平
+```{r,eval=FALSE}
+
+#查看缺失值及分类变量超过10的数据
+n.missing <- rowSums(is.na(cup98)) #查看每个样本缺失值的变量数
+(tab.missing <- table(n.missing)) #表形式查看
+# percentage of records without missing values
+round(tab.missing["0"] / nrow(cup98), digits=2) # 无缺失值的样本数
+# check levels of categorical variables
+idx.cat <- which(sapply(cup98, is.factor)) #拿到因子变量的index
+all.levels <- sapply(names(idx.cat), function(x) nlevels(cup98[,x])) #统计每个因子变量的水平数
+all.levels[all.levels > 10] #查看水平数大于10的变量
+
+#下面划分训练集和测试集
+trainPercentage <- 80
+testPercentage <- 20
+ind <- sample(2, nrow(cup98), replace=TRUE, 
+              prob=c(trainPercentage, testPercentage))
+trainData <- cup98[ind==1,]
+testData <- cup98[ind==2,]
+
+#用party包中的函数cforest()创建随机森林。对于80%的数据集，创建一颗决策树需要2分钟，创建一颗含有50颗决策树的随机森林需要花费1.5小时。
+```
+
+##14.5 内存问题
+* 以下介绍party包中的函数ctree()创建决策树
+* memory.limit(4095)#对R设置内存限制
+* memory.size()只是当前R运行所占用的内存或者最大内存
+* memory.profile()用来查看使用了哪些内存空间
+* object.size()返回R对象占用的内存大小
+```{r,eval=FALSE}
+memory.limit(4000000)#对R设置内存限制
+library(party)
+
+```
+
+##14.6 样本数据的训练模型
+* 找出哪些变量用于建模：对需要创建的决策树重复10次，然后收集出现再说所有的决策树中的每一个变量，并将收集到的变量用于建立最终模型
+```{r,eval=FALSE}
+library(party) # for ctree
+trainPercentage <- 30# 30%训练集
+testPercentage <- 20 # 20%测试集
+restPrecentage <- 100 - trainPercentage - testPercentage #剩下数据
+fileName <- paste("cup98-ctree", trainPercentage, testPercentage, sep="-")
+vars <- setdiff(varSet, c("TARGET_D", "CONTROLN", "ZIP", "OSOURCE")) # 从varSet拿出不含第二个参数数据的数据
+# partition the data into training and test datasets
+ind <- sample(3, nrow(cup98), replace=T, 
+              prob=c(trainPercentage, testPercentage, restPrecentage))
+trainData <- cup98[ind==1, vars]
+testData <- cup98[ind==2, vars]
+
+
+# build ctree
+myCtree <- NULL 
+startTime <- Sys.time()
+myCtree <- ctree(TARGET_B ~ ., data = trainData)
+Sys.time() - startTime
+print(object.size(myCtree), units = "Mb")#输出一个数据对象的大小
+#print(myCtree)
+memory.size()
+
+# plot the tree and save it in a .PDF file
+#pdf(paste(fileName, ".pdf", sep=""), width=12, height=9,
+    paper="a4r", pointsize=6)
+plot(myCtree, type="simple", ip_args=list(pval=F), ep_args=list(digits=0), 
+     main=fileName)
+#graphics.off()
+
+```
+
+##14.7 使用已选择的变量建立模型
+* 建立了10颗决策树之后，选取其中包含的所有变量建立最后的模型。80%训练集，20%测试集
+```{r,eval=FALSE}
+vars.selected <- c("CARDS", "CARDGIFT", "CARDPM12", "CHILD12", "CLUSTER2", 
+                   "DOMAIN", "GENDER", "GEOCODE2", "HIT", "HOMEOWNR", 
+                   "INCOME", "LASTDATE", "MINRAMNT", "NGIFTALL", "PEPSTRFL", 
+                   "RECINHSE", "RFA_2A", "RFA_2F", "STATE", "WALKER")
+trainPercentage <- 80
+testPercentage <- 20
+fileName <- paste("cup98-ctree", trainPercentage, testPercentage, sep="-")
+vars <- c("TARGET_B", vars.selected)
+# partition the data into training and test subsets
+ind <- sample(2, nrow(cup98), replace=T, prob=c(trainPercentage, testPercentage))
+trainData <- cup98[ind==1, vars]
+testData <- cup98[ind==2, vars]
+# build a decision tree
+myCtree <- ctree(TARGET_B ~ ., data = trainData)
+print(object.size(myCtree), units = "Mb")
+memory.size()
+print(myCtree)
+
+
+#save(myCtree, file = paste(fileName, ".Rdata", sep=""))
+#pdf(paste(fileName, ".pdf", sep=""), width=12, height=9,
+    paper="a4r", pointsize=6)
+plot(myCtree, type="simple", ip_args=list(pval=F), ep_args=list(digits=0), 
+     main=fileName)
+plot(myCtree, terminal_panel=node_barplot(myCtree), ip_args=list(pval=F),
+     ep_args=list(digits=0), main=fileName)
+#graphics.off()
+
+#用测试集测试
+rm(trainData)
+myPrediction <- predict(myCtree, newdata=testData)
+# check predicted results
+testResult <- table(myPrediction, testData$TARGET_B)
+percentageOfOne <- round(100 * testResult[,2] / (testResult[,1] + testResult[,2]), 
+                         digits=1)
+testResult <- cbind(testResult, percentageOfOne)
+print(testResult)
+```
+

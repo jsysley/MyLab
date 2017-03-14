@@ -1,0 +1,248 @@
+---
+title: "DiscriminateAnalysis"
+author: "jsysley_mac"
+date: "2016年9月19日"
+output: html_document
+---
+
+#概述：
+三大算法：
+* 费希尔(Fisher)判别
+    * 线性判别分析(Linear Discriminant Analysis,LDA)
+        * MASS包
+            *lda()
+            
+    * 二次判别分析(Quadratic Discriminant Analysis,QDA)
+        * MASS包
+            * qda()
+            
+* 贝叶斯(Bayes)判别
+    * 朴素贝叶斯分类(Naive Bayes Classification)
+        * klaR包
+            * NaiveBayes()
+            
+* 距离判别
+    * K最近邻算法(k-Nearest Neighbor,kNN)
+        * class包
+            * knn()
+            
+    * 有权重的k最近邻算法(Weighted k-Nearest Neighbor)
+        * kknn包
+            * kknn()
+
+#核心函数
+
+##lda()
+* lda(x,grouping,prior=proportions,tol=1.0e-4,method,CV=FALSE,nu,...)
+* 另外分别有适用于公事formula形式及矩阵matrix形式的格式
+    * lda(formula,data,...,subset,na.action)
+    * lda(x,grouping,...,subset,na.action)
+        * x为数据框data.frame或者矩阵matrix
+        * formula为公式，类似y~x1+x2
+        * data和subset用于有formula情况，分别指明formula中变量来自的数据集、所纳入规则建立过程的样本
+        * grouping指明每个样本所属类别
+        * tol保证判别效果，通过设置筛选变量，默认0.0001
+        * na.action选择对于缺失值的处理，默认情况有缺失值无法运行
+        * 以上更改为na.omit时则自动删除在用于判别的特征变量中含有缺失值的观测样本
+        
+##qda()
+* qda(x,grouping,prior=proportions,method,CV=FALSE,nu,...)
+* 另外分别有适用于公事formula形式及矩阵matrix形式的格式
+    * qda(formula,data,...,subset,na.action)
+    * qda(x,grouping,...,subset,na.action)
+        * x为数据框data.frame或者矩阵matrix
+        * formula为公式，类似y~x1+x2
+        * data和subset用于有formula情况，分别指明formula中变量来自的数据集、所纳入规则建立过程的样本
+        * grouping指明每个样本所属类别
+        * tol保证判别效果，通过设置筛选变量，默认0.0001
+        * na.action选择对于缺失值的处理，默认情况有缺失值无法运行,值为na.omit时则自动删除在用于判别的特征变量中含有缺失值的观测样本
+        
+##NaiveBayes()
+* NaiveBayes(x,grouping,prior,usekernel=FASLE,fL=0,...)
+* NaiveBayes(formula,data,...,subset,na.action=na.pass)
+    * x为数据框data.frame或者矩阵matrix
+    * formula为公式，类似y~x1+x2
+    * data和subset用于有formula情况，分别指明formula中变量来自的数据集、所纳入规则建立过程的样本
+    * grouping指明每个样本所属类别
+    * na.action默认值na.pass表示不将缺失值纳入计算，可取值na.omit,表示删除相应的含有缺失值的样本
+    * usekernel 选择选组密度估计采用的算法，默认FASLE，表示使用标准密度估计，FALSE时表示采用核密度估计法
+    * fL设置拉普拉斯修正参数值，默认0(不修正)
+    
+
+##knn()
+* knn(train,test,cl,k=1,l=0,prob=FALSE,use.all=TRUE)
+    * knn()默认选择欧式距离寻找最近K样本
+    * train表示训练集
+    * test表示测试集
+    * cl表示训练集中各样本的类别取值
+    * k为最近领域大小
+    * prob控制“胜出”类别的投票比例，取TRUE时输出待判样本对应的prob值
+    * use.all选择在出现“结点”时的处理方式，结点即距离待判别样本第K近的已知样本不止一个，TRUE时则全部纳入判别过程，FASLE则选择一个纳入过程
+    
+
+##kknn()
+* kknn(formula=formula(train),train,test,na.action=na.omit(),k=7,distance=2,kernel="optimal",ykernel=NULL,scale=TRUE,contrasts=c('unordered'="contr.dummy",ordered="contr.ordinal"))
+    *distance指定计算样本间距离的具体方法，通过设定闵氏距离的参数来实现，取1曼哈顿距离，2为欧氏距离，取无穷时切比雪夫距离
+    
+
+##数据集
+kknn包中的miete数据集
+```{r}
+library(kknn)#加载包
+data(miete)#获取miete数据集
+str(miete)
+head(miete)#查看前面若干条数据集
+```
+
+##数据预处理
+划分训练集和测试集
+
+分层抽样的方式，对待判别变量nmkat的样本取值，对其5个等级取等量样本
+```{r}
+library(sampling)#加载获取分层抽样函数strata()
+n=round(2/3*nrow(miete)/5)#训练集2/3，计算每一等级应该抽取的样本量
+sub.train=strata(miete,stratanames = "nmkat",size=rep(n,5),method = "srswor")#以nmkat变量的5个等级划分层次，分层抽样，无放回抽样
+head(sub.train)
+
+#获取如上ID_unit所对应的样本构成训练集，并移除变量1，3，12
+data.train=getdata(miete[,c(-1,-3,-12)],sub.train$ID_unit)
+#获取如上ID_unit所对应的样本构成测试集，并移除变量1，3，12
+data.test=getdata(miete[,c(-1,-3,-12)],-sub.train$ID_unit)
+
+#显示训练集，测试集的维度
+dim(data.train)
+dim(data.test)
+```
+
+
+##演示
+
+###线性判别分析
+
+MASS包:lda()
+
+####公式形式
+```{r}
+library(MASS)
+fit.lda1=lda(nmkat~.,data.train)#以公式格式
+names(fit.lda1)#查看可以输出的名称
+
+fit.lda1$prior#执行过程中使用的先验概率
+fit.lda1$counts#查看数据集data.train中各类别的样本量
+fit.lda1$means#查看各变量在每一类别中的均值
+
+fit.lda1#输出判别分析各项结果
+```
+
+####数据框data.frame\矩阵matrix格式
+
+```{r}
+fit.lda2=lda(data.train[,-12],data.train[,12])#分别设置属性变量(除第12个变量nmkat外)与待判别变量(第12个变量nmkat)的取值
+fit.lda2#输出判别结果
+```
+
+可视化
+```{r}
+plot(fit.lda1)#对判别规则输出图像
+```
+图中可以看出有4个判别式，可以通过dimen参数设定输出图像中所使用的判别式个数
+```{r}
+#plot(fit.lda1,dimen=1)#输出1个判别式的图像
+```
+
+对测试集待判变量取值进行预测
+```{r}
+pre.lda1=predict(fit.lda1,data.test)
+pre.lda1$class#s输出data.test中各样本的预测结果
+pre.lda1$posterior#输出各样本属于每一类的后验概率
+#比对
+table(data.test$nmkat,pre.lda1$class)#生成nmkat变量的预测值与实际值的混淆矩阵
+error.lda1=sum(as.numeric(as.numeric(pre.lda1$class)!=as.numeric(data.test$nmkat)))/nrow(data.test)#计算错误率
+error.lda1
+```
+
+
+###朴素贝叶斯分类
+
+klaR包:NaiveBayes()
+
+
+####公式格式
+```{r}
+library(klaR)
+fit.Bayes1=NaiveBayes(nmkat~.,data.train)#生成贝叶斯判别规则
+names(fit.Bayes1)#查看可用变量，
+fit.Bayes1$apriori#执行过程中使用的先验概率
+fit.Bayes1$tables#存储了用于建立判别规则的所有变量在各类变量下的条件概率
+fit.Bayes1$levels#判别变量等级项
+fit.Bayes1$call#判别命令项
+fit.Bayes1$usekernel#是否使用标准密度估计
+fit.Bayes1$varnames#参与判别规则制定的特征变量名
+
+#可视化：各类别下变量密度可视化，以参与规则建立的其中一个变量为例查看密度图像
+plot(fit.Bayes1,vars="wfl",n=50,col = c(1,"darkgrey",1,"darkgrey",1))#对wfl绘制各类别下的密度图
+```
+
+####默认格式
+```{r}
+fit.Bayes2=NaiveBayes(data.train[,-12],data.train[,12])
+```
+
+
+####对测试集待判别变量预测
+```{r}
+pre.Bayes1=predict(fit.Bayes1,data.test)#预测
+pre.Bayes1#查看结果
+table(data.test$nmkat,pre.Bayes1$class)#生成nmkat的真实值和预测值的混淆矩阵
+#计算错误率
+error.Bayes1=sum(as.numeric(as.numeric(pre.Bayes1$class)!=as.numeric(data.test$nmkat)))/nrow(data.test)
+error.Bayes1
+```
+
+###K-最近邻
+
+class包：knn()
+
+```{r}
+library(class)
+#分别放入训练集，测试集，训练集的类标号,K默认值为1
+fit.pre.knn=knn(data.train[,-12],data.test[,-12],cl=data.train[,12])
+fit.pre.knn#输出结果
+table(data.test$nmkat,fit.pre.knn)#生成nmkat真实值于预测值的混淆矩阵
+
+error.knn=sum(as.numeric(as.numeric(fit.pre.knn)!=as.numeric(data.test$nmkat)))/nrow(data.test)
+error.knn
+```
+下面控制k的取值来找到适合该数据的k值，控制1-20
+```{r}
+error.knn=rep(0,20)#存储每个k对饮的错误率
+
+for(i in 1:20)
+{
+    fit.pre.knn=knn(data.train[,-12],data.test[,-12],cl=data.train[,12],k=i)#对每个k构造knn
+    error.knn[i]=sum(as.numeric(as.numeric(fit.pre.knn)!=as.numeric(data.test$nmkat)))/nrow(data.test)#计算每一个取k值对应的错误
+}
+error.knn
+
+#可视化
+plot(error.knn,type = "l",xlab = "k")
+points(y=error.knn[which.min(error.knn)],x=which.min(error.knn),pch=10)
+```
+
+##有权重的K最近邻算法
+
+kknn包:kknn()
+
+将规则建立公式nmkat~.，以及训练集和测试集放入函数，设置k为5
+```{r}
+library(kknn)
+fit.pre.kknn=kknn(nmkat~.,data.train,data.test[,-12],k=5)
+summary(fit.pre.kknn)
+#预测结果
+fit=fitted(fit.pre.kknn)
+fit
+table(data.test$nmkat,fit)#输出nmkat真实值于预测值的混淆矩阵
+error.kknn=sum(as.numeric(as.numeric(fit)!=as.numeric(data.test$nmkat)))/nrow(data.test)
+error.kknn
+```
+
