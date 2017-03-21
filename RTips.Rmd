@@ -192,13 +192,14 @@ plotcorr(cor_matrix,col=rep(c("white","black"),5))#对如上相关系数矩阵�
 #R语言编程艺术
 
 ##杂项
+* a = c(1,2,NA,3).a[a>2](会取出NA值)，subset(a,a>2)不会取出NA值
 * &用于向量的逻辑运算，&&用于标量的逻辑运算。
 * diff(data)用于求data[i]-data[9-1]
 * 注意一个data.frame的数据类型，选择一行或者一列时会降维，加上drop=FALSE
 * 对一个矩阵m，row(m)返回一个和矩阵一样维数的矩阵，元素为对应元素的行号，col()同理
 * 查看数据类型：class(),typeof(),mode(),str()
 * 查看一个对象的组件attributes()
-* 取消名字：names(data) <- NULL
+* 取消名字：names(data) <- NULL或者new_data <- unname(data)
 * 可用vector来创建列表：gg <- vector(mode="list")##创建一个空列表
 * 删除列表元素可直接把其值设为NULL
 * unlist(list)返回列表的元素(返回形式是一个向量，第一列为名字)
@@ -214,7 +215,7 @@ plotcorr(cor_matrix,col=rep(c("white","black"),5))#对如上相关系数矩阵�
 * 对factor数据用unclass()返回一列向量，对应为数据的factor的真实值（一般是1,2,...,n,...）
 * tapply(x,f,g)#其中x是向量，f是因子或因子列表，g是函数；其执行的操作是将x分组，每组对应一个因子水平，得到x的子向量，每个子向量应用函数g
 * split(x,f)函数，这里x和f与tapply(x,f,g)中的意义相似，x为向量或数据框，f是因子或因子列表。该函数把x划分组，并返回分组的列表（x在split()中可以是数据框，而在tapply()中不可以）（x和f是对应的）
-* by()函数，与tapply()的运作方式类似，但by()应用于对象而不仅是向量，第一个参数指定数据，第二个数据指定分组，第三个参数是用于每组的函数
+* by()函数，与tapply()的运作方式类似，但by()应用于对象而不仅是向量可以使矩阵或数据框，第一个参数指定数据，第二个数据指定分组，第三个参数是用于每组的函数
 * 提取名字：names(),colnames(),rownames(),dimnames()
 * 对于table对象，subtable(table,list())可以提取字表，list()中之处横轴名字=c()，纵轴名字=c()，指明对于的水平，字符串表示
 * do.call(f,argslist),其中f是一个函数，argslist是函数f()的参数列表
@@ -238,6 +239,9 @@ for(fn in c("file1","file2"))print(scan(fn))
     * 对非向量集合的循环：
         * lapply():如果循环的每次循环独立，可以以任意顺序执行
         * get()：这个函数接受一个代表对象名字的字符串参数，然后返回该对象的内容
+            * z <- get("a")#z取到变量a的值
+    * v <- if(x==2) x else x+1#简化语句赋值
+    * ifelse(condition,a,b)
     * 一个函数对象g,formals(g)返回其参数，body(g)返回函数体
     * 查看函数代码：可直接输入g，或用函数page(g)，还可以edit(g)
     * formuals()和body()可以当做参数使用，如body(g) <- quote(x+1),改变函数g的功能
