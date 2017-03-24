@@ -1,0 +1,79 @@
+---
+title: "Modern Multivariate"
+author: "jsysley_mac"
+date: "2017年3月24日"
+output: html_document
+---
+# 2017-03-15
+
+* bmp包：
+    * read.bmp，读入图片或矩阵
+* pixmap包：
+    * or = pixmaprgb(matrix)#将矩阵还原成图片
+    * plot(or)
+* rhl包画3D图：
+    * plot3D(3维矩阵，type=n)
+    * for(i in 1:10){points3D(out$scores[digit==I,1:3],col=i+1)}
+* cancor(X,Y)#未知是什么
+* PCA之后无score，要自己计算
+    * Xi=X % * %out$xcoef
+
+
+# 2017-03-22
+
+* 在图上直接标符号
+    * plot(x,y,type='n')#画空画布，假设x长度为0
+    * text(x,y,1:10)#仅在相应坐标上标记符号
+* 验证一个图片的图层有无差别
+    * sum(abs(r[,1]-r[,3]))==0
+* 读入图片
+    * x=matrix(nrow=11,ncol=77660)
+    * for(i in 1:11)
+    {
+        name=paste("D/f",i,".bmp",sep="")
+        r=read.bmp(name)
+        x[i,]=as.vactor(r[,,1])
+    }
+    m=colmeans(x)
+    for(i in 1:77760)
+    {
+        x[,i]=scale(x[,i],center=T,scale=F)#每列减去均值
+        A <- x%*%t(x)
+        out=eigen(A)#求特征值
+        par(mfrow=c(3,4))#画12张图
+        xnew=m
+        pr=pixmapRGB(matrix(xnew,nrow=243),ncol=320)
+        plot(pr)
+    }
+    for(i in 1:11)
+    {
+        v=t(x)%*%out$vector[,i]/sqrt(out$values[,i])
+        b=t(v)%*%x[2,]
+        xnew=xnew+v%*%b
+        pr=pixmapRGB(matrix(xnew,nrow=243,ncol=3201))
+        plot(pr)
+    }
+    
+##LDA
+* 画图 
+    * layout(matrix(c(1,2,3,3)),nrow=2,byrow=TRUE)#画布布局
+    layout.show(3)#参数表示第几幅图
+    library(MASS)
+    wdbc=读入数据
+    wdbc[wdbc==0]=0.001#后续去对数方便
+    wdbc[,3:32]=log(wdbc[,3:32])
+    out=lda(v2~.,wdbc[,-1])
+    name(out)#查看对象的内容，还可以用attributes(out)
+    plot(out)#返回的结果对象可以先plot
+    layout(matrix(c(1,2,3,3),nrow=2,byrow=FALSE))
+    out.predict=predict(out)
+    renames(out.predict)
+    LDA1=out.predict$x#判别得分
+    hist(LDA1[wdbc$v2=='v2'],xlim=c(-4,6),main="",xlab='GroupB',col='blue')
+    #第二幅图同理
+    #画密度曲线
+    plot(density(LDA1[wdbc$v2=='v2']))
+    points(density(LDA1[wdbc$v2=='v2']))#加线，也可以用lines
+    #混淆矩阵
+    A=table(wdbc$v2,out.predict$class)
+    (sum(A)-sum(diag(A)))/sum(A)#误判率
