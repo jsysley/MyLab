@@ -60,4 +60,17 @@ for(i in 1:11)
 }
 ```
 
+```{r}
+xnew <- m
+
+for(i in 1:11)
+{
+    v <- t(face_data_ss)%*%eigen_value$vector[,i]/sqrt(abs(eigen_value$values[i]))
+    b <- t(v)%*%face_data_ss[2,]
+    xnew <- xnew+v%*%b
+    pr <- pixmapRGB(matrix(xnew,nrow=243,ncol=320))
+    plot(pr)
+}
+```
+
 
