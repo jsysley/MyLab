@@ -1,7 +1,99 @@
 ---
 title: "WDBC"
-author: "jsysley_mac"
-date: "2017年3月31日"
+author: "Ivan"
+date: "2017年4月5日"
 output: html_document
 ---
+
+####Path Setting and read the data
+```{r}
+dir_path <- "F:/git/trial/R/Pre/WDBC"
+wdbc <- read.table(paste(dir_path,'/wdbc.data.txt',sep=""),sep = ",",
+                   stringsAsFactors = FALSE,fileEncoding = 'GBK')
+```
+#Check the structure of the data
+```{r}
+dim(wdbc)
+str(wdbc)
+```
+#Plot the density line of the variables
+```{r}
+if(!require(ggplot2))install.packages("ggplot2")
+require(ggplot2)
+
+Plot_A_Density <- function(name,use_data,mode='normal')
+{
+    use <- use_data[,name]
+    if (mode=='normal')
+    {
+        plot(density(use),xlab=name,main="density line")
+    }else{
+        ggplot(use_data, aes(eval(parse(text=name))))+geom_density(fill='lightblue')+xlab(name)
+    }
+}
+```
+#Check all of the density line
+```{r}
+lapply(colnames(wdbc),Plot_A_Density,use_data=wdbc,mode='normal1')
+```
+#Check the correlation coefficient of the variables
+```{r}
+if(!require(GGally))install.packages("GGally")
+library(GGally)
+ggpairs(economics[,c(2,4:6)])
+```
+#Take natural logarithms of each variable before analyzing the data
+```{r}
+wdbc_log <- wdbc
+wdbc_log[wdbc_log==0] <- 0.001#后续去对数方便
+wdbc_log[,3:32] <- wdbc_log[,3:32]
+```
+#LDA analysis
+```{r}
+library(MASS)
+out <- lda(V2~.,wdbc_log[,-1])
+```
+#LDA result analysis
+```{r}
+names(out)#check the contents of the object with attributes(out)
+attributes(out)
+```
+#result visualization
+```{r}
+plot(out)#the conclusion returned can be ploted
+```
+#Reshow the plot of the book
+```{r}
+layout(matrix(c(1,2,3,3),nrow = 2,byrow = FALSE))#partition
+```
+#Calculate the relavent data
+```{r}
+out_predict <- predict(out)
+# renames(out_predict)
+LDA1 <- out_predict$x#LDA scores
+```
+#Plot the histogram
+```{r}
+hist(LDA1[wdbc_log$V2=='B'],xlim=c(-4,6),main="",xlab='GroupB',col='blue')
+hist(LDA1[wdbc_log$V2=='M'],xlim=c(-4,6),main="",xlab='GroupM',col='blue')
+```
+#Plot the density line
+```{r}
+plot(density(LDA1[wdbc$V2=='B']),xlim = c(-4,6))
+lines(density(LDA1[wdbc$V2=='M']))#add one more line
+#或者ggplot
+ggplot(data=NULL)+geom_density(aes(LDA1[wdbc_log$V2=='B']),fill='lightblue')+
+    geom_density(aes(LDA1[wdbc_log$V2=="M"]),fill='steelblue')+
+    scale_colour_manual("Group",values = c("GroupB" = "lightblue","GroupM" = "steelblue"))
+```
+#The metrics analysis
+```{r}
+A <- table(wdbc_log$V2,out_predict$class)#confusion matrix
+(sum(A)-sum(diag(A)))/sum(A)#misclassification rate
+```
+
+
+
+
+
 

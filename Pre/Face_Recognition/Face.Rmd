@@ -29,7 +29,7 @@ if(!require(pixmap))install.packages("pixmap")
 require(pixmap)
 m <- colMeans(face_data)
 #Plot the mean data
-pr=pixmapRGB(matrix(m,nrow=243),ncol=320)
+pr=pixmapRGB(matrix(m,nrow=243,ncol=320))
 plot(pr)
 ```
 
