@@ -56,7 +56,7 @@ cor(wdbc[,3:32])
 ```{r}
 wdbc_log <- wdbc
 wdbc_log[wdbc_log==0] <- 0.001#for natural logarithms transforming
-wdbc_log[,3:32] <- wdbc_log[,3:32]
+wdbc_log[,3:32] <- log(wdbc_log[,3:32])
 ```
 #LDA analysis
 ```{r}
@@ -113,8 +113,8 @@ pi2 <- length(index2)/nrow(wdbc_log)
 mu1 <- matrix(colMeans(wdbc_log[index1,3:32]),ncol=1)
 mu2 <- matrix(colMeans(wdbc_log[index2,3:32]),ncol=1)
 
-ss1 <- cov(wdbc_log[index1,3:32])*length(index1)
-ss2 <- cov(wdbc_log[index2,3:32])*length(index2)
+ss1 <- cov(wdbc_log[index1,3:32])*(length(index1)-1)
+ss2 <- cov(wdbc_log[index2,3:32])*(length(index2)-1)
 sigma_x <- (ss1+ss2)/nrow(wdbc_log)
 #Estimate the coefficients
 b <- solve(sigma_x)%*%(mu1-mu2)
