@@ -2,6 +2,15 @@
 dir_path <- "/Users/jsysley/Documents/git/MyLab/Pre/WDBC"
 wdbc <- read.table(paste(dir_path,'/wdbc.data.txt',sep=""),sep = ",",
                    stringsAsFactors = FALSE,fileEncoding = 'GBK')
+colnames(wdbc)[3:32] <- c("radius.mv","texture.mv","peri.mv","area.mv",
+                          "smooth.mv","comp.mv","scav.mv","ncav.mv",
+                          "symt.mv","fracd.mv","radius.sd","texture.sd",
+                          "peri.sd","area.sd","smooth.sd","ncav.sd",
+                          "comp.sd","scav.sd","symt.sd","fracd.sd",
+                          "radius.ev","texture.ev","peri.ev","area.ev",
+                          "smooth.ev","comp.ev","scav.ev","ncav.ev",
+                          "symt.ev","fracd.ev.")
+                           
 #查看数据大概结构
 dim(wdbc)
 str(wdbc)
@@ -62,9 +71,46 @@ pi2 <- length(index2)/nrow(wdbc_log)
 mu1 <- matrix(colMeans(wdbc_log[index1,3:32]),ncol=1)
 mu2 <- matrix(colMeans(wdbc_log[index2,3:32]),ncol=1)
 
-ss1 <- cov(wdbc_log[index1,3:32])*nrow(wdbc_log)
-ss2 <- cov(wdbc_log[index2,3:32])*nrow(wdbc_log)
-ssx <- ss1+ss2
+ss1 <- cov(wdbc_log[index1,3:32])*length(index1)
+ss2 <- cov(wdbc_log[index2,3:32])*length(index2)
+sigma_x <- (ss1+ss2)/nrow(wdbc_log)
 #Estimate the coefficients
-b <- ssx%*%(mu1-mu2)
-b0 <- -1/2*(t(mu1)%*%solve(ss1)%*%mu1 - t(mu2)%*%solve(ss2)%*%mu2) + log(pi1) + log(pi2)
+b <- solve(sigma_x)%*%(mu1-mu2)
+b0 <- -1/2*(t(mu1)%*%solve(ss1)%*%mu1 - t(mu2)%*%solve(ss2)%*%mu2) + log(pi1) - log(pi2)
+
+#########LDA via Multiple Regression
+y = vector(length = nrow(wdbc_log))
+y[wdbc_log[,"V2"]=="M"] = 1
+lm_fun <- function(data,y,local)
+{
+    temp <- summary(lm(y~data[,local]))
+    res <- vector(length=3)
+    res[1] <- temp$coefficients[2,1]#coef
+    res[2] <- temp$coefficients[2,2]#sd
+    res[3] <- res[1]/res[2]#z-ratio
+    names(res) = c("Coeff","S.E.","Ratio")
+    res = list(res)
+    names(res) = colnames(data)[local]
+    return(res)
+}
+res <- sapply(3:32,lm_fun,data=wdbc_log,y=y)
+graph <- Reduce(rbind,res)
+graph <- data.frame(graph,row.names = colnames(wdbc_log)[3:32])
+graph$name <- rownames(graph)
+res
+###
+order_index <- order(graph$Ratio)
+graph$new_name <- factor(graph$name,levels = graph$name[order_index])
+ggplot(graph,aes(x=new_name,y=Ratio))+
+    geom_bar(stat="identity") + coord_flip()
+
+###
+new_data <- cbind(y,wdbc[,-c(1,2)])
+fm <- glm(y~.,family = binomial,data=new_data)
+fm_step <- step(fm,direction="backward")
+temp_step <- summary(fm_step)
+res_step = temp_step$coefficients[,c(1,2)]
+res_step <- cbind(res_step,res_step[,1]/res_step[,2])
+res_step <- data.frame(res_step)
+colnames(res_step) <- c("Coeff","S.E.","Ratio")
+res_step
