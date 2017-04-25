@@ -33,6 +33,7 @@ EM_SVM <- function(x,y,alpha=1,mu=1)
     y_num[which(levels(y)[2]==y),] <- -1#对y做-1,1的转换,将第二类转换为-1
     #####临时变量
     temp <- matrix(nrow=n,ncol=k+1)
+    colnames(temp) <- colnames(x)
     #####
     #E-Step
     for(i in 1:n)#对每个样本迭代
@@ -69,5 +70,6 @@ Plot_Beta <- function(temp)
 {
     k <- ncol(temp)
     par(mfrow=c(floor(sqrt(k)),ceiling(sqrt(k))))
-    lapply(1:k,function(local) plot(x=1:nrow(temp),y=temp[,local],type = "l"))
+    lapply(1:k,function(local) plot(x=1:nrow(temp),y=temp[,local],type = "l",
+           xlab="Value",ylab=colnames(temp)[local]))
 }
