@@ -1,0 +1,27 @@
+##########################################################读入写出
+import sys
+a = sys.stdin.readline().strip()
+while a:
+	#处理完整个一个案例再输出
+	###输出：
+	print " ".join(list)
+	###或者
+	for i in result:
+    	sys.stdout.write(str(i)+'\n')
+	a = sys.stdin.readline().strip()
+##########################################################
+注意切片时是否list[a:b]中的a,b要判断一下大小，否则报数组越界
+###处理间歇性连续
+		#计算连续的0的个数
+        label = 0
+        for i in range(len(diff)):
+            if diff[i]==0 and label==0:
+                label = 1
+            elif diff[i]==0 and label!=0:
+                label+=1
+            elif diff[i]!=0 and label!=0:
+                count['min'] = count.get('min',0)+label*(label+1)/2
+                label=0
+        if label!=0:
+        	count['min'] = count.get('min',0)+label*(label+1)/2
+##########################################################
