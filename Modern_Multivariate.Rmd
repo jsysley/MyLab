@@ -130,16 +130,16 @@ tau_r <- numeric(T)
 dealta <- numeric(T)
 for(i in 1:T)
 {
-    CHD_left <- matrix(CHD[CHD[,1]<=Age[i],],ncol = 2)
-    CHD_right <- matrix(CHD[CHD[,1]>Age[i],],ncol = 2)
+    CHD_left <- matrix(CHD[CHD[,1]<=Age[i],],ncol = 2)#左节点样本
+    CHD_right <- matrix(CHD[CHD[,1]>Age[i],],ncol = 2)#右节点样本
     
-    n[1,1] <- sum(CHD_left[,2]==1)
-    n[1,2] <- sum(CHD_left[,2]==2)
-    n[2,1] <- sum(CHD_right[,2]==1)
-    n[2,2] <- sum(CHD_right[,2]==2)
-    n_row <- rowSums(n)
-    n_col <- colSums(n)
-    n_sum <- sum(n)
+    n[1,1] <- sum(CHD_left[,2]==1)#左节点为1的数量
+    n[1,2] <- sum(CHD_left[,2]==2)#左节点为2的数量
+    n[2,1] <- sum(CHD_right[,2]==1)#右节点为1的数量
+    n[2,2] <- sum(CHD_right[,2]==2)#右节点为2的数量
+    n_row <- rowSums(n)#左节点的数量
+    n_col <- colSums(n)#右节点的数量
+    n_sum <- sum(n)#所有样本的数量
     tau_l[i] <- -n[1,1]/n_row[1]*log(n[1,1]/n_row[1])-
         n[1,2]/n_row[1]*log(n[1,2]/n_row[1])
     tau_r[i] <- -n[2,1]/n_row[2]*log(n[2,1]/n_row[2])-
@@ -159,3 +159,61 @@ legend(50,0.2,c("Right","Left"),lty=c(1,1),col=c("red","blue"))
 ###剪枝
 * grow a large tree.Tmax
 * Compute an estimate of R(tau) at each node,给出loss functin(penlize+regulazation)
+
+
+
+
+#2017.04.26
+```{r}
+spam <- read.table("F:/研究生/研一下/多元统计/DataSets/spambase.txt",header=TRUE)
+spam <- spam[,-58]
+n <- nrow(spam)
+c <- 500
+gamma <- 0.002
+cv <- 0
+index <- sample(1:n,n,replace = FALSE)
+library(e1071)
+for(i in 1:10)
+{
+    valid_index <- index[(400*(i-1)+1):(400*i)]
+    train_index <- index[-valid_index]
+    train <- spam[train_index,]
+    valid <- spam[valid_index,]
+    out <- svm(class~.,train,kernel="radial",cost=c,gamma=gamma)
+    pred <- predict(out,valid)
+    cv <- cv + sum(valid$class!=pred)
+}
+cv/400#错误率，对应一个c-gamma
+summary(out)
+plot(out,train,crll~crrt)#画对应变量的分界图
+#换数据集
+index <- sample(1:150,150,replace=FALSE)
+c <- 10
+gamma <- 1:200/1000
+cv2 <- numeric(200)
+for(t in 1:200)
+{
+    for(i in 1:10)
+    {
+        valid_index <- index[(15*(i-1)+1):(15*i)]
+        train_index <- index[-valid_index]
+        train <- iris[train_index,]
+        valid <- iris[valid_index,]
+        out <- svm(Species~.,train,kernel="linear",cost=c,gamma=gamma[t])
+        pred <- predict(out,valid)
+        cv2[t] <- cv2[t] + sum(valid$Species!=pred)
+    }
+}
+cv <- cv/150
+plot(cv2~gamma,type='l')
+#其中gamma200多个，cost为1个
+out_tune <- tune(svm,Specied~.,data=iris,ranges=list(gamma=gamma,cost=c))
+names(out_tune)
+points(error~gamma,out_tune$performance,type="l",col="red")
+out_tune2 <- tune(svm,Species~.,data=iris,ranges=list(gamma=seq(0,0.2,by=0.01),cost=c(1,5,10)))
+out_tune2$best.parameters
+plot(out_tune2)
+
+
+```
+

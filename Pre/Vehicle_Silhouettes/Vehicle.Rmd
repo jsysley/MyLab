@@ -1,0 +1,141 @@
+---
+title: "Vehicle"
+author: "Ivan"
+date: "2017年5月1日"
+output: html_document
+---
+####Path Setting and read the data
+```{r}
+dir_path <- "F:/git/trial/R/Pre/Vehicle_Silhouettes"
+vehicle <- read.table(paste(dir_path,"/vehicle3.txt",sep=""),
+                      stringsAsFactors = FALSE,header = TRUE)
+```
+
+####check the structure of the data
+```{r}
+dim(vehicle)
+str(vehicle)
+```
+
+####Plot the bar chart and boxplot
+```{r}
+if(!require(ggplot2))install.packages("ggplot2")
+require(ggplot2)
+```
+
+####correlation between the variables
+```{r}
+if(!require(GGally))install.packages("GGally")
+require(GGally)
+ggpairs(vehicle[,1:4])
+```
+
+####bar charts
+```{r}
+
+Plot_A_Sta <- function(name,vehicle)
+{
+    ggplot(vehicle, aes(eval(parse(text=name))))+
+        geom_bar(aes(fill=factor(eval(parse(text=name)))))+
+        xlab(name)+guides(fill=guide_legend(title=name))
+}
+lapply(colnames(vehicle),Plot_A_Sta,vehicle=vehicle)
+```
+
+####Boxplot
+```{r}
+Plot_A_Box <- function(name,vehicle)
+{
+    # vehicle[name] <- as.numeric(vehicle[name])
+    ggplot(vehicle, aes(eval(parse(text=name)),eval(parse(text=name))))+
+        geom_boxplot(fill="lightblue",varwidth = TRUE,outlier.colour = "red")+
+        xlab(name)+ylab("Value")
+}
+lapply(colnames(vehicle),Plot_A_Box,vehicle=vehicle)
+```
+
+####Add the class name to the data
+```{r}
+vehicle_augment <- vehicle
+vehicle_augment["class"] <- factor(vehicle[,"class"],levels = c(1,2,3,4),
+                                labels = c("Opel_Manta_car","Saab_9000_car","double_decker_bus","Chevrolet_van"))
+table(vehicle_augment["class"])
+```
+
+####build the tree
+```{r}
+if(!require(rpart))install.packages("rpart")
+require(rpart)
+if(!require(rpart.plot))install.packages("rpart.plot")
+require(rpart.plot)
+trees <- rpart(class~.,vehicle_augment)
+```
+
+####check the result and plot the tree
+```{r}
+attributes(trees)
+rpart.plot(trees)
+###another way to plot
+plot(trees,uniform=T, branch=1, margin=0.1, main="Classification Tree")
+text(trees,use.n=T, col="blue")
+```
+
+####reshow the graph in the book
+```{r}
+plotcp(trees)
+```
+
+####calculate the resubstition error and the confusion matrix
+```{r}
+if(!require(rpart.plot))install.packages("rpart.plot")
+library(caret)
+confusionMatrix(predict(trees,vehicle_augment,type="class"),vehicle_augment[,"class"])
+```
+
+####prune the tree according to the rulw 1-SE
+```{r}
+printcp(trees)
+##minimize the cross validaion variation(xerror)
+##choose the seven line ,0.42+0.21 = 0.636,between 3line and 4line
+##choose cp=0.07
+trees2 <- prune(trees,cp=0.07)
+rpart.plot(trees2)
+
+```
+
+####another code can be used to prune for interacting
+```{r,eval=FALSE}
+snip.rpart(trees)#to prune interacting with computer
+```
+
+####check the confusion matrix after pruning
+```{r}
+confusionMatrix(predict(trees2,vehicle_augment,type="class"),vehicle_augment[,"class"])
+
+```
+
+####10 fold cv results of different size trees
+```{r}
+all_index <- sample(1:nrow(vehicle),replace=FALSE)
+cv <- vector(length = 10)
+for(j in 1:10)
+{
+    for(i in 1:10)
+    {
+        valid_index <- all_index[(84*(i-1)+1):(84*i)]
+        train_index <- all_index[-valid_index]
+        ct <- rpart(class~.,vehicle_augment[train_index,],maxdepth=j)
+        res <- predict(ct,vehicle_augment[valid_index,],type="class")
+        cv[j] <- cv[j] + sum(vehicle_augment[valid_index,"class"]!=res)
+    }
+}
+```
+
+####Plot the 10-fold validation error of different max depths
+```{r}
+temp <- data.frame(x=1:10,y=cv)
+ggplot(data=temp,aes(x,y)) + geom_point(colour="red",shape=1,size=3) + geom_line(colour="lightblue") +
+    xlab("Max Depth") + ylab("10-Val Error")
+```
+
+
