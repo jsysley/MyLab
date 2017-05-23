@@ -334,35 +334,44 @@ MCMC_SVM <- function(x,y,alpha = 1,mu = 1,iter = 1000)#alpha=1
 }
 
 ####################################################Spam
-res <- EM_SVM(x2,y2,alpha = 1,mu = 2,iter = 300)
+res <- EM_SVM(x2,y2,alpha = 1,mu = 2,iter = 500)
 decision <- Predict(x2,res[[1]])
 dev.new()
 lapply(1:ncol(res[[2]]),Plot_Beta_One,temp = res[[2]])
 
 
-res2 <- ECME_SVM(x2,y2,alpha = 1,mu = 1,amu = 0.1,bmu = 0.1,iter = 300)
+res2 <- ECME_SVM(x2,y2,alpha = 1,mu = 1,amu = 0.1,bmu = 0.1,iter = 500)
 decision <- Predict(x2,res2[[1]])
 dev.new()
 lapply(1:ncol(res[[2]]),Plot_Beta_One,temp = res[[2]])
 
 
-res3 <- MCMC_SVM(x2,y2,mu = 1,iter = 300)
+res3 <- MCMC_SVM(x2,y2,mu = 1,iter = 500)
 decision <- Predict(x2,res2[[1]])
 dev.new()
 lapply(1:ncol(res[[2]]),Plot_Beta_One,temp = res[[2]])
 ####################################################Iris
-res <- EM_SVM(x,y,alpha = 1,mu = 2,iter = 1000)
-decision <- Predict(x,res[[1]])
+res <- EM_SVM(x1,y1,alpha = 1,mu = 2,iter = 500)
+decision <- Predict(x1,res[[1]])
 label <- sign(decision)
-label[which(label == -1)] <- levels(y)[2]
-label[which(label == 1)] <- levels(y)[1]
-sum(label == y)/nrow(x1)
+label[which(label == -1)] <- levels(y1)[2]
+label[which(label == 1)] <- levels(y1)[1]
+sum(label == y1)/nrow(x1)
 Plot_Beta(res[[2]])
 
-res2 <- ECME_SVM(x,y,alpha = 1,mu = 1,amu = 0.1,bmu = 0.1,iter = 1000)
-decision <- Predict(x,res2[[1]])
+res2 <- ECME_SVM(x1,y1,alpha = 1,mu = 1,amu = 0.1,bmu = 0.1,iter = 500)
+decision <- Predict(x1,res2[[1]])
+label <- sign(decision)
+label[which(label == -1)] <- levels(y1)[2]
+label[which(label == 1)] <- levels(y1)[1]
+sum(label == y1)/nrow(x1)
 Plot_Beta(res2[[2]])
 
-res3 <- MCMC_SVM(x,y,mu = 1,iter = 1000)
-decision <- Predict(x,res2[[1]])
-Plot_Beta(res2[[2]])
+res3 <- MCMC_SVM(x1,y1,mu = 1,iter = 500)
+decision <- Predict(x1,res2[[1]])
+decision <- Predict(x1,res[[1]])
+label <- sign(decision)
+label[which(label == -1)] <- levels(y1)[2]
+label[which(label == 1)] <- levels(y1)[1]
+sum(label == y1)/nrow(x1)
+Plot_Beta(res3[[2]])
