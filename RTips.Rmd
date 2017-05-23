@@ -663,3 +663,20 @@ dev.off(3)
         * 选在在发生错误后自动进入调试器：options(error=recover)；关闭这项设置options(NULL)
         * options(warn=2):将warnings转化为错误，从而能知道warnings在哪里出现
         
+# 报错处理
+```{r}
+tryCatch({a = b},error = function(e){
+    a = 1
+})
+print(a)
+###正确写法
+tryCatch({a = b},error = function(e){
+    a <<-  1
+})
+```
+
+# 执行字符串
+```{r}
+eval(parse(text = "x = 1"))
+```
+

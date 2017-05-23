@@ -272,3 +272,31 @@ MCMC_SVM <- function(x,y,alpha = 1,mu = 1,iter = 1000)###alpha=1
     
     
 }
+
+
+
+
+#### M-H algorithm ####
+M_H <- function(s)
+{
+    x <- vector(length = s)
+    x[1] <- 0
+    # uniform variable: u  
+    set.seed(1)
+    u <- runif(s)
+    sd = 1
+    df = 5  
+    # sample the student distrubution with 5 freedom
+    for(i in 2:s)
+    {
+        y = rnorm(1,mean = x[i - 1],sd = std)
+        p_accept = dt(y,df) * pnorm(x[i-1],y,sd) / pnorm(x[i-1],y,sd) / (dt(x[i-1],df))
+        if ((u[i] <= p_accept))  
+        {  
+            x[i] = y
+        }  
+        else{ 
+            x[i] = x[i-1] }  
+    }
+    return(x)
+}

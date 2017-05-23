@@ -905,3 +905,110 @@ class Bonus:
             for j in xrange(1,m):
                 s[i][j] = board[i][j] + max(s[i][j-1],s[i-1][j])
         return s[n-1][m-1]
+
+#==============================================================================
+# 题目描述
+请设计一个高效算法，再给定的字符串数组中，找到包含"Coder"的字符串(不区分大小写)，
+并将其作为一个新的数组返回。结果字符串的顺序按照"Coder"出现的次数递减排列，
+若两个串中"Coder"出现的次数相同，则保持他们在原数组中的位置关系。
+给定一个字符串数组A和它的大小n，请返回结果数组。保证原数组大小小于等于300,
+其中每个串的长度小于等于200。同时保证一定存在包含coder的字符串。
+测试样例：
+["i am a coder","Coder Coder","Code"],3
+返回：["Coder Coder","i am a coder"]
+#==============================================================================
+# -*- coding:utf-8 -*-
+import collections
+class Coder:
+    def findCoder(self, A, n):
+        # write code here
+        d = collections.OrderedDict()
+        for i in xrange(n):
+            target = A[i].lower()
+            temp = target.find('coder')
+            if temp != -1:
+                d[i] = target.count('coder')
+        d_sorted = sorted(d.items(),key = lambda x:x[1],reverse=True)
+        res = []
+        for i in xrange(len(d_sorted)):
+            res.append(A[d_sorted[i][0]])
+        return res
+        
+#正确答案
+
+# -*- coding:utf-8 -*-
+class Coder:
+    def findCoder(self, A, n):
+        t, p = [], 'Coder'.upper()
+        for i in range(n):
+            k = kmp(A[i].upper(), p)
+            if k > 0:
+                t.append((i, k))
+            t.sort(key=lambda d: d[1], reverse=True)
+        d = []
+        for i in range(len(t)):
+            d.append(A[t[i][0]])
+        return d
+
+def kmp(s, p):
+    N = [0] * len(p)
+    for i in range(2, len(p)):
+        j = N[i - 1]
+        while j > 0 and p[j] != p[i - 1]:
+            j = N[j]
+        if p[j] == p[i - 1]:
+            N[i] = j + 1
+    i, j, cnt = 0, 0, 0
+    while i < len(s):
+        if s[i] == p[j]:
+            i, j = i + 1, j + 1
+            if j == len(p):
+                cnt, j = cnt + 1, 0
+        elif j == 0:
+            i += 1
+        else:
+            j = N[j]
+    return cnt
+
+#==============================================================================
+# 题目描述
+度度熊有一张网格纸，但是纸上有一些点过的点，每个点都在网格点上，
+若把网格看成一个坐标轴平行于网格线的坐标系的话，每个点可以用一对整数x，y来表示。
+度度熊必须沿着网格线画一个正方形，使所有点在正方形的内部或者边界。
+然后把这个正方形剪下来。问剪掉正方形的最小面积是多少。 
+输入描述:
+第一行一个数n(2≤n≤1000)表示点数，接下来每行一对整数xi,yi(－1e9<=xi,yi<=1e9)
+表示网格上的点
+输出描述:
+一行输出最小面积
+
+输入例子:
+2
+0 0
+0 3
+
+输出例子:
+9
+#==============================================================================
+import sys
+while True:
+    try:
+        n = int(raw_input())#int(sys.stdin.readline().strip())
+        a = []
+        for i in xrange(n):
+            x,y = [int(x) for x in raw_input().split()]#a.append(sys.stdin.readline().strip().split())
+            if i == 0:
+                dmm = [x,x,y,y]
+            else:
+                if x < dmm[0]:# xmin
+                    dmm[0] = x
+                if x > dmm[1]:# xmax
+                    dmm[1] = x
+                if y < dmm[2]:# ymin
+                    dmm[2] = y
+                if y > dmm[3]:# ymax
+                    dmm[3] = y
+        print max(dmm[1] - dmm[0],dmm[3] - dmm[2])**2
+    except:
+        break
+                    
