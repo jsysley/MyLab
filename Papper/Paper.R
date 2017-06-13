@@ -60,7 +60,7 @@ Predict <- function(x,beta0)
 
 ####################################################
 library(MASS)
-EM_SVM <- function(x,y,alpha = 1,mu = 0.1,iter = 1000)
+EM_SVM <- function(x,y,alpha = 1,mu = 0.1,iter = 8000)
 {
     ############################## Pre Dealing
     k <- ncol(x) # The number of the variables                               
@@ -77,11 +77,10 @@ EM_SVM <- function(x,y,alpha = 1,mu = 0.1,iter = 1000)
     names(sigma_lower)[1] <- "intercept"
     sigma_upper <- diag(sigma_lower^2)
     
-    x <- cbind(rep(1,n),x) # Add the intercept
+    x <- cbind(rep(1,n),x) # Add the intercept     
     tryCatch({colnames(x)[1] <- "intercept"},error = function(e){
         colnames(x) <<- c("intercept",paste("x",1:k,sep = ""))
     })
-    
     
     set.seed(1) # Initialize beta0 
     beta0 <- matrix(runif(k + 1,0,1),ncol = 1) # The first element is the intercept
@@ -95,7 +94,7 @@ EM_SVM <- function(x,y,alpha = 1,mu = 0.1,iter = 1000)
     {
         print(paste("Step: ", step, sep = ""))
         ##### E-Step
-        lambda_lower_inv <- array(1/abs(1 - (x %*% beta0) * y_num))
+        lambda_lower_inv <- array(1 / abs(1 - (x %*% beta0) * y_num))
     
         lambda_upper_inv <- diag(lambda_lower_inv) # lambda_upper_inv
         
@@ -126,7 +125,7 @@ EM_SVM <- function(x,y,alpha = 1,mu = 0.1,iter = 1000)
             temp1 <<- ginv(sigma_upper)
             })
         
-        temp2 <- (mu**(-2)) * temp1 %*% omega_upper_inv + t(x) %*% lambda_upper_inv %*% x
+        temp2 <- (mu ** (-2)) * temp1 %*% omega_upper_inv + t(x) %*% lambda_upper_inv %*% x
         
         e <- tryCatch(temp3 <- ginv(temp2), error = function(e){
             temp2[which(temp2 == Inf,arr.ind = TRUE)] <- 99999
@@ -530,7 +529,7 @@ f <- function(x)
 
 
 ####################################################Simulation
-res <- EM_SVM(x3,y3,alpha = 2,mu = 0.01,iter = 8000)
+res <- EM_SVM(x3,y3,alpha = 1.5,mu = 0.01,iter = 8000)
 decision <- Predict(x3,res[[1]])
 label <- sign(decision)
 label[which(label == -1)] <- levels(y3)[2]

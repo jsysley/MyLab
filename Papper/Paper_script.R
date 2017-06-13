@@ -4,13 +4,13 @@ library(e1071)
 x <- iris[which(iris[,5] %in% c("setosa","versicolor")),1:4]
 y <- iris[which(iris[,5] %in% c("setosa","versicolor")),5]
 y <- factor(y)#去冗余因子
-sv <- svm(x,y,kernei="linear")
+sv <- svm(x,y,kernel = "linear")
 summary(sv)
 sv$coefs#支持向量
 ###预测
 pred <- predict(sv,x)
 table(pred,y)
-sum(pred==y)/length(y)
+sum(pred == y)/length(y)
 
 ##################论文例子
 spam <- read.table("F:/研究生/研一下/多元统计/DataSets/spambase.txt",header=TRUE)
