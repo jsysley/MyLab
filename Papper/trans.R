@@ -121,14 +121,13 @@ invnrnd <- function(mu, lambda, n = 1)
     }
     
     dimtemp <- dim(mu)
-    set.seed(11)
+    set.seed(2)
     nu <- matrix((rnorm(dimtemp[1] * dimtemp[2])),ncol = dimtemp[2])
     y = nu ^ 2
     muy = y * mu
     
     x = mu * (1 + (muy - sqrt(muy * (4 * lambda + muy))) / (2 * lambda))
     R = x
-    set.seed(20)
     elsind <- ((matrix(runif(dimtemp[1] * dimtemp[2],0,1),ncol = dimtemp[2]) * (mu + x)) > mu)
     R[elsind,] <- (mu[elsind,] ^ 2) / x[elsind,]
     return(R)
@@ -168,6 +167,7 @@ fobj <- function(x,y,w,lambda,ell)
 # iw - initial value of w
 emsvm <- function(x, y, lambda, iw = NULL, ell = 1, nepoch = 200)
 {
+    set.seed(1)
     ############################## Pre Dealing
     k <- ncol(x) # The number of the variables                               
     n <- nrow(x) # The number of the samples  
@@ -186,38 +186,42 @@ emsvm <- function(x, y, lambda, iw = NULL, ell = 1, nepoch = 200)
         R = choll(invsigma)
         iw = mu + ginv(R) %*% matrix((rnorm(k)),ncol = 1)
     }
-    w = iw
-    mw = matrix(rep(0,k),ncol = 1)
+    w <- iw
+    mw <- matrix(rep(0,k),ncol = 1)
     record <- matrix(nrow = nepoch,ncol = k ) # Temporary variables
 
     for(i in 1:nepoch)
     {
-        sprintf('loop %dth', i)
+        print(paste('loop ',i,'th',sep = ""))
         
-        invgamma = 1 / t(abs(ell - t(y_num) * t(x %*% w)))
-        indinf = which(invgamma == Inf,arr.ind = TRUE)
-        if(length(indinf) != 0)
+        invgamma <- 1 / t(abs(ell - t(y_num) * t(x %*% w)))
+        indinf <- which(invgamma == Inf,arr.ind = TRUE)
+        if(length(indinf) != 0) # avoid infinite invgamma
         {
-            invgamma[indinf] = max(invgamma[-indinf]) ^ 2
+            invgamma[indinf] <- max(invgamma[-indinf]) ^ 2
         }
         
-        tig = t(sqrt(invgamma))
-        sX = t(x) * tig[rep(1,k),]
-        invsigma = sX %*% t(sX) # to save memory usage (as compared with: X*diag(invlambda)*X')
+        tig <- t(sqrt(invgamma))
+        sX <- t(x) * tig[rep(1,k),]
+        invsigma <- sX %*% t(sX) # to save memory usage (as compared with: X*diag(invlambda)*X')
         diag(invsigma) = diag(invsigma) + lambda # add lambda to diagonal entries
-        R = choll(invsigma)
-        mu = ginv(invsigma) %*% (t(x) %*% (y_num * (1 + ell * invgamma))) # to save computation time (as compared with: invsigma\(X*(y.*(1+ell*invgamma))))
+        R <- choll(invsigma)
+        mu <- ginv(invsigma) %*% (t(x) %*% (y_num * (1 + ell * invgamma))) # to save computation time (as compared with: invsigma\(X*(y.*(1+ell*invgamma))))
         
-        w = mu
-        record[i,] = w
+        w <- mu
+        record[i,] <- w
     }
+    
     res <- list(w,record)
     names(res) <- c('w','record')
+    rownames(w) <- colnames(x)
+    colnames(w) <- "Result"
+    print(w)
     return(res)
 }
 
-em = emsvm(x3, y3, lambda = 1, ell = 1, nepoch = 200)
-pre = Predict(x3,em$w)
+em <- emsvm(x3, y3, lambda = 1, ell = 1, nepoch = 100)
+pre <- Predict(x3,em$w)
 label <- sign(pre)
 label[which(label == -1)] <- levels(y3)[2]
 label[which(label == 1)] <- levels(y3)[1]
@@ -246,6 +250,7 @@ Plot_beta0(em$record)
 mcmcsvm <- function(x, y, lambda, iw = NULL, ell = 1, nepoch = 200, burnin = 1)
 {
     ############################## Pre Dealing
+    set.seed(1)
     k <- ncol(x) # The number of the variables                               
     n <- nrow(x) # The number of the samples  
     if(class(x) != "matrix")
@@ -258,50 +263,52 @@ mcmcsvm <- function(x, y, lambda, iw = NULL, ell = 1, nepoch = 200, burnin = 1)
     
     if(is.null(iw)) # iw have no initial value
     {
-        invsigma = diag(lambda * rep(1,k))
-        mu = ginv(invsigma) %*% (t(x) %*% y_num)
-        R = choll(invsigma)
-        iw = mu + ginv(R) %*% matrix((rnorm(k*1)),ncol = 1)
+        invsigma <- diag(lambda * rep(1,k))
+        mu <- ginv(invsigma) %*% (t(x) %*% y_num)
+        R <- choll(invsigma)
+        iw <- mu + ginv(R) %*% matrix((rnorm(k*1)),ncol = 1)
     }
-    w = iw
-    mw = matrix(rep(0,k*1),ncol = 1)
+    w <- iw
+    mw <- matrix(rep(0,k*1),ncol = 1)
     record <- matrix(nrow = nepoch,ncol = k ) # Temporary variables
     
     for(i in 1:nepoch)
     {
-        sprintf('loop %dth', i)
-        invgamma = 1 / t(abs(ell - t(y_num) * t(x %*% w)))
-        indinf = which(invgamma == Inf,arr.ind = TRUE)
+        print(paste('loop ',i,'th',sep = ""))
+        invgamma <- 1 / t(abs(ell - t(y_num) * t(x %*% w)))
+        indinf <- which(invgamma == Inf,arr.ind = TRUE)
         if(length(indinf) != 0)
         {
-            invgamma[indinf] = max(invgamma(-indinf)) ^ 2
+            invgamma[indinf] <- max(invgamma(-indinf)) ^ 2
         }
         
-        invgamma = invnrnd(invgamma, 1)
+        invgamma <- invnrnd(invgamma, 1)
         
-        tig = t(sqrt(invgamma))
-        sX = t(x) * tig[rep(1,k),]
-        invsigma = sX %*% t(sX) # to save memory usage (as compared with: X*diag(invlambda)*X')
-        diag(invsigma) = diag(invsigma) + lambda # add lambda to diagonal entries
-        R = choll(invsigma)
-        mu = ginv(invsigma) %*% (t(x) %*% (y_num * (1 + ell * invgamma))) # to save computation time (as compared with: invsigma\(X*(y.*(1+ell*invgamma))))
+        tig <- t(sqrt(invgamma))
+        sX <- t(x) * tig[rep(1,k),]
+        invsigma <- sX %*% t(sX) # to save memory usage (as compared with: X*diag(invlambda)*X')
+        diag(invsigma) <- diag(invsigma) + lambda # add lambda to diagonal entries
+        R <- choll(invsigma)
+        mu <- ginv(invsigma) %*% (t(x) %*% (y_num * (1 + ell * invgamma))) # to save computation time (as compared with: invsigma\(X*(y.*(1+ell*invgamma))))
         
-        set.seed(i)
         temp <- matrix((rnorm(k*1)),ncol = 1)
-        w = mu + ginv(R) %*% temp
+        w <- mu + ginv(R) %*% temp
         if(i > burnin)
         {
-            mw = mw + (w - mw) / (i - burnin)
+            mw <- mw + (w - mw) / (i - burnin)
         }
-        record[i,] = mw
+        record[i,] <- mw
     }
     res <- list(mw,record)
     names(res) <- c('w','record')
+    rownames(mw) <- colnames(x)
+    colnames(mw) <- "Result"
+    print(mw)
     return(res)
 }
 
-mcmc = mcmcsvm(x3, y3, lambda = 1, ell = 1, nepoch = 600, burnin = 1)
-pre = Predict(x3,mcmc$w)
+mcmc <- mcmcsvm(x3, y3, lambda = 1, ell = 1, nepoch = 100, burnin = 1)
+pre <- Predict(x3,mcmc$w)
 label <- sign(pre)
 label[which(label == -1)] <- levels(y3)[2]
 label[which(label == 1)] <- levels(y3)[1]
@@ -310,11 +317,23 @@ Plot_beta0(mcmc$record)
 
 ####################################################
 
+# inputs:
+# X - data matrix (K*N, data stored column-wisely)
+# y - label vector (N*1, '-1' for negative, '1' for positive)
+# lambda - regularization constant
+# ell - margin parameter (usually would be 1)
+# nepoch - number of epochs in Gibbs sampling
+# pi - parameters of the spike-and-slab prior (scalar or K*1 vector)
 
-sssvm <- function(x, y, lambda, p, ell = 1, nepoch = 200)
+# output: 
+# w - the optimal weight vector (w.r.t. the objective function) during the sampling process
+ 
+
+sssvm <- function(x, y, lambda, ell = 1, nepoch = 200, p = 0.5)
 {
+    set.seed(1)
     k <- ncol(x) # The number of the variables                               
-    n <- nrow(x) # The number of the samples  
+    n <- nrow(x) # The number of the samples 
     if(class(x) != "matrix")
     {
         x <- as.matrix(x, ncol = k)
@@ -327,28 +346,27 @@ sssvm <- function(x, y, lambda, p, ell = 1, nepoch = 200)
     {
         p <- p * matrix(rep(1,k),ncol = 1)
     }
-    invsigma = diag(lambda * rep(1,k))
-    Xmym1pil = t(x) %*% y_num
-    mu = ginv(invsigma) %*% Xmym1pil
-    set.seed(17)
-    gamma = (matrix((runif(k,0,1)),ncol = 1) < p)
+    invsigma <- diag(lambda * rep(1,k))
+    Xmym1pil <- t(x) %*% y_num
+    mu <- ginv(invsigma) %*% Xmym1pil
+    gamma <- (matrix((runif(k,0,1)),ncol = 1) < p)
     
-    R = choll(invsigma[gamma,gamma])
-    mu_ = ginv(invsigma[gamma,gamma]) %*% Xmym1pil[gamma]
-    wopt = mu
+    R <- choll(invsigma[gamma,gamma])
+    mu_ <- ginv(invsigma[gamma,gamma]) %*% Xmym1pil[gamma]
+    wopt <- mu
     
-    fopt = fobj(t(x), y_num, wopt, lambda, ell)
-    w = matrix(rep(0,k),ncol = 1)
+    fopt <- fobj(t(x), y_num, wopt, lambda, ell)
+    w <- matrix(rep(0,k),ncol = 1)
     
     record <- matrix(nrow = nepoch,ncol = k ) # Temporary variables
     for(i in 1:nepoch)
     {
+        print(paste('loop ',i,'th',sep = ""))
         # sampling w
         w[!gamma] <- 0
         nnz <- length(which(gamma == 1))
-        set.seed(i)
-        w[gamma] = mu_ + ginv(R) %*% matrix(rnorm(nnz),ncol = 1)
-        ftemp = fobj(t(x),y_num,w,lambda,ell)
+        w[gamma] <- mu_ + ginv(R) %*% matrix(rnorm(nnz),ncol = 1)
+        ftemp <- fobj(t(x),y_num,w,lambda,ell)
         if(ftemp < fopt)
         {
             fopt <- ftemp
@@ -362,7 +380,7 @@ sssvm <- function(x, y, lambda, p, ell = 1, nepoch = 200)
             invsigma_1 <-  invsigma[gamma,gamma]
             R1 <- choll(invsigma_1)
             tismm_1 <- Xmym1pil[gamma]
-            mu_1 = ginv(invsigma_1) %*% tismm_1
+            mu_1 <- ginv(invsigma_1) %*% tismm_1
             
             gamma[j] <- FALSE
             if(any(gamma == 1))
@@ -378,32 +396,33 @@ sssvm <- function(x, y, lambda, p, ell = 1, nepoch = 200)
                 mu_0 <- 0
             }
             
-            set.seed(j)
-            gamma[j] <- runif(1,0,1) * (1 + p[j] / (1 - p[j]) * prod(c(diag(R0),1) / diag(R1)) * exp(0.5 * (t(mu_1) %*% tismm_1 - t(mu_0) %*% tismm_0)))
-            gamma[j] <- (gamma[j] > 1)
+            gamma[j] <- (runif(1,0,1) * (1 + p[j] / (1 - p[j]) * prod(c(diag(R0),1) / diag(R1)) * exp(0.5 * (t(mu_1) %*% tismm_1 - t(mu_0) %*% tismm_0))) > 1)
         }
         
         # sampling invlambda
-        invlambda = invnrnd(1 / t(abs(ell - t(y_num) * t(x %*% w))), 1)
-        Xmym1pil = t(x) %*% (y_num * (1 + ell * invlambda))
+        invlambda <- invnrnd(1 / t(abs(ell - t(y_num) * t(x %*% w))), 1)
+        Xmym1pil <- t(x) %*% (y_num * (1 + ell * invlambda))
         
-        til = t(sqrt(invlambda))
-        sX = t(x) * til[rep(1,k),]
-        invsigma = sX %*% t(sX) # to save memory usage (as compared with: X*diag(invlambda)*X')
-        diag(invsigma) = diag(invsigma) + lambda # add lambda to diagonal entries
-        invsigma_ = invsigma[gamma,gamma]
-        R = choll(invsigma_)
-        mu_ = ginv(invsigma_) %*% Xmym1pil[gamma]
+        til <- t(sqrt(invlambda))
+        sX <- t(x) * til[rep(1,k),]
+        invsigma <- sX %*% t(sX) # to save memory usage (as compared with: X*diag(invlambda)*X')
+        diag(invsigma) <- diag(invsigma) + lambda # add lambda to diagonal entries
+        invsigma_ <- invsigma[gamma,gamma]
+        R <- choll(invsigma_)
+        mu_ <- ginv(invsigma_) %*% Xmym1pil[gamma]
         
         record[i,] <- wopt
     }
     res <- list(wopt,record)
     names(res) <- c('w','record')
+    rownames(wopt) <- colnames(x)
+    colnames(wopt) <- "Result"
+    print(wopt)
     return(res)
 }
 
-ss = sssvm(x3, y3, lambda = 2, p = 0.7, ell = 1, nepoch = 300)
-pre = Predict(x3,ss$w)
+ss <- sssvm(x3, y3, lambda = 1, ell = 1, nepoch = 100, p = 0.5)
+pre <- Predict(x3,ss$w)
 label <- sign(pre)
 label[which(label == -1)] <- levels(y3)[2]
 label[which(label == 1)] <- levels(y3)[1]
